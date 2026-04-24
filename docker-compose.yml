@@ -1,0 +1,38 @@
+services:
+  api:
+    build: ./api
+    container_name: bordadosapi
+    restart: unless-stopped
+    ports:
+      - '8000:8000'
+    env_file:
+      - api/.env
+    environment:
+      - DEBUG=1
+      - SECRET_KEY=your_secure_key_here
+      - DATABASE_URL=sqlite:///db.sqlite3
+    volumes:
+      - ./api:/app
+    command: python manage.py runserver 0.0.0.0:8000
+    networks:
+      - app-network
+
+  frontend:
+    build: ./app
+    container_name: bordados-frontend
+    restart: unless-stopped
+    ports:
+      - '5173:5173'
+    environment:
+      - VITE_API_URL=http://api:8000
+    volumes:
+      - ./app:/app
+    command: npm run dev -- --host
+    depends_on:
+      - api
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
