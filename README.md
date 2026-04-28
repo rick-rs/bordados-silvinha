@@ -288,23 +288,6 @@ docker compose exec api python manage.py flush
 ```
 
 ### Frontend (React)
-# Validar formatação (Black)
-docker compose exec api black --check .
-
-# Auto-formatar código (Black + isort)
-docker compose exec api black . && docker compose exec api isort .
-
-# Validar imports (isort)
-docker compose exec api isort --check-only .
-
-# Linter estrito (Flake8)
-docker compose exec api flake8 .
-
-# Type checking (mypy)
-docker compose exec api mypy .
-```
-
-### Frontend (React)
 
 ```bash
 # Acessar o container do frontend
