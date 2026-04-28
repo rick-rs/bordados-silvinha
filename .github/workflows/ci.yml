@@ -14,14 +14,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Frontend (React) - placeholder
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Frontend (React) - Lint and Build
         working-directory: app
         run: |
-          echo "OK - CI frontend"
-          # Futuro:
-          # npm ci
-          # npm run lint
-          # npm test
+          npm ci
+          npm run lint
+          npm run build
 
       - name: Backend (Python) - placeholder
         working-directory: api
