@@ -26,7 +26,7 @@ cd bordados-app
 ### 2. Subir a aplicação com Docker Compose
 
 ```bash
-# Iniciar backend (API Django) e frontend (React)
+# Iniciar PostgreSQL, backend (API Django) e frontend (React)
 docker compose up -d
 
 # Acompanhar os logs da aplicação (Ctrl+C para sair)
@@ -56,6 +56,9 @@ Se preferir desenvolver localmente sem Docker:
 # Entrar no diretório da API
 cd api
 
+# O backend usa PostgreSQL; defina DATABASE_URL antes de rodar localmente.
+# Exemplo: postgres://bordados:bordados@localhost:5432/bordados
+
 # Criar ambiente virtual Python
 python3 -m venv venv
 
@@ -68,7 +71,7 @@ venv\Scripts\activate
 # Instalar dependências
 pip install -r requirements.txt
 
-# Rodar migrations (banco de dados)
+# Rodar migrations no PostgreSQL
 python manage.py migrate
 
 # Criar superuser (usuário admin)
@@ -251,7 +254,7 @@ git commit --no-verify
 A cada Push ou Pull Request, o GitHub Actions roda:
 - ✅ Lint completo (backend + frontend)
 - ✅ Build (verifica se compila)
-- ✅ Testes (pytest para backend, vitest para frontend)
+- ✅ Testes do backend com PostgreSQL
 
 Se falhar, o PR não pode ser mergeado até corrigir.
 
@@ -358,7 +361,7 @@ bordados-app/
 │   ├── requirements.txt
 │   ├── requirements-dev.txt
 │   ├── Dockerfile
-│   └── db.sqlite3
+│   └── db.sqlite3 (legado, não usado com PostgreSQL)
 ├── app/
 │   ├── App.tsx
 │   ├── index.tsx
@@ -457,6 +460,17 @@ docker compose up -d
 docker compose exec api python manage.py migrate
 ```
 
+### PostgreSQL local sem Docker
+
+Se preferir não usar o banco do `docker compose`, configure um PostgreSQL local e ajuste o `DATABASE_URL` antes de rodar o backend.
+
+```bash
+export DATABASE_URL=postgres://bordados:bordados@localhost:5432/bordados
+cd api
+python manage.py migrate
+python manage.py runserver
+```
+
 ### Dependências desatualizadas
 
 ```bash
@@ -478,83 +492,3 @@ docker compose exec api pip install --upgrade -r requirements.txt
 - [Vite Documentation](https://vitejs.dev/)
 - [TypeScript Documentation](https://www.typescriptlang.org/docs/)
 - [GitHub Actions Documentation](https://docs.github.com/en/actions)
-
----
-- Painel de reposição de estoque com materiais abaixo do mínimo
-## 🤝 Contribuindo
-
-Veja [CONTRIBUTING.md](CONTRIBUTING.md) para um guia detalhado sobre:
-- Setup de ferramentas de qualidade (Black, isort, Flake8, mypy, ESLint)
-- Como configurar pre-commit hooks
-- Como rodar validações localmente
-- Como simular o CI pipeline
-- Troubleshooting de problemas comuns
-
----
-- Botão flutuante (FAB) para nova encomenda no mobile
-
-### Pedidos
-- Listagem completa de pedidos com filtros
-- Criação de novos pedidos com seleção de cliente, produtos e bordados
-- Detalhamento do pedido com histórico de status
-- Fluxo de status: Recebido -> Aguardando Matriz -> Em Produção -> Pronto para Entrega -> Entregue
-- Suporte a cancelamento com motivo
-- Marcação de pedido urgente
-- Registro de canal de origem (Instagram, WhatsApp, Facebook, Marketplace)
-- Controle de pagamento (Pix, Dinheiro, Cartão, Transferência) com status (Pendente, Parcial, Pago)
-
-### Clientes
-- Cadastro completo com nome, telefone, e-mail, rede social
-- Endereço completo (CEP, rua, número, complemento, bairro, cidade, estado)
-- Listagem e exclusão de clientes
-
-### Produtos e Catálogo
-- Cadastro de peças (toalhas, fraldas, etc.) e bordados (nomes, flores, monogramas, etc.)
-- Informações: descrição, preço base, tempo estimado, categoria/subcategoria
-- Quantidade de pontos para bordados
-- Catálogo visual para consulta
-
-### Estoque
-- Cadastro de materiais (linhas, entretelas, tecidos)
-- Controle de quantidade atual e estoque mínimo
-- Movimentações de entrada e saída com observações
-- Alertas automáticos quando estoque está abaixo do mínimo
-
-### Agenda
-- Calendário mensal com visualização dos pedidos por data de prazo
-- Destaque para pedidos urgentes e atrasados
-
-## 💻 Tecnologias
-
-### Backend
-- **Django 4.2+** - Framework web Python [📖](https://www.djangoproject.com/)
-- *📊 *SQLite** - Banco de dados relacional
-- **Python 3.10+** - Linguagem de programação
-
-### Frontend
-- **React 18** - Biblioteca JavaScript para interfaces [📖](https://react.dev/)
-- **Vite 5** - Bundler moderno e rápido [📖](https://vitejs.dev/)
-- **TypeScript** - JavaScript com tipagem estática [📖](https://www.typescriptlang.org/)
-- **React Router** - Roteamento de páginas [📖](https://reactrouter.com/)
-
-### DevOps
-- **Docker** - Containerização [📖](https://www.docker.com/)
-- **Docker Compose** - Orquestração local [📖](https://docs.docker.com/compose/)
-- **GitHub Actions** - CI/CD automático [📖](https://docs.github.com/en/actions)
-
----
-
-### Cliente
-Nome, telefone, e-mail, rede social, endereço completo (CEP, rua, número, complemento, bairro, cidade, estado).
-
-### Produto
-Nome, descrição, imagem, preço base, tempo estimado, categoria, subcategoria, tipo (peça ou bordado), quantidade de pontos (para bordados).
-
-### Pedido
-Cliente, data do pedido, prazo, canal de origem, forma e status de pagamento, urgência, observações, itens (produto, quantidade, valor, descrição do bordado), valor total, status com histórico de alterações.
-
-### Material
-Nome, descrição, unidade de medida, quantidade atual, estoque mínimo.
-
-### Movimentação de Estoque
-Material, tipo (entrada/saída), quantidade, data, observação.

@@ -11,6 +11,22 @@ jobs:
   backend-quality:
     name: Backend - Code Quality & Tests
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: bordados_ci
+          POSTGRES_USER: bordados
+          POSTGRES_PASSWORD: bordados
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U bordados -d bordados_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgres://bordados:bordados@localhost:5432/bordados_ci
     steps:
       - uses: actions/checkout@v4
       - name: Setup Python 3.10
