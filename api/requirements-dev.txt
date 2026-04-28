@@ -1,0 +1,13 @@
+# Development & Linting Tools
+black==24.1.1              # Code formatter
+isort==5.13.2              # Import organizer
+flake8==7.0.0              # Linter
+flake8-docstrings==1.7.0   # Docstring linter
+pylint==3.0.3              # Additional linter
+mypy==1.8.0                # Static type checker
+pytest==7.4.4              # Testing framework
+pytest-django==4.7.0       # Django testing plugin
+pytest-cov==4.1.0          # Coverage reporting
+
+# Pre-commit hooks
+pre-commit==3.6.0
