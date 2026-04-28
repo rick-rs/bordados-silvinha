@@ -12,9 +12,10 @@ help:
 	@echo "  make lint-backend     Lint Python code (black, isort, flake8, mypy)"
 	@echo "  make format-backend   Auto-format Python code (black, isort)"
 	@echo "  make test-backend     Run Django tests with coverage"
-	@echo "  make migrate          Run Django migrations"
-	@echo "  make createsuperuser  Create Django admin user"
-	@echo "  make shell            Access Django shell"
+	@echo "  make makemigrations   Create migrations (runs inside docker)"
+	@echo "  make migrate          Apply migrations (runs inside docker)"
+	@echo "  make createsuperuser  Create Django admin user (inside docker)"
+	@echo "  make shell            Access Django shell (inside docker)"
 	@echo ""
 	@echo "Frontend (React):"
 	@echo "  make lint-frontend    Lint JavaScript/TypeScript (ESLint)"
@@ -66,14 +67,26 @@ test-backend:
 	@echo "🧪 Running backend tests..."
 	cd api && pytest --tb=short -v
 
+migrations:
+	@echo "⚙️  Running makemigrations and migrate inside docker (api service)"
+	docker compose exec api python manage.py makemigrations --noinput || true
+	docker compose exec api python manage.py migrate --noinput
+
+makemigrations:
+	@echo "⚙️  Running makemigrations inside docker (api service)"
+	docker compose exec api python manage.py makemigrations
+
 migrate:
-	cd api && python manage.py migrate
+	@echo "⚙️  Running migrate inside docker (api service)"
+	docker compose exec api python manage.py migrate
 
 createsuperuser:
-	cd api && python manage.py createsuperuser
+	@echo "⚙️  Creating superuser inside docker (interactive)"
+	docker compose exec -it api python manage.py createsuperuser
 
 shell:
-	cd api && python manage.py shell
+	@echo "⚙️  Opening Django shell inside docker (interactive)"
+	docker compose exec -it api python manage.py shell
 
 # Frontend - Linting & Formatting
 lint-frontend:

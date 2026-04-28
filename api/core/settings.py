@@ -42,6 +42,8 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "corsheaders",
+    "drf_spectacular",
+    "commerce.apps.CommerceConfig",
 ]
 
 MIDDLEWARE = [
@@ -128,4 +130,12 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.AllowAny",
     ],
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+# drf-spectacular settings
+SPECTACULAR_SETTINGS = {
+    "TITLE": "BordadosApp API",
+    "DESCRIPTION": "API para gerenciamento do sistema de bordados",
+    "VERSION": "1.0.0",
 }

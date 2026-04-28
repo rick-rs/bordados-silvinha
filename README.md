@@ -36,7 +36,14 @@ docker compose logs -f
 ### 3. Acessar a aplicação
 
 - **Frontend:** http://localhost:5173
-- **Backend API:** http://localhost:8000/api
+- **Backend API (root):** http://localhost:8000/api/
+- **Admin (Django admin):** http://localhost:8000/admin/  — criar superuser com `python manage.py createsuperuser` ou via container
+- **API Schema (OpenAPI):** http://localhost:8000/api/schema/
+- **API Docs (Swagger UI):** http://localhost:8000/api/docs/
+
+Outras rotas úteis (serão expandidas):
+- Recursos de domínio estão disponíveis sob `/api/` — ex.: `/api/clientes/`, `/api/produtos/`, `/api/pedidos/`.
+
 
 ### 4. Parar a aplicação
 
