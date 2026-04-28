@@ -10,7 +10,8 @@ exclude =
     .venv,
     venv,
     migrations,
-    .eggs
+    node_modules,
+    app/dist
 per-file-ignores =
     __init__.py:F401
-    core/settings.py:E501
+    api/core/settings.py:E501

@@ -69,5 +69,5 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "core.settings"
 python_files = ["tests.py", "test_*.py", "*_tests.py"]
-addopts = "--cov=api --cov-report=html --cov-report=term-missing"
+addopts = "--cov=core --cov-report=html --cov-report=term-missing"
 testpaths = ["api"]
