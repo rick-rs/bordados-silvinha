@@ -350,45 +350,31 @@ docker compose restart frontend
 
 ```
 bordados-app/
-├── api/                          # Backend Django
-│   ├── core/                    # Configurações do projeto
-│   │   ├── settings.py          # Configurações do Django
-│   │   ├── urls.py              # Rotas principais
-│   │   ├── asgi.py              # ASGI para produção
-│   │   └── wsgi.py              # WSGI para produção
-│   ├── manage.py                # Gerenciador Django
-│   ├── requirements.txt          # Dependências Python
-│   ├── Dockerfile               # Imagem Docker do backend
-│   └── db.sqlite3               # Banco de dados (local)
-│
-├── app/                          # Frontend React + Vite
-│   ├── src/
-│   │   ├── App.tsx              # Componente raiz
-│   │   └── index.tsx            # Ponto de entrada
-│   ├── index.html               # HTML principal
-│   ├── package.json             # Dependências Node
-│   ├── tsconfig.json            # Configuração TypeScript
-│   ├── vite.config.ts           # Configuração Vite
-│   ├── .eslintrc.cjs            # Configuração ESLint
-│   ├── Dockerfile               # Imagem Docker do frontend
-│   └── node_modules/            # Dependências instaladas (Git ignored)
-│
-├── docker-compose.yml           # Orquestração de containers
-├── .github/
-│   └── workflows/
-│       └── ci.yml               # Pipeline CI/CD (GitHub Actions)
-└── README.md                    # Este arquivo
-```
-├── api/requirements-dev.txt     # Dependências para desenvolvimento (linting, testes)
-├── api/.flake8                  # Configuração Flake8 (linter)
-├── pyproject.toml               # Configurações Black, isort, mypy, pytest
-├── .pre-commit-config.yaml      # Hooks pre-commit (validação antes de commit)
-├── Makefile                     # Comandos práticos (make help, make lint, etc)
-├── docker-compose.yml           # Orquestração de containers
-├── .github/
-│   └── workflows/
-│       └── ci.yml               # Pipeline CI/CD (GitHub Actions)
-└── README.md                    # Este arquivo
+├── api/
+│   ├── core/
+│   │   ├── settings.py
+│   │   └── ... (outras configurações)
+│   ├── manage.py
+│   ├── requirements.txt
+│   ├── requirements-dev.txt
+│   ├── Dockerfile
+│   └── db.sqlite3
+├── app/
+│   ├── App.tsx
+│   ├── index.tsx
+│   ├── index.html
+│   ├── package.json
+│   ├── tsconfig.json
+│   ├── vite.config.ts
+│   ├── .eslintrc.cjs
+│   └── Dockerfile
+├── docker-compose.yml
+├── .github/workflows/ci.yml
+├── pyproject.toml
+├── .pre-commit-config.yaml
+├── Makefile
+├── CONTRIBUTING.md
+└── README.md
 ```
 
 ---
