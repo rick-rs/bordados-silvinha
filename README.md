@@ -93,6 +93,168 @@ npm run dev
 # Frontend estará em: http://localhost:5173
 ```
 
+
+## 🪟 Windows (WSL) — Como configurar
+
+Se você desenvolve no Windows recomendamos usar **WSL (Windows Subsystem for Linux)** para ter um ambiente compatível com os comandos e o `Makefile` usados aqui.
+
+Passos rápidos:
+
+1. Abra o PowerShell como Administrador e execute (Windows 10/11):
+
+```powershell
+wsl --install -d Ubuntu
+```
+
+2. Reinicie o PC se solicitado. Abra a distribuição (ex.: "Ubuntu") e crie seu usuário.
+
+3. Verifique a versão do WSL:
+
+```powershell
+wsl -l -v
+```
+
+4. Instale o Docker Desktop para Windows e habilite a integração com WSL2 (Settings → Resources → WSL Integration):
+
+- https://docs.docker.com/get-docker/
+
+5. Dentro do WSL, atualize o sistema e instale utilitários:
+
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y build-essential git curl
+```
+
+6. Use o WSL para rodar os comandos do projeto (recomendado):
+
+```bash
+git clone <repo-url>
+cd bordados-app
+make install-dev
+make docker-up
+```
+
+Observações:
+- É possível usar `make` no PowerShell instalando utilitários adicionais (Chocolatey, MSYS2, etc.), porém WSL oferece compatibilidade máxima.
+- Se preferir não usar Docker Desktop, você pode instalar Docker dentro do WSL, mas a integração com Docker Desktop costuma ser mais simples.
+
+## 🛠️ Comandos Úteis de Desenvolvimento
+## 🧹 Qualidade de Código (Code Quality)
+
+Usamos as melhores práticas do mercado para manter a qualidade do código:
+
+### Ferramentas Instaladas
+
+- **Black** - Formatador de código opinionado [📖](https://black.readthedocs.io/)
+- **isort** - Organizador de imports [📖](https://pycqa.github.io/isort/)
+- **Flake8** - Linter Python [📖](https://flake8.pycqa.org/)
+- **mypy** - Type checking estático [📖](https://www.mypy-lang.org/)
+- **pytest** - Framework de testes [📖](https://pytest.org/)
+- **ESLint** - Linter JavaScript/TypeScript (Frontend) [📖](https://eslint.org/)
+- **Pre-commit hooks** - Validação automática antes de commits [📖](https://pre-commit.com/)
+
+### Configuração Inicial (Importante!)
+
+Depois de clonar e instalar dependências, configure os pre-commit hooks:
+
+```bash
+# Instalar pre-commit framework
+pip install pre-commit
+
+# Configurar git hooks (executará validações antes de cada commit)
+pre-commit install
+
+# ✅ Pronto! Agora cada commit será validado automaticamente
+```
+
+### Validar Código Localmente
+
+**Usar Makefile (recomendado):**
+
+```bash
+# Ver todos os comandos disponíveis
+make help
+
+# Validar tudo (backend + frontend)
+make lint
+
+# Auto-formatar código
+make format
+
+# Rodar testes
+make test
+
+# Simular CI pipeline local
+make ci
+```
+
+**Ou diretamente sem Docker (após setup local):**
+
+```bash
+# Backend - Validar formatação (Black)
+cd api && black --check .
+
+# Backend - Validar imports (isort)
+cd api && isort --check-only .
+
+# Backend - Validar código (Flake8)
+cd api && flake8 .
+
+# Backend - Type checking (mypy)
+cd api && mypy .
+
+# Backend - Auto-formatar
+cd api && black . && isort .
+
+# Frontend - Linter
+cd app && npm run lint
+
+# Frontend - Auto-fix
+cd app && npm run lint -- --fix
+```
+
+**Com Docker:**
+
+```bash
+# Backend linting
+docker compose exec api black --check .
+docker compose exec api isort --check-only .
+docker compose exec api flake8 .
+
+# Backend auto-format
+docker compose exec api black . && docker compose exec api isort .
+
+# Frontend linting
+docker compose exec frontend npm run lint
+```
+
+### Pre-commit Hooks (Validação Automática)
+
+Quando você tenta fazer um `git commit`, os hooks validam:
+- ✅ Arquivo bem formatado (Black + isort)
+- ✅ Sem erros de linting (Flake8)
+- ✅ Imports organizados
+- ✅ Sem arquivos grandes acidentais
+- ✅ JSON válido
+- ✅ Sem chaves privadas
+
+Se algo falhar, o commit é **bloqueado** e você vê quais são os problemas. Algumas ferramentas (Black, isort) corrigem automaticamente, outras você precisa arrumar manualmente.
+
+**Para forçar um commit (cuidado!):**
+
+```bash
+git commit --no-verify
+```
+
+### CI/CD Pipeline
+
+A cada Push ou Pull Request, o GitHub Actions roda:
+- ✅ Lint completo (backend + frontend)
+- ✅ Build (verifica se compila)
+- ✅ Testes (pytest para backend, vitest para frontend)
+
+Se falhar, o PR não pode ser mergeado até corrigir.
+
 ---
 
 ## 🛠️ Comandos Úteis de Desenvolvimento
@@ -120,6 +282,23 @@ docker compose exec api pytest
 
 # Limpar migrations (cuidado!)
 docker compose exec api python manage.py flush
+```
+
+### Frontend (React)
+# Validar formatação (Black)
+docker compose exec api black --check .
+
+# Auto-formatar código (Black + isort)
+docker compose exec api black . && docker compose exec api isort .
+
+# Validar imports (isort)
+docker compose exec api isort --check-only .
+
+# Linter estrito (Flake8)
+docker compose exec api flake8 .
+
+# Type checking (mypy)
+docker compose exec api mypy .
 ```
 
 ### Frontend (React)
@@ -194,6 +373,17 @@ bordados-app/
 │   ├── Dockerfile               # Imagem Docker do frontend
 │   └── node_modules/            # Dependências instaladas (Git ignored)
 │
+├── docker-compose.yml           # Orquestração de containers
+├── .github/
+│   └── workflows/
+│       └── ci.yml               # Pipeline CI/CD (GitHub Actions)
+└── README.md                    # Este arquivo
+```
+├── api/requirements-dev.txt     # Dependências para desenvolvimento (linting, testes)
+├── api/.flake8                  # Configuração Flake8 (linter)
+├── pyproject.toml               # Configurações Black, isort, mypy, pytest
+├── .pre-commit-config.yaml      # Hooks pre-commit (validação antes de commit)
+├── Makefile                     # Comandos práticos (make help, make lint, etc)
 ├── docker-compose.yml           # Orquestração de containers
 ├── .github/
 │   └── workflows/
@@ -304,14 +494,17 @@ docker compose exec api pip install --upgrade -r requirements.txt
 - [GitHub Actions Documentation](https://docs.github.com/en/actions)
 
 ---
-
-## ✨ Funcionalidades
-
-### Dashboard
-- Visão geral com indicadores: pedidos em andamento, faturamento mensal, pedidos atrasados e alertas de estoque
-- Painel de alertas de prazo com destaque para pedidos próximos ao vencimento ou atrasados
 - Painel de reposição de estoque com materiais abaixo do mínimo
-- Tabela de pedidos recentes com status e pagamento
+## 🤝 Contribuindo
+
+Veja [CONTRIBUTING.md](CONTRIBUTING.md) para um guia detalhado sobre:
+- Setup de ferramentas de qualidade (Black, isort, Flake8, mypy, ESLint)
+- Como configurar pre-commit hooks
+- Como rodar validações localmente
+- Como simular o CI pipeline
+- Troubleshooting de problemas comuns
+
+---
 - Botão flutuante (FAB) para nova encomenda no mobile
 
 ### Pedidos
