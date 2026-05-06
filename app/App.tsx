@@ -1,9 +1,11 @@
 import { BrowserRouter } from 'react-router-dom';
 
+const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
+
 function App() {
   return (
     <BrowserRouter>
-      <div>App Content</div>
+      <div data-api-base-url={apiBaseUrl}>App Content</div>
     </BrowserRouter>
   );
 }

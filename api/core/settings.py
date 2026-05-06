@@ -19,16 +19,24 @@ from decouple import config
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+def csv(value: str) -> list[str]:
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-1s+u(^h((1i$2f^2y!+6%orga)9=62@9ckxbp-f2s#zwd0!+mn"
+SECRET_KEY = config("DJANGO_SECRET_KEY", default="django-insecure-dev-change-me")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config("DJANGO_DEBUG", default=True, cast=bool)
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = config(
+    "DJANGO_ALLOWED_HOSTS",
+    default="localhost,127.0.0.1,api,frontend",
+    cast=csv,
+)
 
 
 # Application definition
@@ -122,8 +130,13 @@ USE_TZ = True
 STATIC_URL = "static/"
 
 # CORS settings
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = config(
+    "DJANGO_CORS_ALLOWED_ORIGINS",
+    default="http://localhost:5173,http://127.0.0.1:5173,http://frontend:5173,http://api:8000",
+    cast=csv,
+)
 
 # REST Framework settings
 REST_FRAMEWORK = {

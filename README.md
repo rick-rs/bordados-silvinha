@@ -63,7 +63,8 @@ Se preferir desenvolver localmente sem Docker:
 # Entrar no diretório da API
 cd api
 
-# O backend usa PostgreSQL; defina DATABASE_URL antes de rodar localmente.
+# O backend usa PostgreSQL localmente.
+# Ajuste DATABASE_URL em api/.env para apontar para um PostgreSQL em localhost.
 # Exemplo: postgres://bordados:bordados@localhost:5432/bordados
 
 # Criar ambiente virtual Python
@@ -78,7 +79,7 @@ venv\Scripts\activate
 # Instalar dependências
 pip install -r requirements.txt
 
-# Rodar migrations no PostgreSQL
+# Rodar migrations no PostgreSQL local
 python manage.py migrate
 
 # Criar superuser (usuário admin)
@@ -351,7 +352,6 @@ bordados-app/
 │   ├── requirements.txt
 │   ├── requirements-dev.txt
 │   ├── Dockerfile
-│   └── db.sqlite3 (legado, não usado com PostgreSQL)
 ├── app/
 │   ├── App.tsx
 │   ├── index.tsx
