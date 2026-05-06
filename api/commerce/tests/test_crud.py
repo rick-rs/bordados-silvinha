@@ -1,17 +1,10 @@
-import os
-
-import django
 import pytest
-
-# Ensure Django settings are configured when tests are collected directly
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
-django.setup()
-
-from rest_framework.test import APIClient
 
 
 @pytest.mark.django_db
 def test_produto_crud_api():
+    from rest_framework.test import APIClient
+
     client = APIClient()
 
     # Create
