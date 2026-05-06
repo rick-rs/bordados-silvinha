@@ -1,4 +1,5 @@
 import os
+
 import django
 
 # Ensure settings are configured when pytest collects tests
@@ -28,7 +29,9 @@ def produto():
 
 @pytest.fixture
 def usuario():
-    return models.Usuario.objects.create(nome="Usuario Fixture", email="u@ex.com", senha_hash="h")
+    return models.Usuario.objects.create(
+        nome="Usuario Fixture", email="u@ex.com", senha_hash="h"
+    )
 
 
 @pytest.fixture

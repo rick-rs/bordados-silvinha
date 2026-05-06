@@ -1,4 +1,5 @@
 import os
+
 import django
 import pytest
 
@@ -35,7 +36,9 @@ def test_produto_crud_api():
     assert data["id"] == produto_id
 
     # Update
-    resp = client.patch(f"/api/produtos/{produto_id}/", {"nome": "Camiseta X"}, format="json")
+    resp = client.patch(
+        f"/api/produtos/{produto_id}/", {"nome": "Camiseta X"}, format="json"
+    )
     assert resp.status_code in (200, 202)
     data = resp.json()
     assert data["nome"] == "Camiseta X"
@@ -57,7 +60,9 @@ def test_itempedido_subtotal_model():
     produto = models.Produto.objects.create(nome="Produto A", preco_base=10)
     pedido = models.Pedido.objects.create(cliente=cliente)
 
-    item = models.ItemPedido(pedido=pedido, produto=produto, quantidade=3, valor_unitario=12.5)
+    item = models.ItemPedido(
+        pedido=pedido, produto=produto, quantidade=3, valor_unitario=12.5
+    )
     item.save()
 
     assert float(item.subtotal) == pytest.approx(37.5)

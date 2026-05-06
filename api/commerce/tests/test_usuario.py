@@ -13,7 +13,9 @@ def test_usuario_crud_api(api_client):
     resp = api_client.get(f"/api/usuarios/{uid}/")
     assert resp.status_code == 200
 
-    resp = api_client.patch(f"/api/usuarios/{uid}/", {"nome": "Usu Novo"}, format="json")
+    resp = api_client.patch(
+        f"/api/usuarios/{uid}/", {"nome": "Usu Novo"}, format="json"
+    )
     assert resp.status_code in (200, 202)
 
     resp = api_client.delete(f"/api/usuarios/{uid}/")

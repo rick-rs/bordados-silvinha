@@ -6,7 +6,9 @@ def test_itempedido_subtotal_model(produto, cliente):
     from commerce import models
 
     pedido = models.Pedido.objects.create(cliente=cliente)
-    item = models.ItemPedido(pedido=pedido, produto=produto, quantidade=3, valor_unitario=12.5)
+    item = models.ItemPedido(
+        pedido=pedido, produto=produto, quantidade=3, valor_unitario=12.5
+    )
     item.save()
     assert float(item.subtotal) == pytest.approx(37.5)
 
@@ -18,7 +20,12 @@ def test_itempedido_api_crud(api_client, produto, cliente):
     assert resp.status_code == 201
     pedido_id = resp.json()["id"]
 
-    payload = {"pedido": pedido_id, "produto": produto.id, "quantidade": 2, "valor_unitario": "7.50"}
+    payload = {
+        "pedido": pedido_id,
+        "produto": produto.id,
+        "quantidade": 2,
+        "valor_unitario": "7.50",
+    }
     resp = api_client.post("/api/itens-pedido/", payload, format="json")
     assert resp.status_code == 201
     data = resp.json()

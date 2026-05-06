@@ -13,7 +13,9 @@ def test_cliente_crud_api(api_client):
     resp = api_client.get(f"/api/clientes/{cid}/")
     assert resp.status_code == 200
 
-    resp = api_client.patch(f"/api/clientes/{cid}/", {"telefone": "9999"}, format="json")
+    resp = api_client.patch(
+        f"/api/clientes/{cid}/", {"telefone": "9999"}, format="json"
+    )
     assert resp.status_code in (200, 202)
 
     resp = api_client.delete(f"/api/clientes/{cid}/")

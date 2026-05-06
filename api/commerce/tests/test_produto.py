@@ -16,7 +16,9 @@ def test_produto_crud_api(api_client):
     assert resp.status_code == 200
 
     # Update
-    resp = api_client.patch(f"/api/produtos/{produto_id}/", {"nome": "Camiseta X"}, format="json")
+    resp = api_client.patch(
+        f"/api/produtos/{produto_id}/", {"nome": "Camiseta X"}, format="json"
+    )
     assert resp.status_code in (200, 202)
     assert resp.json()["nome"] == "Camiseta X"
 
