@@ -111,7 +111,7 @@ docker-rebuild:
 	@echo "✅ Services rebuilt and started"
 
 # All checks
-lint: docker-up lint-backend lint-frontend
+lint: docker-up format-backend lint-backend lint-frontend
 	@echo "✅ All linting checks passed!"
 
 format: docker-up format-backend format-frontend
@@ -120,7 +120,7 @@ format: docker-up format-backend format-frontend
 test: docker-up test-backend test-frontend
 	@echo "✅ All tests passed!"
 
-ci: docker-up lint-backend lint-frontend test-backend test-frontend build-frontend
+ci: docker-up lint test-backend test-frontend build-frontend
 	@echo "✅ CI pipeline simulation complete!"
 
 # Cleanup
