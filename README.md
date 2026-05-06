@@ -33,6 +33,8 @@ docker compose up -d
 docker compose logs -f
 ```
 
+O Docker Compose lê o arquivo `.env` da raiz para valores como banco e URL do frontend. Os arquivos `api/.env` e `app/.env` continuam válidos para execução local direta fora do Compose.
+
 ### 3. Acessar a aplicação
 
 - **Frontend:** http://localhost:5173
