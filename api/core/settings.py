@@ -20,6 +20,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 def csv(value: str) -> list[str]:
+    """Helper function to parse comma-separated values from environment variables."""
     return [item.strip() for item in value.split(",") if item.strip()]
 
 

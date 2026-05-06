@@ -1,6 +1,7 @@
 """Admin registrations for commerce models."""
 
 from django.contrib import admin
+
 from . import models
 
 
@@ -40,7 +41,14 @@ class PedidoAdmin(admin.ModelAdmin):
 class ItemPedidoAdmin(admin.ModelAdmin):
     """Admin for `ItemPedido`."""
 
-    list_display = ("id", "pedido", "produto", "quantidade", "valor_unitario", "subtotal")
+    list_display = (
+        "id",
+        "pedido",
+        "produto",
+        "quantidade",
+        "valor_unitario",
+        "subtotal",
+    )
 
 
 @admin.register(models.HistoricoStatus)

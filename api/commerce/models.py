@@ -156,7 +156,9 @@ class ItemPedido(models.Model):
 class HistoricoStatus(models.Model):
     """Record status changes for an order."""
 
-    pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE, related_name="historico")
+    pedido = models.ForeignKey(
+        Pedido, on_delete=models.CASCADE, related_name="historico"
+    )
     usuario = models.ForeignKey(
         Usuario, on_delete=models.SET_NULL, null=True, related_name="historico"
     )
@@ -200,7 +202,9 @@ class MovimentacaoEstoque(models.Model):
 
     TIPO = (("entrada", "entrada"), ("saida", "saída"))
 
-    material = models.ForeignKey(Material, on_delete=models.CASCADE, related_name="movimentacoes")
+    material = models.ForeignKey(
+        Material, on_delete=models.CASCADE, related_name="movimentacoes"
+    )
     tipo = models.CharField(max_length=16, choices=TIPO)
     quantidade = models.DecimalField(max_digits=12, decimal_places=2)
     observacao = models.TextField(blank=True, null=True)

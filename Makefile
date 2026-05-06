@@ -1,27 +1,27 @@
-.PHONY: help install install-dev lint format test clean docker-up docker-down
+.PHONY: help lint format test clean docker-up docker-down docker-logs docker-rebuild makemigrations migrate createsuperuser shell
 
 help:
 	@echo "BordadosApp - Available Commands"
 	@echo ""
 	@echo "Setup:"
-	@echo "  make install          Install dependencies (production)"
-	@echo "  make install-dev      Install dependencies (development + linting)"
-	@echo "  make pre-commit       Setup pre-commit hooks (prevents bad commits)"
+	@echo "  make docker-up        Start all services (docker compose up -d)"
+	@echo "  make docker-down      Stop all services (docker compose down)"
+	@echo "  make docker-rebuild   Rebuild images after Dockerfile changes"
 	@echo ""
 	@echo "Backend (API):"
-	@echo "  make lint-backend     Lint Python code (black, isort, flake8, mypy)"
-	@echo "  make format-backend   Auto-format Python code (black, isort)"
-	@echo "  make test-backend     Run Django tests with coverage"
-	@echo "  make makemigrations   Create migrations (runs inside docker)"
-	@echo "  make migrate          Apply migrations (runs inside docker)"
+	@echo "  make lint-backend     Lint Python code (inside docker)"
+	@echo "  make format-backend   Auto-format Python code (inside docker)"
+	@echo "  make test-backend     Run Django tests (inside docker)"
+	@echo "  make makemigrations   Create migrations (inside docker)"
+	@echo "  make migrate          Apply migrations (inside docker)"
 	@echo "  make createsuperuser  Create Django admin user (inside docker)"
 	@echo "  make shell            Access Django shell (inside docker)"
 	@echo ""
 	@echo "Frontend (React):"
-	@echo "  make lint-frontend    Lint JavaScript/TypeScript (ESLint)"
-	@echo "  make format-frontend  Auto-fix frontend linting errors"
-	@echo "  make test-frontend    Run frontend tests"
-	@echo "  make build-frontend   Build optimized frontend"
+	@echo "  make lint-frontend    Lint JavaScript/TypeScript (inside docker)"
+	@echo "  make format-frontend  Auto-fix frontend linting errors (inside docker)"
+	@echo "  make test-frontend    Run frontend tests (inside docker)"
+	@echo "  make build-frontend   Build optimized frontend (inside docker)"
 	@echo ""
 	@echo "Docker:"
 	@echo "  make docker-up        Start all services (docker compose up -d)"
@@ -30,42 +30,28 @@ help:
 	@echo "  make docker-rebuild   Rebuild images after Dockerfile changes"
 	@echo ""
 	@echo "CI/Testing:"
-	@echo "  make lint             Run all linters (backend + frontend)"
-	@echo "  make format           Auto-format all code"
-	@echo "  make test             Run all tests"
-	@echo "  make ci               Simulate CI pipeline locally"
-
-# Setup
-install:
-	pip install -r api/requirements.txt
-	cd app && npm install
-
-install-dev: install
-	pip install -r api/requirements-dev.txt
-	cd app && npm install --save-dev
-
-pre-commit:
-	pip install pre-commit
-	pre-commit install
-	@echo "✅ Pre-commit hooks installed! They will run before each commit."
+	@echo "  make lint             Run all linters (backend + frontend) in containers"
+	@echo "  make format           Auto-format all code in containers"
+	@echo "  make test             Run all tests in containers"
+	@echo "  make ci               Run the full container-based validation pipeline"
 
 # Backend - Linting & Formatting
 lint-backend:
 	@echo "🔍 Running backend linters..."
-	cd api && black --check .
-	cd api && isort --check-only .
-	cd api && flake8 .
+	docker compose exec api black --check .
+	docker compose exec api isort --check-only .
+	docker compose exec api flake8 .
 	@echo "✅ Backend linting passed!"
 
 format-backend:
 	@echo "🎨 Formatting backend code..."
-	cd api && black .
-	cd api && isort .
+	docker compose exec api black .
+	docker compose exec api isort .
 	@echo "✅ Backend formatted!"
 
 test-backend:
 	@echo "🧪 Running backend tests..."
-	cd api && pytest --tb=short -v
+	docker compose exec api pytest --tb=short -v
 
 migrations:
 	@echo "⚙️  Running makemigrations and migrate inside docker (api service)"
@@ -91,21 +77,21 @@ shell:
 # Frontend - Linting & Formatting
 lint-frontend:
 	@echo "🔍 Running frontend linters..."
-	cd app && npm run lint
+	docker compose exec frontend npm run lint
 	@echo "✅ Frontend linting passed!"
 
 format-frontend:
 	@echo "🎨 Formatting frontend code..."
-	cd app && npm run lint -- --fix
+	docker compose exec frontend npm run lint -- --fix
 	@echo "✅ Frontend formatted!"
 
 test-frontend:
 	@echo "🧪 Running frontend tests..."
-	cd app && npm run test
+	docker compose exec frontend npm run test
 
 build-frontend:
 	@echo "🔨 Building frontend..."
-	cd app && npm run build
+	docker compose exec frontend npm run build
 	@echo "✅ Frontend built!"
 
 # Docker
@@ -125,16 +111,16 @@ docker-rebuild:
 	@echo "✅ Services rebuilt and started"
 
 # All checks
-lint: lint-backend lint-frontend
+lint: docker-up lint-backend lint-frontend
 	@echo "✅ All linting checks passed!"
 
-format: format-backend format-frontend
+format: docker-up format-backend format-frontend
 	@echo "✅ All code formatted!"
 
-test: test-backend test-frontend
+test: docker-up test-backend test-frontend
 	@echo "✅ All tests passed!"
 
-ci: lint test
+ci: docker-up lint-backend lint-frontend test-backend test-frontend build-frontend
 	@echo "✅ CI pipeline simulation complete!"
 
 # Cleanup
