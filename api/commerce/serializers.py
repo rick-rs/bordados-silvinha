@@ -15,6 +15,13 @@ class UsuarioSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class LoginSerializer(serializers.Serializer):
+    """Validate login payload."""
+
+    email = serializers.EmailField()
+    senha = serializers.CharField(trim_whitespace=False, write_only=True)
+
+
 class ClienteSerializer(serializers.ModelSerializer):
     """Serializer for `Cliente`."""
 
