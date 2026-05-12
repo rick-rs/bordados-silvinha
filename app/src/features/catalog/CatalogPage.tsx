@@ -1,5 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Grid2X2, Image, Inbox, List, Pencil, Search, Trash2 } from 'lucide-react';
+import {
+  Grid2X2,
+  Image,
+  Inbox,
+  List,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+} from 'lucide-react';
 import { Navigate, useNavigate } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
@@ -138,9 +147,26 @@ export function CatalogPage() {
 
   return (
     <AppShell activePage="Catálogo">
-      <header className="mb-5 sm:mb-6">
-        <p className="text-xs font-semibold text-mauve">Dashboard / Catálogo</p>
-        <h1 className="text-2xl font-extrabold text-ink sm:text-3xl">Catálogo</h1>
+      <header className="mb-5 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold text-mauve">Dashboard / Catálogo</p>
+          <h1 className="text-2xl font-extrabold text-ink sm:text-3xl">
+            Catálogo
+          </h1>
+        </div>
+        <button
+          className={[
+            'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-frenchRose px-4 text-sm font-bold text-white shadow-sm transition',
+            'hover:-translate-y-0.5 hover:bg-froly hover:shadow-lg',
+            'focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-froly/30',
+            'sm:min-h-9 sm:w-auto sm:text-xs',
+          ].join(' ')}
+          onClick={() => navigate('/catalogo/novo')}
+          type="button"
+        >
+          <Plus aria-hidden className="h-4 w-4" />
+          Novo Item
+        </button>
       </header>
 
       {error ? (
@@ -241,6 +267,7 @@ export function CatalogPage() {
                   <th className="px-4 py-3">Nome</th>
                   <th className="px-4 py-3">Categoria</th>
                   <th className="px-4 py-3">Tipo</th>
+                  <th className="px-4 py-3">Tempo</th>
                   <th className="px-4 py-3">Preço Base</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3 text-right">Ações</th>
@@ -263,6 +290,11 @@ export function CatalogPage() {
                       {product.categoria || '-'}
                     </td>
                     <td className="px-4 py-3 text-slate-600">{product.tipo}</td>
+                    <td className="px-4 py-3 text-slate-600">
+                      {product.tempo_estimado
+                        ? `${Number(product.tempo_estimado).toLocaleString('pt-BR')} h`
+                        : '-'}
+                    </td>
                     <td className="px-4 py-3 font-extrabold text-frenchRose">
                       {formatMoney(product.preco_base)}
                     </td>
@@ -325,6 +357,13 @@ export function CatalogPage() {
                     <p className="font-extrabold text-ink">{product.nome}</p>
                     <p className="mt-1 line-clamp-2 text-xs text-slate-500">
                       {product.descricao || 'Sem descrição'}
+                    </p>
+                    <p className="mt-2 text-xs font-semibold text-slate-500">
+                      {product.tempo_estimado
+                        ? `Tempo estimado: ${Number(
+                            product.tempo_estimado,
+                          ).toLocaleString('pt-BR')} h`
+                        : 'Tempo estimado não informado'}
                     </p>
                   </div>
                   <div className="flex items-center justify-between gap-3">

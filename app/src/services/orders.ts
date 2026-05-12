@@ -30,6 +30,7 @@ export type OrderPayload = {
   canal: string;
   forma_pagamento: string;
   status_pagamento: string;
+  urgente?: boolean;
   observacoes: string;
   valor_total: string;
 };
@@ -64,6 +65,7 @@ export type Product = {
   descricao: string | null;
   imagem_url: string | null;
   preco_base: string;
+  tempo_estimado: string | null;
   categoria: string | null;
   subcategoria: string | null;
   tipo: string;
@@ -75,6 +77,7 @@ export type ProductPayload = {
   descricao: string;
   imagem_url: string;
   preco_base: string;
+  tempo_estimado: string;
   categoria: string;
   subcategoria: string;
   tipo: string;
@@ -89,8 +92,34 @@ export type ListProductsParams = PaginationParams & {
   ativo?: string;
 };
 
+export type ListOrdersParams = PaginationParams & {
+  q?: string;
+  status?: string;
+  status_pagamento?: string;
+  canal?: string;
+  prazo_inicio?: string;
+  prazo_fim?: string;
+};
+
 export function listOrders() {
-  return apiRequest<Order[]>('/api/pedidos/');
+  return apiRequest<Order[] | PaginatedResponse<Order>>(
+    `/api/pedidos/${buildQuery({ page_size: 100 })}`,
+  ).then(unwrapResults);
+}
+
+export function listOrdersPage(params: ListOrdersParams) {
+  return apiRequest<PaginatedResponse<Order>>(
+    `/api/pedidos/${buildQuery({
+      q: params.q,
+      status: params.status,
+      status_pagamento: params.status_pagamento,
+      canal: params.canal,
+      prazo_inicio: params.prazo_inicio,
+      prazo_fim: params.prazo_fim,
+      page: params.page,
+      page_size: params.pageSize,
+    })}`,
+  );
 }
 
 export function getOrder(id: number) {
@@ -136,6 +165,13 @@ export function listProducts() {
 
 export function getProduct(id: number) {
   return apiRequest<Product>(`/api/produtos/${id}/`);
+}
+
+export function createProduct(payload: ProductPayload) {
+  return apiRequest<Product>('/api/produtos/', {
+    method: 'POST',
+    body: payload,
+  });
 }
 
 export function listProductsPage(params: ListProductsParams) {

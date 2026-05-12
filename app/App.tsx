@@ -2,7 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 
 import { AgendaPage } from './src/features/agenda/AgendaPage';
 import { CatalogDetailPage } from './src/features/catalog/CatalogDetailPage';
-import { CatalogEditPage } from './src/features/catalog/CatalogEditPage';
+import { CatalogEditPage, CatalogNewPage } from './src/features/catalog/CatalogEditPage';
 import { CatalogPage } from './src/features/catalog/CatalogPage';
 import { ClientDetailPage } from './src/features/clients/ClientDetailPage';
 import { ClientsPage, EditClientPage, NewClientPage } from './src/features/clients/ClientsPage';
@@ -13,7 +13,7 @@ import { OrderEditPage } from './src/features/orders/OrderEditPage';
 import { NewOrderPage, OrdersPage } from './src/features/orders/OrdersPage';
 import { ProfilePage } from './src/features/profile/ProfilePage';
 import { StockDetailPage } from './src/features/stock/StockDetailPage';
-import { StockEditPage } from './src/features/stock/StockEditPage';
+import { StockEditPage, StockNewPage } from './src/features/stock/StockEditPage';
 import { StockPage } from './src/features/stock/StockPage';
 import './src/theme/global.css';
 
@@ -33,9 +33,11 @@ function App() {
         <Route element={<EditClientPage />} path="/clientes/:id/editar" />
         <Route element={<ClientDetailPage />} path="/clientes/:id" />
         <Route element={<CatalogPage />} path="/catalogo" />
+        <Route element={<CatalogNewPage />} path="/catalogo/novo" />
         <Route element={<CatalogEditPage />} path="/catalogo/:id/editar" />
         <Route element={<CatalogDetailPage />} path="/catalogo/:id" />
         <Route element={<StockPage />} path="/estoque" />
+        <Route element={<StockNewPage />} path="/estoque/novo" />
         <Route element={<StockEditPage />} path="/estoque/:id/editar" />
         <Route element={<StockDetailPage />} path="/estoque/:id" />
         <Route element={<ProfilePage />} path="/perfil" />

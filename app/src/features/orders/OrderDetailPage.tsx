@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Pencil } from 'lucide-react';
+import { Flag, Pencil } from 'lucide-react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
@@ -167,6 +167,19 @@ export function OrderDetailPage() {
                 <dt className="text-xs font-bold text-slate-500">Prazo</dt>
                 <dd className="font-extrabold text-frenchRose">
                   {formatDate(order.prazo)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-bold text-slate-500">Urgência</dt>
+                <dd>
+                  {order.urgente ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2 py-1 text-xs font-extrabold text-rose-700">
+                      <Flag aria-hidden className="h-3.5 w-3.5" />
+                      Urgente
+                    </span>
+                  ) : (
+                    'Normal'
+                  )}
                 </dd>
               </div>
               <div>

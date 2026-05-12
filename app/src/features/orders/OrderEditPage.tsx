@@ -31,6 +31,7 @@ type OrderEditForm = {
   forma_pagamento: string;
   status_pagamento: string;
   status: string;
+  urgente: boolean;
   observacoes: string;
   valor_total: string;
 };
@@ -42,6 +43,7 @@ const initialForm: OrderEditForm = {
   forma_pagamento: 'Pix',
   status_pagamento: 'Pendente',
   status: 'Recebido',
+  urgente: false,
   observacoes: '',
   valor_total: '0.00',
 };
@@ -97,6 +99,7 @@ export function OrderEditPage() {
             forma_pagamento: order.forma_pagamento ?? 'Pix',
             status_pagamento: order.status_pagamento ?? 'Pendente',
             status: order.status,
+            urgente: order.urgente,
             observacoes: order.observacoes ?? '',
             valor_total: order.valor_total,
           });
@@ -125,7 +128,7 @@ export function OrderEditPage() {
     return <Navigate replace to="/login" />;
   }
 
-  function updateField(field: keyof OrderEditForm, value: string) {
+  function updateField(field: keyof OrderEditForm, value: string | boolean) {
     setForm((currentForm) => ({ ...currentForm, [field]: value }));
   }
 
@@ -145,6 +148,7 @@ export function OrderEditPage() {
       forma_pagamento: form.forma_pagamento,
       status_pagamento: form.status_pagamento,
       status: form.status,
+      urgente: form.urgente,
       observacoes: form.observacoes,
       valor_total: form.valor_total,
     };
@@ -288,6 +292,22 @@ export function OrderEditPage() {
                 type="number"
                 value={form.valor_total}
               />
+
+              <label
+                className="flex min-h-12 items-center gap-3 rounded-lg border border-frenchRose/20 bg-white px-4"
+                htmlFor="urgente"
+              >
+                <input
+                  checked={form.urgente}
+                  className="h-4 w-4 rounded border-frenchRose/30 text-frenchRose focus:ring-frenchRose/20"
+                  id="urgente"
+                  onChange={(event) => updateField('urgente', event.target.checked)}
+                  type="checkbox"
+                />
+                <span className="text-sm font-bold text-mauve">
+                  Marcar como urgente
+                </span>
+              </label>
             </div>
 
             <label className="grid gap-2" htmlFor="observacoes">

@@ -1,8 +1,9 @@
 """Dashboard aggregation rules."""
 
+from datetime import timedelta
 from decimal import Decimal
 
-from django.db.models import F, Sum
+from django.db.models import Count, F, Sum
 from django.utils import timezone
 
 from . import models
@@ -58,6 +59,7 @@ def stock_remaining_label(material: models.Material) -> str:
 def get_dashboard_summary() -> dict:
     """Build all dashboard metrics and lists."""
     today = timezone.localdate()
+    soon_limit = today + timedelta(days=3)
     month_orders = models.Pedido.objects.filter(
         data_pedido__year=today.year,
         data_pedido__month=today.month,
@@ -65,6 +67,9 @@ def get_dashboard_summary() -> dict:
     )
     open_orders = models.Pedido.objects.filter(status__in=OPEN_ORDER_STATUSES)
     overdue_orders = open_orders.filter(prazo__lt=today)
+    due_soon_orders = open_orders.filter(prazo__gte=today, prazo__lte=soon_limit)
+    urgent_orders = open_orders.filter(urgente=True)
+    pending_payment_orders = models.Pedido.objects.exclude(status_pagamento="Pago")
     stock_alerts = models.Material.objects.filter(
         quantidade_atual__lte=F("estoque_minimo")
     ).order_by("nome")
@@ -80,19 +85,43 @@ def get_dashboard_summary() -> dict:
             "monthly_revenue": money(revenue),
             "overdue_orders": overdue_orders.count(),
             "stock_alerts": stock_alerts.count(),
+            "urgent_orders": urgent_orders.count(),
+            "pending_payments": pending_payment_orders.count(),
         },
+        "orders_by_status": [
+            {
+                "status": order_status_label(item["status"]),
+                "count": item["total"],
+            }
+            for item in models.Pedido.objects.values("status")
+            .annotate(total=Count("id"))
+            .order_by("status")
+        ],
         "deadline_alerts": [
             {
                 "id": pedido.id,
                 "order": pedido.cliente.nome,
                 "description": pedido.observacoes or order_status_label(pedido.status),
-                "status": "Atrasado",
+                "status": "Atrasado" if pedido.prazo < today else "Prazo proximo",
                 "due_date": f"Prazo {format_date(pedido.prazo)}",
-                "overdue_days": (today - pedido.prazo).days,
+                "overdue_days": max((today - pedido.prazo).days, 0),
+                "days_until_due": max((pedido.prazo - today).days, 0),
+                "urgent": pedido.urgente,
             }
-            for pedido in overdue_orders.select_related("cliente").order_by(
-                "prazo", "id"
-            )[:6]
+            for pedido in open_orders.filter(prazo__lte=soon_limit)
+            .select_related("cliente")
+            .order_by("prazo", "-urgente", "id")[:8]
+        ],
+        "urgent_orders": [
+            {
+                "id": pedido.id,
+                "client": pedido.cliente.nome,
+                "due_date": format_date(pedido.prazo),
+                "status": order_status_label(pedido.status),
+            }
+            for pedido in urgent_orders.select_related("cliente").order_by("prazo", "id")[
+                :6
+            ]
         ],
         "stock_replacements": [
             {

@@ -2,7 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowUpDown,
   Clock,
+  CreditCard,
+  Flag,
   Inbox,
+  ListChecks,
   PackageX,
   Plus,
   TriangleAlert,
@@ -119,6 +122,18 @@ function buildMetrics(summary: DashboardSummary): Metric[] {
       icon: PackageX,
       tone: 'bg-amber-50 text-amber-600 ring-amber-100',
     },
+    {
+      label: 'Pedidos Urgentes',
+      value: String(summary.metrics.urgent_orders),
+      icon: Flag,
+      tone: 'bg-frenchRose/10 text-frenchRose ring-frenchRose/20',
+    },
+    {
+      label: 'Pagamentos Pendentes',
+      value: String(summary.metrics.pending_payments),
+      icon: CreditCard,
+      tone: 'bg-orange-50 text-orange-600 ring-orange-100',
+    },
   ];
 }
 
@@ -227,8 +242,8 @@ export function DashboardPage() {
       ) : null}
 
       {isLoading ? (
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {[0, 1, 2, 3].map((item) => (
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {[0, 1, 2, 3, 4, 5].map((item) => (
             <article
               className="h-[74px] animate-pulse rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
               key={item}
@@ -236,12 +251,71 @@ export function DashboardPage() {
           ))}
         </section>
       ) : (
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {metrics.map((metric) => (
             <MetricCard key={metric.label} metric={metric} />
           ))}
         </section>
       )}
+
+      <section className="mt-5 grid gap-4 lg:grid-cols-2">
+        <article className="rounded-lg border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3">
+            <ListChecks aria-hidden className="h-4 w-4 text-frenchRose" />
+            <h2 className="text-sm font-extrabold text-ink">Pedidos por Status</h2>
+          </div>
+          {summary && summary.orders_by_status.length > 0 ? (
+            <div className="grid gap-3 p-4">
+              {summary.orders_by_status.map((item) => (
+                <div
+                  className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2"
+                  key={item.status}
+                >
+                  <span
+                    className={`rounded-full px-2 py-1 text-xs font-bold ${statusClassName(
+                      item.status,
+                    )}`}
+                  >
+                    {item.status}
+                  </span>
+                  <strong className="text-sm text-ink">{item.count}</strong>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState label="Nenhum pedido registrado por status." />
+          )}
+        </article>
+
+        <article className="rounded-lg border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3">
+            <Flag aria-hidden className="h-4 w-4 text-frenchRose" />
+            <h2 className="text-sm font-extrabold text-ink">Pedidos Urgentes</h2>
+          </div>
+          {summary && summary.urgent_orders.length > 0 ? (
+            <div className="divide-y divide-slate-100">
+              {summary.urgent_orders.map((order) => (
+                <button
+                  className="grid w-full gap-2 px-4 py-3 text-left transition hover:bg-chantilly/20 sm:grid-cols-[1fr_auto]"
+                  key={order.id}
+                  onClick={() => navigate(`/pedidos/${order.id}`)}
+                  type="button"
+                >
+                  <div>
+                    <p className="text-sm font-extrabold text-ink">{order.client}</p>
+                    <p className="mt-1 text-xs text-slate-500">{order.status}</p>
+                  </div>
+                  <p className="text-xs font-extrabold text-frenchRose sm:text-right">
+                    Prazo {order.due_date}
+                  </p>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <EmptyState label="Nenhum pedido urgente no momento." />
+          )}
+        </article>
+      </section>
 
       <section className="mt-5 grid gap-4 lg:grid-cols-2">
         <article className="rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -252,21 +326,40 @@ export function DashboardPage() {
             <div className="divide-y divide-rose-100">
               {summary.deadline_alerts.map((deadline) => (
                 <div
-                  className="grid cursor-pointer gap-3 bg-rose-50/70 px-4 py-3 transition hover:bg-rose-100/70 sm:grid-cols-[1fr_auto]"
+                  className={[
+                    'grid cursor-pointer gap-3 px-4 py-3 transition sm:grid-cols-[1fr_auto]',
+                    deadline.overdue_days > 0
+                      ? 'bg-rose-50/70 hover:bg-rose-100/70'
+                      : 'bg-amber-50/70 hover:bg-amber-100/70',
+                  ].join(' ')}
                   key={deadline.id}
                   onClick={() => navigate(`/pedidos/${deadline.id}`)}
                 >
                   <div>
-                    <p className="text-sm font-extrabold text-ink">{deadline.order}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-extrabold text-ink">{deadline.order}</p>
+                      {deadline.urgent ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-extrabold text-rose-700">
+                          <Flag aria-hidden className="h-3 w-3" />
+                          Urgente
+                        </span>
+                      ) : null}
+                    </div>
                     <p className="mt-1 text-xs text-slate-600">
                       {deadline.description}
                     </p>
                   </div>
                   <div className="sm:text-right">
                     <p className="text-xs font-extrabold text-frenchRose">
-                      {deadline.overdue_days === 1
-                        ? 'Atrasado 1 dia'
-                        : `Atrasado ${deadline.overdue_days} dias`}
+                      {deadline.overdue_days > 0
+                        ? deadline.overdue_days === 1
+                          ? 'Atrasado 1 dia'
+                          : `Atrasado ${deadline.overdue_days} dias`
+                        : deadline.days_until_due === 0
+                          ? 'Vence hoje'
+                          : deadline.days_until_due === 1
+                            ? 'Vence amanhã'
+                            : `Vence em ${deadline.days_until_due} dias`}
                     </p>
                     <p className="mt-1 text-[11px] text-slate-500">
                       {deadline.due_date}
@@ -276,7 +369,7 @@ export function DashboardPage() {
               ))}
             </div>
           ) : (
-            <EmptyState label="Nenhum prazo atrasado por enquanto." />
+            <EmptyState label="Nenhum prazo crítico por enquanto." />
           )}
         </article>
 

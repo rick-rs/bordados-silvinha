@@ -10,6 +10,7 @@ import {
 import {
   ArrowRight,
   Columns3,
+  Flag,
   Inbox,
   List,
   Pencil,
@@ -21,6 +22,7 @@ import { Link, Navigate, useNavigate } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
+import { PaginationControls } from '../../components/ui/PaginationControls';
 import { TextField } from '../../components/ui/TextField';
 import { getSession } from '../../services/auth';
 import { Client, ClientPayload, createClient, listClients } from '../../services/clients';
@@ -29,7 +31,7 @@ import {
   createOrderItem,
   deleteOrder,
   listOrderItems,
-  listOrders,
+  listOrdersPage,
   listProducts,
   Order,
   OrderItem,
@@ -81,6 +83,7 @@ const initialOrderForm: Omit<OrderPayload, 'cliente' | 'valor_total'> & {
   canal: 'WhatsApp',
   forma_pagamento: 'Pix',
   status_pagamento: 'Pendente',
+  urgente: false,
   observacoes: '',
 };
 
@@ -225,6 +228,65 @@ function paymentClassName(payment: string | null) {
   return 'text-orange-500';
 }
 
+function parseDateOnly(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const [year, month, day] = value.split('-').map(Number);
+
+  if (!year || !month || !day) {
+    return null;
+  }
+
+  return new Date(year, month - 1, day);
+}
+
+function getDeadlineState(order: Order) {
+  if (['Entregue', 'Cancelado'].includes(order.status)) {
+    return null;
+  }
+
+  const dueDate = parseDateOnly(order.prazo);
+
+  if (!dueDate) {
+    return null;
+  }
+
+  const today = new Date();
+  const todayStart = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+  );
+  const diffDays = Math.ceil(
+    (dueDate.getTime() - todayStart.getTime()) / 86_400_000,
+  );
+
+  if (diffDays < 0) {
+    const overdueDays = Math.abs(diffDays);
+
+    return {
+      tone: 'bg-rose-50 text-rose-700 ring-rose-100',
+      label: overdueDays === 1 ? 'Atrasado 1 dia' : `Atrasado ${overdueDays} dias`,
+    };
+  }
+
+  if (diffDays <= 3) {
+    return {
+      tone: 'bg-amber-50 text-amber-700 ring-amber-100',
+      label:
+        diffDays === 0
+          ? 'Vence hoje'
+          : diffDays === 1
+            ? 'Vence amanhã'
+            : `Vence em ${diffDays} dias`,
+    };
+  }
+
+  return null;
+}
+
 function buildItemSummary(
   orderId: number,
   itemsByOrder: Map<number, OrderItem[]>,
@@ -281,8 +343,14 @@ export function OrdersPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [statusFilter, setStatusFilter] = useState('');
   const [paymentFilter, setPaymentFilter] = useState('');
+  const [channelFilter, setChannelFilter] = useState('');
+  const [dateFromFilter, setDateFromFilter] = useState('');
+  const [dateToFilter, setDateToFilter] = useState('');
   const [search, setSearch] = useState('');
   const [ordersView, setOrdersView] = useState<OrdersView>(getInitialOrdersView);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [count, setCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [updatingStatusId, setUpdatingStatusId] = useState<number | null>(null);
@@ -295,14 +363,24 @@ export function OrdersPage() {
       try {
         const [ordersResponse, clientsResponse, itemsResponse, productsResponse] =
           await Promise.all([
-            listOrders(),
+            listOrdersPage({
+              canal: channelFilter,
+              page,
+              pageSize,
+              prazo_fim: dateToFilter,
+              prazo_inicio: dateFromFilter,
+              q: search,
+              status: statusFilter,
+              status_pagamento: paymentFilter,
+            }),
             listClients(),
             listOrderItems(),
             listProducts(),
           ]);
 
         if (isMounted) {
-          setOrders(ordersResponse);
+          setOrders(ordersResponse.results);
+          setCount(ordersResponse.count);
           setClients(clientsResponse);
           setItems(itemsResponse);
           setProducts(productsResponse);
@@ -324,7 +402,16 @@ export function OrdersPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [
+    channelFilter,
+    dateFromFilter,
+    dateToFilter,
+    page,
+    pageSize,
+    paymentFilter,
+    search,
+    statusFilter,
+  ]);
 
   useEffect(() => {
     window.localStorage.setItem(ordersViewStorageKey, ordersView);
@@ -348,28 +435,7 @@ export function OrdersPage() {
     return groupedItems;
   }, [items]);
 
-  const filteredOrders = useMemo(() => {
-    const normalizedSearch = normalizeText(search.trim());
-
-    return orders.filter((order) => {
-      const client = clientsById.get(order.cliente);
-      const itemSummary = buildItemSummary(order.id, itemsByOrder, productsById);
-      const searchableText = normalizeText(
-        [
-          formatOrderNumber(order.id),
-          client?.nome ?? '',
-          itemSummary,
-          order.observacoes ?? '',
-        ].join(' '),
-      );
-
-      return (
-        (!statusFilter || order.status === statusFilter) &&
-        (!paymentFilter || paymentLabel(order.status_pagamento) === paymentFilter) &&
-        (!normalizedSearch || searchableText.includes(normalizedSearch))
-      );
-    });
-  }, [clientsById, itemsByOrder, orders, paymentFilter, productsById, search, statusFilter]);
+  const filteredOrders = orders;
 
   if (!user) {
     return <Navigate replace to="/login" />;
@@ -377,10 +443,37 @@ export function OrdersPage() {
 
   function updateStatusFilter(event: ChangeEvent<HTMLSelectElement>) {
     setStatusFilter(event.target.value);
+    setPage(1);
   }
 
   function updatePaymentFilter(event: ChangeEvent<HTMLSelectElement>) {
     setPaymentFilter(event.target.value);
+    setPage(1);
+  }
+
+  function updateChannelFilter(event: ChangeEvent<HTMLSelectElement>) {
+    setChannelFilter(event.target.value);
+    setPage(1);
+  }
+
+  function updateDateFromFilter(value: string) {
+    setDateFromFilter(value);
+    setPage(1);
+  }
+
+  function updateDateToFilter(value: string) {
+    setDateToFilter(value);
+    setPage(1);
+  }
+
+  function updateSearch(value: string) {
+    setSearch(value);
+    setPage(1);
+  }
+
+  function updatePageSize(value: number) {
+    setPageSize(value);
+    setPage(1);
   }
 
   async function handleDelete(order: Order) {
@@ -472,7 +565,7 @@ export function OrdersPage() {
       ) : null}
 
       <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
-        <div className="grid gap-3 border-b border-slate-100 px-4 py-3 lg:grid-cols-[180px_180px_1fr_auto]">
+        <div className="grid gap-3 border-b border-slate-100 px-4 py-3 lg:grid-cols-[180px_180px_180px_150px_150px_1fr_auto]">
           <label className="sr-only" htmlFor="status-filter">
             Filtrar por status
           </label>
@@ -489,6 +582,41 @@ export function OrdersPage() {
               </option>
             ))}
           </select>
+
+          <label className="sr-only" htmlFor="channel-filter">
+            Filtrar por canal
+          </label>
+          <select
+            className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
+            id="channel-filter"
+            onChange={updateChannelFilter}
+            value={channelFilter}
+          >
+            <option value="">Todos os canais</option>
+            {channelOptions.map((channel) => (
+              <option key={channel} value={channel}>
+                {channel}
+              </option>
+            ))}
+          </select>
+
+          <TextField
+            label=""
+            name="prazo_inicio"
+            onChange={(event) => updateDateFromFilter(event.target.value)}
+            title="Prazo inicial"
+            type="date"
+            value={dateFromFilter}
+          />
+
+          <TextField
+            label=""
+            name="prazo_fim"
+            onChange={(event) => updateDateToFilter(event.target.value)}
+            title="Prazo final"
+            type="date"
+            value={dateToFilter}
+          />
 
           <label className="sr-only" htmlFor="payment-filter">
             Filtrar por pagamento
@@ -516,7 +644,7 @@ export function OrdersPage() {
             <input
               className="min-h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm text-ink outline-none transition placeholder:text-slate-400 focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
               id="order-search"
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) => updateSearch(event.target.value)}
               placeholder="Buscar cliente ou nº pedido"
               type="search"
               value={search}
@@ -591,6 +719,15 @@ export function OrdersPage() {
         ) : (
           <EmptyState />
         )}
+        {count > pageSize ? (
+          <PaginationControls
+            count={count}
+            onPageChange={setPage}
+            onPageSizeChange={updatePageSize}
+            page={page}
+            pageSize={pageSize}
+          />
+        ) : null}
       </section>
     </AppShell>
   );
@@ -676,7 +813,7 @@ export function NewOrderPage() {
     return <Navigate replace to="/login" />;
   }
 
-  function updateField(field: keyof typeof form, value: string) {
+  function updateField(field: keyof typeof form, value: string | boolean) {
     setForm((currentForm) => ({ ...currentForm, [field]: value }));
   }
 
@@ -785,6 +922,7 @@ export function NewOrderPage() {
       canal: form.canal,
       forma_pagamento: form.forma_pagamento,
       status_pagamento: form.status_pagamento,
+      urgente: form.urgente,
       observacoes: form.observacoes,
       valor_total: toDecimalString(total),
     };
@@ -1098,6 +1236,22 @@ export function NewOrderPage() {
               </label>
 
               <label
+                className="flex min-h-12 items-center gap-3 rounded-lg border border-frenchRose/20 bg-white px-4"
+                htmlFor="urgente"
+              >
+                <input
+                  checked={Boolean(form.urgente)}
+                  className="h-4 w-4 rounded border-frenchRose/30 text-frenchRose focus:ring-frenchRose/20"
+                  id="urgente"
+                  onChange={(event) => updateField('urgente', event.target.checked)}
+                  type="checkbox"
+                />
+                <span className="text-sm font-bold text-mauve">
+                  Marcar como urgente
+                </span>
+              </label>
+
+              <label
                 className="grid gap-2 sm:col-span-2 lg:col-span-3"
                 htmlFor="observacoes"
               >
@@ -1244,6 +1398,12 @@ export function NewOrderPage() {
                 {form.canal} · {paymentMethodLabel(form.forma_pagamento)} ·{' '}
                 {form.status_pagamento}
               </p>
+              {form.urgente ? (
+                <p className="mt-2 inline-flex items-center gap-1 rounded-full bg-rose-50 px-2 py-1 text-xs font-extrabold text-rose-700">
+                  <Flag aria-hidden className="h-3.5 w-3.5" />
+                  Urgente
+                </p>
+              ) : null}
             </SummaryBlock>
             <SummaryBlock title="Total">
               <p className="text-2xl font-extrabold text-frenchRose">
@@ -1442,15 +1602,33 @@ function OrdersTable({
             const total = formatCurrency(order.valor_total) ?? 'R$ 0,00';
             const payment = paymentLabel(order.status_pagamento);
             const nextStatus = getNextStatus(order.status);
+            const deadline = getDeadlineState(order);
 
             return (
               <tr
-                className="cursor-pointer bg-white align-top transition hover:bg-chantilly/20"
+                className={[
+                  'cursor-pointer bg-white align-top transition hover:bg-chantilly/20',
+                  deadline?.label.startsWith('Atrasado')
+                    ? 'border-l-4 border-l-rose-400'
+                    : deadline
+                      ? 'border-l-4 border-l-amber-400'
+                      : '',
+                ].join(' ')}
                 key={order.id}
                 onClick={() => navigate(`/pedidos/${order.id}`)}
               >
                 <td className="px-4 py-3">
-                  <p className="font-extrabold text-ink">{formatOrderNumber(order.id)}</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-extrabold text-ink">
+                      {formatOrderNumber(order.id)}
+                    </p>
+                    {order.urgente ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2 py-0.5 text-[11px] font-extrabold text-rose-700">
+                        <Flag aria-hidden className="h-3 w-3" />
+                        Urgente
+                      </span>
+                    ) : null}
+                  </div>
                   <p className="mt-1 text-xs font-semibold text-slate-500">
                     {client?.nome ?? `Cliente #${order.cliente}`}
                   </p>
@@ -1460,6 +1638,13 @@ function OrdersTable({
                   <p className="font-extrabold text-frenchRose">
                     {formatDate(order.prazo)}
                   </p>
+                  {deadline ? (
+                    <p
+                      className={`mt-2 inline-flex rounded-full px-2 py-1 text-[11px] font-extrabold ring-1 ${deadline.tone}`}
+                    >
+                      {deadline.label}
+                    </p>
+                  ) : null}
                   <p className="mt-1 text-xs text-slate-500">
                     {order.data_pedido ? `Entrada ${formatDate(order.data_pedido)}` : '-'}
                   </p>
@@ -1705,12 +1890,18 @@ function OrdersBoard({
                     );
                     const payment = paymentLabel(order.status_pagamento);
                     const isUpdating = updatingStatusId === order.id;
+                    const deadline = getDeadlineState(order);
 
                     return (
                       <article
                         className={[
-                          'cursor-grab rounded-lg border border-slate-200 bg-white p-3 text-left shadow-sm transition',
+                          'cursor-grab rounded-lg border bg-white p-3 text-left shadow-sm transition',
                           'hover:-translate-y-0.5 hover:border-frenchRose/30 hover:shadow-md',
+                          deadline?.label.startsWith('Atrasado')
+                            ? 'border-rose-200'
+                            : deadline
+                              ? 'border-amber-200'
+                              : 'border-slate-200',
                           isUpdating ? 'opacity-60' : '',
                         ].join(' ')}
                         draggable={!isUpdating}
@@ -1728,12 +1919,27 @@ function OrdersBoard({
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <p className="text-sm font-extrabold text-ink">
-                              {client?.nome ?? `Cliente #${order.cliente}`}
-                            </p>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="text-sm font-extrabold text-ink">
+                                {client?.nome ?? `Cliente #${order.cliente}`}
+                              </p>
+                              {order.urgente ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-extrabold text-rose-700">
+                                  <Flag aria-hidden className="h-3 w-3" />
+                                  Urgente
+                                </span>
+                              ) : null}
+                            </div>
                             <p className="mt-1 text-[11px] font-bold text-frenchRose">
                               {formatDate(order.prazo)}
                             </p>
+                            {deadline ? (
+                              <p
+                                className={`mt-2 inline-flex rounded-full px-2 py-1 text-[10px] font-extrabold ring-1 ${deadline.tone}`}
+                              >
+                                {deadline.label}
+                              </p>
+                            ) : null}
                           </div>
                           <span
                             className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-bold ${paymentClassName(

@@ -6,6 +6,7 @@ import { Button } from '../../components/ui/Button';
 import { TextField } from '../../components/ui/TextField';
 import { getSession } from '../../services/auth';
 import {
+  createMaterial,
   getMaterial,
   MaterialPayload,
   updateMaterial,
@@ -19,16 +20,21 @@ const initialForm: MaterialPayload = {
   estoque_minimo: '',
 };
 
-export function StockEditPage() {
+function StockFormPage({ mode }: { mode: 'create' | 'edit' }) {
   const user = getSession();
   const navigate = useNavigate();
   const { id } = useParams();
   const [form, setForm] = useState<MaterialPayload>(initialForm);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(mode === 'edit');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+  const isEditing = mode === 'edit';
 
   useEffect(() => {
+    if (!isEditing) {
+      return;
+    }
+
     let isMounted = true;
     const materialId = Number(id);
 
@@ -68,7 +74,7 @@ export function StockEditPage() {
     return () => {
       isMounted = false;
     };
-  }, [id]);
+  }, [id, isEditing]);
 
   if (!user) {
     return <Navigate replace to="/login" />;
@@ -82,7 +88,7 @@ export function StockEditPage() {
     event.preventDefault();
     const materialId = Number(id);
 
-    if (!materialId) {
+    if (isEditing && !materialId) {
       setError('Material inválido.');
       return;
     }
@@ -91,7 +97,9 @@ export function StockEditPage() {
     setError('');
 
     try {
-      const material = await updateMaterial(materialId, form);
+      const material = isEditing
+        ? await updateMaterial(materialId, form)
+        : await createMaterial(form);
       navigate(`/estoque/${material.id}`, { replace: true });
     } catch {
       setError('Não foi possível salvar o material.');
@@ -104,10 +112,10 @@ export function StockEditPage() {
     <AppShell activePage="Estoque">
       <header className="mb-5 sm:mb-6">
         <p className="text-xs font-semibold text-mauve">
-          Dashboard / Estoque / Editar Material
+          Dashboard / Estoque / {isEditing ? 'Editar Material' : 'Novo Material'}
         </p>
         <h1 className="text-2xl font-extrabold text-ink sm:text-3xl">
-          Editar Material
+          {isEditing ? 'Editar Material' : 'Novo Material'}
         </h1>
       </header>
 
@@ -186,7 +194,7 @@ export function StockEditPage() {
             <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
               <button
                 className="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-200 bg-white px-5 text-sm font-bold text-slate-600 transition hover:bg-slate-50"
-                onClick={() => navigate(`/estoque/${id}`)}
+                onClick={() => navigate(isEditing ? `/estoque/${id}` : '/estoque')}
                 type="button"
               >
                 Cancelar
@@ -197,7 +205,7 @@ export function StockEditPage() {
                 loadingLabel="Salvando..."
                 type="submit"
               >
-                Salvar Alterações
+                {isEditing ? 'Salvar Alterações' : 'Salvar Material'}
               </Button>
             </div>
           </form>
@@ -205,4 +213,12 @@ export function StockEditPage() {
       </section>
     </AppShell>
   );
+}
+
+export function StockNewPage() {
+  return <StockFormPage mode="create" />;
+}
+
+export function StockEditPage() {
+  return <StockFormPage mode="edit" />;
 }

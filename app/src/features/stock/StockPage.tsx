@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Inbox, Pencil, Search, Trash2 } from 'lucide-react';
+import { Inbox, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { Navigate, useNavigate } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
@@ -111,9 +111,19 @@ export function StockPage() {
 
   return (
     <AppShell activePage="Estoque">
-      <header className="mb-5 sm:mb-6">
-        <p className="text-xs font-semibold text-mauve">Dashboard / Estoque</p>
-        <h1 className="text-2xl font-extrabold text-ink sm:text-3xl">Estoque</h1>
+      <header className="mb-5 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold text-mauve">Dashboard / Estoque</p>
+          <h1 className="text-2xl font-extrabold text-ink sm:text-3xl">Estoque</h1>
+        </div>
+        <button
+          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-frenchRose px-4 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-froly hover:shadow-lg sm:min-h-9 sm:w-auto sm:text-xs"
+          onClick={() => navigate('/estoque/novo')}
+          type="button"
+        >
+          <Plus aria-hidden className="h-4 w-4" />
+          Novo Material
+        </button>
       </header>
 
       {error ? (

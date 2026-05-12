@@ -1,5 +1,7 @@
 """API viewsets for commerce resources."""
 
+from decimal import Decimal
+
 from django.contrib.auth.hashers import check_password
 from django.db.models import F, Q
 from django.utils.crypto import constant_time_compare
@@ -142,7 +144,49 @@ class PedidoViewSet(viewsets.ModelViewSet):
     """ViewSet for `Pedido`."""
 
     queryset = models.Pedido.objects.all()
+    pagination_class = StandardResultsSetPagination
     serializer_class = serializers.PedidoSerializer
+
+    def get_queryset(self):
+        """Filter orders by status, payment, channel, period and search text."""
+        queryset = super().get_queryset().select_related("cliente").order_by(
+            "-criado_em", "-id"
+        )
+        query = self.request.query_params.get("q", "").strip()
+        status_param = self.request.query_params.get("status", "").strip()
+        payment = self.request.query_params.get("status_pagamento", "").strip()
+        canal = self.request.query_params.get("canal", "").strip()
+        date_from = self.request.query_params.get("prazo_inicio", "").strip()
+        date_to = self.request.query_params.get("prazo_fim", "").strip()
+
+        if query:
+            query_filter = (
+                Q(cliente__nome__icontains=query)
+                | Q(observacoes__icontains=query)
+                | Q(canal__icontains=query)
+            )
+
+            if query.isdigit():
+                query_filter |= Q(id=int(query))
+
+            queryset = queryset.filter(query_filter)
+
+        if status_param:
+            queryset = queryset.filter(status=status_param)
+
+        if payment:
+            queryset = queryset.filter(status_pagamento=payment)
+
+        if canal:
+            queryset = queryset.filter(canal=canal)
+
+        if date_from:
+            queryset = queryset.filter(prazo__gte=date_from)
+
+        if date_to:
+            queryset = queryset.filter(prazo__lte=date_to)
+
+        return queryset
 
     @action(detail=False, methods=["get"], url_path="dashboard")
     def dashboard(self, request):
@@ -199,3 +243,24 @@ class MovimentacaoEstoqueViewSet(viewsets.ModelViewSet):
 
     queryset = models.MovimentacaoEstoque.objects.all()
     serializer_class = serializers.MovimentacaoEstoqueSerializer
+
+    def get_queryset(self):
+        """Filter stock movements by material and show recent records first."""
+        queryset = super().get_queryset().select_related("material").order_by(
+            "-registrado_em", "-id"
+        )
+        material = self.request.query_params.get("material", "").strip()
+
+        if material:
+            queryset = queryset.filter(material_id=material)
+
+        return queryset
+
+    def perform_create(self, serializer):
+        """Record the movement and update the material current quantity."""
+        movement = serializer.save()
+        multiplier = Decimal("1") if movement.tipo == "entrada" else Decimal("-1")
+
+        models.Material.objects.filter(id=movement.material_id).update(
+            quantidade_atual=F("quantidade_atual") + (movement.quantidade * multiplier)
+        )

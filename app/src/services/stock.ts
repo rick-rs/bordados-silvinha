@@ -25,6 +25,22 @@ export type MaterialPayload = {
 
 export type MaterialPatchPayload = Partial<MaterialPayload>;
 
+export type StockMovement = {
+  id: number;
+  material: number;
+  tipo: 'entrada' | 'saida';
+  quantidade: string;
+  observacao: string | null;
+  registrado_em: string;
+};
+
+export type StockMovementPayload = {
+  material: number;
+  tipo: 'entrada' | 'saida';
+  quantidade: string;
+  observacao: string;
+};
+
 export type ListMaterialsParams = PaginationParams & {
   q?: string;
   unidade?: string;
@@ -39,6 +55,13 @@ export function listMaterials() {
 
 export function getMaterial(id: number) {
   return apiRequest<Material>(`/api/materiais/${id}/`);
+}
+
+export function createMaterial(payload: MaterialPayload) {
+  return apiRequest<Material>('/api/materiais/', {
+    method: 'POST',
+    body: payload,
+  });
 }
 
 export function updateMaterial(id: number, payload: MaterialPatchPayload) {
@@ -63,5 +86,21 @@ export function listMaterialsPage(params: ListMaterialsParams) {
 export function deleteMaterial(id: number) {
   return apiRequest<void>(`/api/materiais/${id}/`, {
     method: 'DELETE',
+  });
+}
+
+export function listStockMovements(materialId: number) {
+  return apiRequest<StockMovement[] | PaginatedResponse<StockMovement>>(
+    `/api/movimentacoes-estoque/${buildQuery({
+      material: materialId,
+      page_size: 100,
+    })}`,
+  ).then(unwrapResults);
+}
+
+export function createStockMovement(payload: StockMovementPayload) {
+  return apiRequest<StockMovement>('/api/movimentacoes-estoque/', {
+    method: 'POST',
+    body: payload,
   });
 }

@@ -122,6 +122,14 @@ export function CatalogDetailPage() {
               label="Preço base"
               value={formatCurrency(product.preco_base) ?? 'R$ 0,00'}
             />
+            <DetailItem
+              label="Tempo estimado"
+              value={
+                product.tempo_estimado
+                  ? `${Number(product.tempo_estimado).toLocaleString('pt-BR')} h`
+                  : '-'
+              }
+            />
             <DetailItem label="Status" value={product.ativo ? 'Ativo' : 'Inativo'} />
             <DetailItem label="Descrição" value={product.descricao} />
           </dl>

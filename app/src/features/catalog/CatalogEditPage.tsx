@@ -6,6 +6,7 @@ import { Button } from '../../components/ui/Button';
 import { TextField } from '../../components/ui/TextField';
 import { getSession } from '../../services/auth';
 import {
+  createProduct,
   getProduct,
   ProductPayload,
   updateProduct,
@@ -16,22 +17,39 @@ const initialForm: ProductPayload = {
   descricao: '',
   imagem_url: '',
   preco_base: '',
+  tempo_estimado: '',
   categoria: '',
   subcategoria: '',
   tipo: 'bordado',
   ativo: true,
 };
 
+type CatalogFormPageProps = {
+  mode: 'create' | 'edit';
+};
+
+export function CatalogNewPage() {
+  return <CatalogFormPage mode="create" />;
+}
+
 export function CatalogEditPage() {
+  return <CatalogFormPage mode="edit" />;
+}
+
+function CatalogFormPage({ mode }: CatalogFormPageProps) {
   const user = getSession();
   const navigate = useNavigate();
   const { id } = useParams();
   const [form, setForm] = useState<ProductPayload>(initialForm);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(mode === 'edit');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
+    if (mode === 'create') {
+      return undefined;
+    }
+
     let isMounted = true;
     const productId = Number(id);
 
@@ -51,6 +69,7 @@ export function CatalogEditPage() {
             descricao: product.descricao ?? '',
             imagem_url: product.imagem_url ?? '',
             preco_base: product.preco_base,
+            tempo_estimado: product.tempo_estimado ?? '',
             categoria: product.categoria ?? '',
             subcategoria: product.subcategoria ?? '',
             tipo: product.tipo,
@@ -74,7 +93,7 @@ export function CatalogEditPage() {
     return () => {
       isMounted = false;
     };
-  }, [id]);
+  }, [id, mode]);
 
   if (!user) {
     return <Navigate replace to="/login" />;
@@ -88,7 +107,7 @@ export function CatalogEditPage() {
     event.preventDefault();
     const productId = Number(id);
 
-    if (!productId) {
+    if (mode === 'edit' && !productId) {
       setError('Item inválido.');
       return;
     }
@@ -97,10 +116,17 @@ export function CatalogEditPage() {
     setError('');
 
     try {
-      const product = await updateProduct(productId, form);
+      const product =
+        mode === 'create'
+          ? await createProduct(form)
+          : await updateProduct(productId, form);
       navigate(`/catalogo/${product.id}`, { replace: true });
     } catch {
-      setError('Não foi possível salvar o item do catálogo.');
+      setError(
+        mode === 'create'
+          ? 'Não foi possível cadastrar o item do catálogo.'
+          : 'Não foi possível salvar o item do catálogo.',
+      );
     } finally {
       setIsSaving(false);
     }
@@ -110,10 +136,10 @@ export function CatalogEditPage() {
     <AppShell activePage="Catálogo">
       <header className="mb-5 sm:mb-6">
         <p className="text-xs font-semibold text-mauve">
-          Dashboard / Catálogo / Editar Item
+          Dashboard / Catálogo / {mode === 'create' ? 'Novo Item' : 'Editar Item'}
         </p>
         <h1 className="text-2xl font-extrabold text-ink sm:text-3xl">
-          Editar Item
+          {mode === 'create' ? 'Novo Item' : 'Editar Item'}
         </h1>
       </header>
 
@@ -181,6 +207,18 @@ export function CatalogEditPage() {
                 type="number"
                 value={form.preco_base}
               />
+              <TextField
+                label="Tempo estimado (h)"
+                min="0"
+                name="tempo_estimado"
+                onChange={(event) => updateField('tempo_estimado', event.target.value)}
+                step="0.25"
+                type="number"
+                value={form.tempo_estimado}
+              />
+            </div>
+
+            <div className="grid gap-5 sm:grid-cols-3">
               <label className="flex items-center gap-3 pt-8 text-sm font-bold text-mauve">
                 <input
                   checked={form.ativo}
@@ -211,7 +249,7 @@ export function CatalogEditPage() {
             <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
               <button
                 className="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-200 bg-white px-5 text-sm font-bold text-slate-600 transition hover:bg-slate-50"
-                onClick={() => navigate(`/catalogo/${id}`)}
+                onClick={() => navigate(mode === 'create' ? '/catalogo' : `/catalogo/${id}`)}
                 type="button"
               >
                 Cancelar
@@ -222,7 +260,7 @@ export function CatalogEditPage() {
                 loadingLabel="Salvando..."
                 type="submit"
               >
-                Salvar Alterações
+                {mode === 'create' ? 'Cadastrar Item' : 'Salvar Alterações'}
               </Button>
             </div>
           </form>

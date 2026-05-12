@@ -5,6 +5,8 @@ export type DashboardMetrics = {
   monthly_revenue: string;
   overdue_orders: number;
   stock_alerts: number;
+  urgent_orders: number;
+  pending_payments: number;
 };
 
 export type DeadlineAlert = {
@@ -14,6 +16,8 @@ export type DeadlineAlert = {
   status: string;
   due_date: string;
   overdue_days: number;
+  days_until_due: number;
+  urgent: boolean;
 };
 
 export type StockReplacement = {
@@ -31,9 +35,23 @@ export type RecentOrder = {
   payment: string;
 };
 
+export type StatusSummary = {
+  status: string;
+  count: number;
+};
+
+export type UrgentOrder = {
+  id: number;
+  client: string;
+  due_date: string;
+  status: string;
+};
+
 export type DashboardSummary = {
   metrics: DashboardMetrics;
+  orders_by_status: StatusSummary[];
   deadline_alerts: DeadlineAlert[];
+  urgent_orders: UrgentOrder[];
   stock_replacements: StockReplacement[];
   recent_orders: RecentOrder[];
 };
