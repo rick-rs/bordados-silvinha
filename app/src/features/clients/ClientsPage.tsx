@@ -94,13 +94,18 @@ export function ClientsPage() {
             Clientes
           </h1>
         </div>
-        <Button
-          className="min-h-11 w-full gap-2 px-4 text-sm sm:min-h-9 sm:w-auto sm:text-xs"
-          type="button"
+        <Link
+          className={[
+            'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-frenchRose px-4 text-sm font-bold text-white shadow-sm transition',
+            'hover:-translate-y-0.5 hover:bg-froly hover:shadow-lg',
+            'focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-froly/30',
+            'sm:min-h-9 sm:w-auto sm:text-xs',
+          ].join(' ')}
+          to="/clientes/novo"
         >
           <Plus aria-hidden className="h-4 w-4" />
-          <Link to="/clientes/novo">Novo Cliente</Link>
-        </Button>
+          Novo Cliente
+        </Link>
       </header>
 
       {error ? (
