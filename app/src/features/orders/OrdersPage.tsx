@@ -2,6 +2,7 @@ import {
   ChangeEvent,
   DragEvent,
   FormEvent,
+  ReactNode,
   useEffect,
   useMemo,
   useState,
@@ -22,7 +23,7 @@ import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
 import { TextField } from '../../components/ui/TextField';
 import { getSession } from '../../services/auth';
-import { Client, listClients } from '../../services/clients';
+import { Client, ClientPayload, createClient, listClients } from '../../services/clients';
 import {
   createOrder,
   createOrderItem,
@@ -64,6 +65,14 @@ type OrderItemForm = {
   valor_unitario: string;
 };
 
+type OrderStep = 1 | 2 | 3;
+
+const orderSteps = [
+  { id: 1, label: 'Cliente' },
+  { id: 2, label: 'Pedido' },
+  { id: 3, label: 'Resumo' },
+] as const;
+
 const initialOrderForm: Omit<OrderPayload, 'cliente' | 'valor_total'> & {
   cliente: string;
 } = {
@@ -73,6 +82,16 @@ const initialOrderForm: Omit<OrderPayload, 'cliente' | 'valor_total'> & {
   forma_pagamento: 'Pix',
   status_pagamento: 'Pendente',
   observacoes: '',
+};
+
+const initialQuickClientForm: Pick<
+  ClientPayload,
+  'nome' | 'telefone' | 'email' | 'rede_social'
+> = {
+  nome: '',
+  telefone: '',
+  email: '',
+  rede_social: '',
 };
 
 function createEmptyItem(): OrderItemForm {
@@ -576,11 +595,15 @@ export function OrdersPage() {
 export function NewOrderPage() {
   const user = getSession();
   const navigate = useNavigate();
+  const [step, setStep] = useState<OrderStep>(1);
   const [form, setForm] = useState(initialOrderForm);
   const [items, setItems] = useState<OrderItemForm[]>([createEmptyItem()]);
+  const [quickClientForm, setQuickClientForm] = useState(initialQuickClientForm);
+  const [clientMode, setClientMode] = useState<'existing' | 'new'>('existing');
   const [clients, setClients] = useState<Client[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoadingOptions, setIsLoadingOptions] = useState(true);
+  const [isCreatingClient, setIsCreatingClient] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -628,9 +651,17 @@ export function NewOrderPage() {
     ? embroideryProducts
     : products.filter((product) => product.ativo);
   const total = items.reduce((currentTotal, item) => currentTotal + itemSubtotal(item), 0);
+  const selectedClient = clients.find((client) => String(client.id) === form.cliente);
 
   function updateField(field: keyof typeof form, value: string) {
     setForm((currentForm) => ({ ...currentForm, [field]: value }));
+  }
+
+  function updateQuickClientField(
+    field: keyof typeof quickClientForm,
+    value: string,
+  ) {
+    setQuickClientForm((currentForm) => ({ ...currentForm, [field]: value }));
   }
 
   function updateItem(id: string, field: keyof OrderItemForm, value: string) {
@@ -653,8 +684,92 @@ export function NewOrderPage() {
     );
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function validateOrderData() {
+    if (!form.prazo) {
+      setError('Informe o prazo de entrega.');
+      return false;
+    }
+
+    const hasInvalidItem = items.some(
+      (item) =>
+        !item.peca ||
+        !item.produto ||
+        Number.parseInt(item.quantidade, 10) <= 0 ||
+        parseMoney(item.valor_unitario) <= 0,
+    );
+
+    if (hasInvalidItem) {
+      setError('Preencha peça, bordado, quantidade e valor de todos os itens.');
+      return false;
+    }
+
+    setError('');
+    return true;
+  }
+
+  function goToStep(nextStep: OrderStep) {
+    if (nextStep > 1 && !form.cliente) {
+      setError('Escolha ou cadastre um cliente para continuar.');
+      setStep(1);
+      return;
+    }
+
+    if (nextStep > 2 && !validateOrderData()) {
+      setStep(2);
+      return;
+    }
+
+    setError('');
+    setStep(nextStep);
+  }
+
+  async function handleQuickClientSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setError('');
+    setIsCreatingClient(true);
+
+    const payload: ClientPayload = {
+      nome: quickClientForm.nome,
+      telefone: quickClientForm.telefone,
+      email: quickClientForm.email,
+      rede_social: quickClientForm.rede_social,
+      cep: '',
+      endereco: '',
+      numero: '',
+      complemento: '',
+      bairro: '',
+      cidade: '',
+      estado: '',
+    };
+
+    try {
+      const client = await createClient(payload);
+      setClients((currentClients) => [...currentClients, client]);
+      updateField('cliente', String(client.id));
+      setQuickClientForm(initialQuickClientForm);
+      setClientMode('existing');
+      setStep(2);
+    } catch {
+      setError('Não foi possível cadastrar o cliente rápido.');
+    } finally {
+      setIsCreatingClient(false);
+    }
+  }
+
+  async function handleSubmit(event?: FormEvent<HTMLFormElement>) {
+    event?.preventDefault();
+
+    if (!form.cliente) {
+      setStep(1);
+      setError('Escolha ou cadastre um cliente para continuar.');
+      return;
+    }
+
+    if (!validateOrderData()) {
+      setStep(2);
+      return;
+    }
+
     setError('');
     setIsSaving(true);
 
@@ -705,241 +820,495 @@ export function NewOrderPage() {
         </p>
       ) : null}
 
-      <form className="grid gap-5" onSubmit={handleSubmit}>
+      <OrderStepIndicator currentStep={step} />
+
+      {step === 1 ? (
         <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-100 px-4 py-3">
-            <h2 className="text-sm font-extrabold text-ink">Dados do Pedido</h2>
+            <h2 className="text-sm font-extrabold text-ink">Cliente</h2>
           </div>
-
-          <div className="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-3">
-            <label className="grid gap-2" htmlFor="cliente">
-              <span className="text-sm font-bold text-mauve">Cliente *</span>
-              <select
-                className="min-h-12 w-full rounded-lg border border-frenchRose/20 bg-white px-4 text-ink outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
-                disabled={isLoadingOptions}
-                id="cliente"
-                onChange={(event) => updateField('cliente', event.target.value)}
-                required
-                value={form.cliente}
+          <div className="grid gap-5 p-5">
+            <div className="inline-grid min-h-10 max-w-md grid-cols-2 rounded-lg bg-slate-100 p-1 text-xs font-extrabold text-slate-500">
+              <button
+                className={[
+                  'rounded-md px-4 transition',
+                  clientMode === 'existing'
+                    ? 'bg-white text-frenchRose shadow-sm'
+                    : 'hover:text-ink',
+                ].join(' ')}
+                onClick={() => setClientMode('existing')}
+                type="button"
               >
-                <option value="">Selecione</option>
-                {clients.map((client) => (
-                  <option key={client.id} value={client.id}>
-                    {client.nome}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="grid gap-2" htmlFor="canal">
-              <span className="text-sm font-bold text-mauve">Canal de Origem</span>
-              <select
-                className="min-h-12 w-full rounded-lg border border-frenchRose/20 bg-white px-4 text-ink outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
-                id="canal"
-                onChange={(event) => updateField('canal', event.target.value)}
-                value={form.canal}
+                Cliente existente
+              </button>
+              <button
+                className={[
+                  'rounded-md px-4 transition',
+                  clientMode === 'new'
+                    ? 'bg-white text-frenchRose shadow-sm'
+                    : 'hover:text-ink',
+                ].join(' ')}
+                onClick={() => setClientMode('new')}
+                type="button"
               >
-                {channelOptions.map((channel) => (
-                  <option key={channel} value={channel}>
-                    {channel}
-                  </option>
-                ))}
-              </select>
-            </label>
+                Novo rápido
+              </button>
+            </div>
 
-            <TextField
-              label="Prazo de Entrega *"
-              name="prazo"
-              onChange={(event) => updateField('prazo', event.target.value)}
-              required
-              type="date"
-              value={form.prazo}
-            />
-
-            <label className="grid gap-2" htmlFor="forma_pagamento">
-              <span className="text-sm font-bold text-mauve">Forma de Pagamento</span>
-              <select
-                className="min-h-12 w-full rounded-lg border border-frenchRose/20 bg-white px-4 text-ink outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
-                id="forma_pagamento"
-                onChange={(event) =>
-                  updateField('forma_pagamento', event.target.value)
-                }
-                value={form.forma_pagamento}
-              >
-                {paymentMethodOptions.map((paymentMethod) => (
-                  <option key={paymentMethod} value={paymentMethod}>
-                    {paymentMethodLabel(paymentMethod)}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="grid gap-2" htmlFor="status_pagamento">
-              <span className="text-sm font-bold text-mauve">Status do Pagamento</span>
-              <select
-                className="min-h-12 w-full rounded-lg border border-frenchRose/20 bg-white px-4 text-ink outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
-                id="status_pagamento"
-                onChange={(event) =>
-                  updateField('status_pagamento', event.target.value)
-                }
-                value={form.status_pagamento}
-              >
-                {paymentOptions.map((payment) => (
-                  <option key={payment} value={payment}>
-                    {payment}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="grid gap-2 sm:col-span-2 lg:col-span-3" htmlFor="observacoes">
-              <span className="text-sm font-bold text-mauve">Observações</span>
-              <textarea
-                className="min-h-28 w-full rounded-lg border border-frenchRose/20 bg-white px-4 py-3 text-ink outline-none transition placeholder:text-mauve/60 focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
-                id="observacoes"
-                onChange={(event) => updateField('observacoes', event.target.value)}
-                value={form.observacoes}
-              />
-            </label>
+            {clientMode === 'existing' ? (
+              <div className="grid gap-4">
+                <label className="grid gap-2" htmlFor="cliente">
+                  <span className="text-sm font-bold text-mauve">Cliente *</span>
+                  <select
+                    className="min-h-12 w-full rounded-lg border border-frenchRose/20 bg-white px-4 text-ink outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
+                    disabled={isLoadingOptions}
+                    id="cliente"
+                    onChange={(event) => updateField('cliente', event.target.value)}
+                    value={form.cliente}
+                  >
+                    <option value="">Selecione</option>
+                    {clients.map((client) => (
+                      <option key={client.id} value={client.id}>
+                        {client.nome}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {selectedClient ? (
+                  <div className="rounded-lg border border-chantilly bg-chantilly/20 p-4">
+                    <p className="text-sm font-extrabold text-ink">
+                      {selectedClient.nome}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-600">
+                      {selectedClient.telefone || selectedClient.email || 'Sem contato'}
+                    </p>
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <form className="grid gap-4" onSubmit={handleQuickClientSubmit}>
+                <TextField
+                  label="Nome completo *"
+                  name="quick_nome"
+                  onChange={(event) =>
+                    updateQuickClientField('nome', event.target.value)
+                  }
+                  required
+                  value={quickClientForm.nome}
+                />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <TextField
+                    label="Telefone/Whatsapp *"
+                    name="quick_telefone"
+                    onChange={(event) =>
+                      updateQuickClientField('telefone', event.target.value)
+                    }
+                    required
+                    value={quickClientForm.telefone}
+                  />
+                  <TextField
+                    label="E-mail"
+                    name="quick_email"
+                    onChange={(event) =>
+                      updateQuickClientField('email', event.target.value)
+                    }
+                    type="email"
+                    value={quickClientForm.email}
+                  />
+                </div>
+                <TextField
+                  label="Rede social"
+                  name="quick_rede_social"
+                  onChange={(event) =>
+                    updateQuickClientField('rede_social', event.target.value)
+                  }
+                  placeholder="Ex: @usuario_instagram"
+                  value={quickClientForm.rede_social}
+                />
+                <div className="flex justify-end">
+                  <Button
+                    className="min-h-11 px-4 text-sm"
+                    isLoading={isCreatingClient}
+                    loadingLabel="Cadastrando..."
+                    type="submit"
+                  >
+                    Cadastrar e continuar
+                  </Button>
+                </div>
+              </form>
+            )}
           </div>
         </section>
+      ) : null}
 
-        <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
-          <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
-            <h2 className="text-sm font-extrabold text-ink">Itens da Encomenda</h2>
-            <button
-              className="inline-flex min-h-9 items-center gap-2 rounded-lg bg-chantilly/45 px-3 text-xs font-extrabold text-frenchRose transition hover:bg-chantilly/70"
-              onClick={addItem}
-              type="button"
-            >
-              <Plus aria-hidden className="h-4 w-4" />
-              Item
-            </button>
-          </div>
+      {step === 2 ? (
+        <section className="grid gap-5">
+          <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
+            <div className="border-b border-slate-100 px-4 py-3">
+              <h2 className="text-sm font-extrabold text-ink">Dados do Pedido</h2>
+            </div>
 
-          <div className="grid gap-4 p-5">
-            {items.map((item, index) => (
-              <article
-                className="grid gap-4 rounded-lg border border-slate-200 p-4"
-                key={item.id}
+            <div className="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-3">
+              <label className="grid gap-2" htmlFor="canal">
+                <span className="text-sm font-bold text-mauve">Canal de Origem</span>
+                <select
+                  className="min-h-12 w-full rounded-lg border border-frenchRose/20 bg-white px-4 text-ink outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
+                  id="canal"
+                  onChange={(event) => updateField('canal', event.target.value)}
+                  value={form.canal}
+                >
+                  {channelOptions.map((channel) => (
+                    <option key={channel} value={channel}>
+                      {channel}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <TextField
+                label="Prazo de Entrega *"
+                name="prazo"
+                onChange={(event) => updateField('prazo', event.target.value)}
+                required
+                type="date"
+                value={form.prazo}
+              />
+
+              <label className="grid gap-2" htmlFor="forma_pagamento">
+                <span className="text-sm font-bold text-mauve">Forma de Pagamento</span>
+                <select
+                  className="min-h-12 w-full rounded-lg border border-frenchRose/20 bg-white px-4 text-ink outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
+                  id="forma_pagamento"
+                  onChange={(event) =>
+                    updateField('forma_pagamento', event.target.value)
+                  }
+                  value={form.forma_pagamento}
+                >
+                  {paymentMethodOptions.map((paymentMethod) => (
+                    <option key={paymentMethod} value={paymentMethod}>
+                      {paymentMethodLabel(paymentMethod)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="grid gap-2" htmlFor="status_pagamento">
+                <span className="text-sm font-bold text-mauve">Status do Pagamento</span>
+                <select
+                  className="min-h-12 w-full rounded-lg border border-frenchRose/20 bg-white px-4 text-ink outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
+                  id="status_pagamento"
+                  onChange={(event) =>
+                    updateField('status_pagamento', event.target.value)
+                  }
+                  value={form.status_pagamento}
+                >
+                  {paymentOptions.map((payment) => (
+                    <option key={payment} value={payment}>
+                      {payment}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label
+                className="grid gap-2 sm:col-span-2 lg:col-span-3"
+                htmlFor="observacoes"
               >
-                <div className="flex items-center justify-between gap-3">
-                  <h3 className="text-sm font-extrabold text-ink">Item {index + 1}</h3>
-                  <button
-                    aria-label={`Remover item ${index + 1}`}
-                    className="grid h-9 w-9 place-items-center rounded-lg text-frenchRose transition hover:bg-chantilly/45 disabled:cursor-not-allowed disabled:opacity-50"
-                    disabled={items.length === 1}
-                    onClick={() => removeItem(item.id)}
-                    type="button"
-                  >
-                    <Trash2 aria-hidden className="h-4 w-4" />
-                  </button>
-                </div>
+                <span className="text-sm font-bold text-mauve">Observações</span>
+                <textarea
+                  className="min-h-28 w-full rounded-lg border border-frenchRose/20 bg-white px-4 py-3 text-ink outline-none transition placeholder:text-mauve/60 focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
+                  id="observacoes"
+                  onChange={(event) => updateField('observacoes', event.target.value)}
+                  value={form.observacoes}
+                />
+              </label>
+            </div>
+          </section>
 
-                <div className="grid gap-4 lg:grid-cols-[1.1fr_1.2fr_1.4fr_120px_150px_150px]">
-                  <TextField
-                    label="Peça *"
-                    name={`peca-${item.id}`}
-                    onChange={(event) => updateItem(item.id, 'peca', event.target.value)}
-                    required
-                    value={item.peca}
-                  />
+          <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+              <h2 className="text-sm font-extrabold text-ink">Itens da Encomenda</h2>
+              <button
+                className="inline-flex min-h-9 items-center gap-2 rounded-lg bg-chantilly/45 px-3 text-xs font-extrabold text-frenchRose transition hover:bg-chantilly/70"
+                onClick={addItem}
+                type="button"
+              >
+                <Plus aria-hidden className="h-4 w-4" />
+                Item
+              </button>
+            </div>
 
-                  <label className="grid gap-2" htmlFor={`produto-${item.id}`}>
-                    <span className="text-sm font-bold text-mauve">Bordado *</span>
-                    <select
-                      className="min-h-12 w-full rounded-lg border border-frenchRose/20 bg-white px-4 text-ink outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
-                      disabled={isLoadingOptions}
-                      id={`produto-${item.id}`}
+            <div className="grid gap-4 p-5">
+              {items.map((item, index) => (
+                <article
+                  className="grid gap-4 rounded-lg border border-slate-200 p-4"
+                  key={item.id}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-sm font-extrabold text-ink">
+                      Item {index + 1}
+                    </h3>
+                    <button
+                      aria-label={`Remover item ${index + 1}`}
+                      className="grid h-9 w-9 place-items-center rounded-lg text-frenchRose transition hover:bg-chantilly/45 disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={items.length === 1}
+                      onClick={() => removeItem(item.id)}
+                      title="Remover item"
+                      type="button"
+                    >
+                      <Trash2 aria-hidden className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  <div className="grid gap-4 lg:grid-cols-[1.1fr_1.2fr_1.4fr_120px_150px_150px]">
+                    <TextField
+                      label="Peça *"
+                      name={`peca-${item.id}`}
                       onChange={(event) =>
-                        updateItem(item.id, 'produto', event.target.value)
+                        updateItem(item.id, 'peca', event.target.value)
                       }
                       required
-                      value={item.produto}
-                    >
-                      <option value="">Selecione</option>
-                      {productOptions.map((product) => (
-                        <option key={product.id} value={product.id}>
-                          {product.nome}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                      value={item.peca}
+                    />
 
-                  <TextField
-                    label="Descrição do Bordado"
-                    name={`descricao-${item.id}`}
-                    onChange={(event) =>
-                      updateItem(item.id, 'descricao_bordado', event.target.value)
-                    }
-                    value={item.descricao_bordado}
-                  />
+                    <label className="grid gap-2" htmlFor={`produto-${item.id}`}>
+                      <span className="text-sm font-bold text-mauve">Bordado *</span>
+                      <select
+                        className="min-h-12 w-full rounded-lg border border-frenchRose/20 bg-white px-4 text-ink outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
+                        disabled={isLoadingOptions}
+                        id={`produto-${item.id}`}
+                        onChange={(event) =>
+                          updateItem(item.id, 'produto', event.target.value)
+                        }
+                        required
+                        value={item.produto}
+                      >
+                        <option value="">Selecione</option>
+                        {productOptions.map((product) => (
+                          <option key={product.id} value={product.id}>
+                            {product.nome}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
 
-                  <TextField
-                    label="Quantidade"
-                    min="1"
-                    name={`quantidade-${item.id}`}
-                    onChange={(event) =>
-                      updateItem(item.id, 'quantidade', event.target.value)
-                    }
-                    required
-                    type="number"
-                    value={item.quantidade}
-                  />
+                    <TextField
+                      label="Descrição do Bordado"
+                      name={`descricao-${item.id}`}
+                      onChange={(event) =>
+                        updateItem(item.id, 'descricao_bordado', event.target.value)
+                      }
+                      value={item.descricao_bordado}
+                    />
 
-                  <TextField
-                    label="Valor Unitário"
-                    min="0"
-                    name={`valor-${item.id}`}
-                    onChange={(event) =>
-                      updateItem(item.id, 'valor_unitario', event.target.value)
-                    }
-                    required
-                    step="0.01"
-                    type="number"
-                    value={item.valor_unitario}
-                  />
+                    <TextField
+                      label="Quantidade"
+                      min="1"
+                      name={`quantidade-${item.id}`}
+                      onChange={(event) =>
+                        updateItem(item.id, 'quantidade', event.target.value)
+                      }
+                      required
+                      type="number"
+                      value={item.quantidade}
+                    />
 
-                  <div className="grid gap-2">
-                    <span className="text-sm font-bold text-mauve">Subtotal</span>
-                    <div className="flex min-h-12 items-center rounded-lg border border-slate-200 bg-slate-50 px-4 text-sm font-extrabold text-ink">
-                      {formatCurrency(itemSubtotal(item)) ?? 'R$ 0,00'}
+                    <TextField
+                      label="Valor Unitário"
+                      min="0"
+                      name={`valor-${item.id}`}
+                      onChange={(event) =>
+                        updateItem(item.id, 'valor_unitario', event.target.value)
+                      }
+                      required
+                      step="0.01"
+                      type="number"
+                      value={item.valor_unitario}
+                    />
+
+                    <div className="grid gap-2">
+                      <span className="text-sm font-bold text-mauve">Subtotal</span>
+                      <div className="flex min-h-12 items-center rounded-lg border border-slate-200 bg-slate-50 px-4 text-sm font-extrabold text-ink">
+                        {formatCurrency(itemSubtotal(item)) ?? 'R$ 0,00'}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </article>
-            ))}
-          </div>
+                </article>
+              ))}
+            </div>
+          </section>
         </section>
+      ) : null}
 
-        <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase text-slate-500">Total</p>
-            <p className="text-2xl font-extrabold text-ink">
-              {formatCurrency(total) ?? 'R$ 0,00'}
-            </p>
+      {step === 3 ? (
+        <section className="grid gap-5 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="grid gap-4 lg:grid-cols-3">
+            <SummaryBlock title="Cliente">
+              <p className="font-extrabold text-ink">
+                {selectedClient?.nome ?? 'Cliente não selecionado'}
+              </p>
+              <p className="mt-1 text-sm text-slate-600">
+                {selectedClient?.telefone || selectedClient?.email || '-'}
+              </p>
+            </SummaryBlock>
+            <SummaryBlock title="Pedido">
+              <p className="font-extrabold text-ink">Prazo {formatDate(form.prazo)}</p>
+              <p className="mt-1 text-sm text-slate-600">
+                {form.canal} · {paymentMethodLabel(form.forma_pagamento)} ·{' '}
+                {form.status_pagamento}
+              </p>
+            </SummaryBlock>
+            <SummaryBlock title="Total">
+              <p className="text-2xl font-extrabold text-frenchRose">
+                {formatCurrency(total) ?? 'R$ 0,00'}
+              </p>
+            </SummaryBlock>
           </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="rounded-lg border border-slate-200">
+            <div className="border-b border-slate-100 px-4 py-3">
+              <h2 className="text-sm font-extrabold text-ink">Itens</h2>
+            </div>
+            <div className="divide-y divide-slate-100">
+              {items.map((item) => {
+                const product = products.find(
+                  (currentProduct) => String(currentProduct.id) === item.produto,
+                );
+
+                return (
+                  <div
+                    className="grid gap-2 px-4 py-3 sm:grid-cols-[1fr_auto]"
+                    key={item.id}
+                  >
+                    <div>
+                      <p className="text-sm font-extrabold text-ink">
+                        {item.quantidade}x {item.peca}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-600">
+                        {product?.nome ?? 'Bordado não selecionado'} ·{' '}
+                        {item.descricao_bordado || 'Sem descrição'}
+                      </p>
+                    </div>
+                    <p className="text-sm font-extrabold text-frenchRose">
+                      {formatCurrency(itemSubtotal(item)) ?? 'R$ 0,00'}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {form.observacoes ? (
+            <SummaryBlock title="Observações">
+              <p className="text-sm leading-relaxed text-slate-600">
+                {form.observacoes}
+              </p>
+            </SummaryBlock>
+          ) : null}
+        </section>
+      ) : null}
+
+      <div className="mt-5 flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs font-bold uppercase text-slate-500">Total</p>
+          <p className="text-2xl font-extrabold text-ink">
+            {formatCurrency(total) ?? 'R$ 0,00'}
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Button
+            className="min-h-11 bg-slate-100 px-4 text-sm text-slate-700 hover:bg-slate-200"
+            onClick={() =>
+              step === 1 ? navigate('/pedidos') : setStep((step - 1) as OrderStep)
+            }
+            type="button"
+          >
+            {step === 1 ? 'Cancelar' : 'Voltar'}
+          </Button>
+          {step < 3 ? (
             <Button
-              className="min-h-11 bg-slate-100 px-4 text-sm text-slate-700 hover:bg-slate-200"
-              onClick={() => navigate('/pedidos')}
+              className="min-h-11 px-4 text-sm"
+              onClick={() => goToStep((step + 1) as OrderStep)}
               type="button"
             >
-              Cancelar
+              Continuar
             </Button>
+          ) : (
             <Button
               className="min-h-11 px-4 text-sm"
               isLoading={isSaving}
               loadingLabel="Salvando..."
-              type="submit"
+              onClick={() => {
+                void handleSubmit();
+              }}
+              type="button"
             >
-              Salvar Encomenda
+              Confirmar Encomenda
             </Button>
-          </div>
+          )}
         </div>
-      </form>
+      </div>
     </AppShell>
+  );
+}
+
+function OrderStepIndicator({ currentStep }: { currentStep: OrderStep }) {
+  return (
+    <nav
+      aria-label="Etapas da nova encomenda"
+      className="mb-5 rounded-lg border border-slate-200 bg-white px-4 py-4 shadow-sm"
+    >
+      <ol className="grid gap-3 sm:grid-cols-3">
+        {orderSteps.map((stepItem) => {
+          const isActive = stepItem.id === currentStep;
+          const isDone = stepItem.id < currentStep;
+
+          return (
+            <li className="flex items-center gap-3" key={stepItem.id}>
+              <span
+                className={[
+                  'grid h-9 w-9 shrink-0 place-items-center rounded-full text-sm font-extrabold',
+                  isActive || isDone
+                    ? 'bg-frenchRose text-white'
+                    : 'bg-slate-100 text-slate-400',
+                ].join(' ')}
+              >
+                {stepItem.id}
+              </span>
+              <div>
+                <p
+                  className={[
+                    'text-sm font-extrabold',
+                    isActive ? 'text-ink' : 'text-slate-500',
+                  ].join(' ')}
+                >
+                  {stepItem.label}
+                </p>
+                <p className="text-xs font-semibold text-slate-400">
+                  {isDone ? 'Concluída' : isActive ? 'Em andamento' : 'Próxima'}
+                </p>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  );
+}
+
+function SummaryBlock({
+  children,
+  title,
+}: {
+  children: ReactNode;
+  title: string;
+}) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-4">
+      <p className="text-xs font-bold uppercase text-slate-500">{title}</p>
+      <div className="mt-2">{children}</div>
+    </div>
   );
 }
 
