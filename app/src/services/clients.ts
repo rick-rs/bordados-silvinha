@@ -50,6 +50,12 @@ export function createClient(payload: ClientPayload) {
   });
 }
 
+export function deleteClient(id: number) {
+  return apiRequest<void>(`/api/clientes/${id}/`, {
+    method: 'DELETE',
+  });
+}
+
 export async function searchCep(cep: string) {
   const normalizedCep = cep.replace(/\D/g, '');
 

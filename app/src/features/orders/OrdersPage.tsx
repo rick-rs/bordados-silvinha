@@ -10,6 +10,7 @@ import { Client, listClients } from '../../services/clients';
 import {
   createOrder,
   createOrderItem,
+  deleteOrder,
   listOrderItems,
   listOrders,
   listProducts,
@@ -222,6 +223,7 @@ export function OrdersPage() {
   const [paymentFilter, setPaymentFilter] = useState('');
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -313,6 +315,33 @@ export function OrdersPage() {
 
   function updatePaymentFilter(event: ChangeEvent<HTMLSelectElement>) {
     setPaymentFilter(event.target.value);
+  }
+
+  async function handleDelete(order: Order) {
+    const confirmed = window.confirm(
+      `Excluir o pedido ${formatOrderNumber(order.id)}? Esta ação não pode ser desfeita.`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingId(order.id);
+    setError('');
+
+    try {
+      await deleteOrder(order.id);
+      setOrders((currentOrders) =>
+        currentOrders.filter((currentOrder) => currentOrder.id !== order.id),
+      );
+      setItems((currentItems) =>
+        currentItems.filter((currentItem) => currentItem.pedido !== order.id),
+      );
+    } catch {
+      setError('Não foi possível excluir o pedido.');
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   return (
@@ -409,7 +438,9 @@ export function OrdersPage() {
         ) : filteredOrders.length > 0 ? (
           <OrdersTable
             clientsById={clientsById}
+            deletingId={deletingId}
             itemsByOrder={itemsByOrder}
+            onDelete={handleDelete}
             orders={filteredOrders}
             productsById={productsById}
           />
@@ -793,12 +824,16 @@ export function NewOrderPage() {
 
 function OrdersTable({
   clientsById,
+  deletingId,
   itemsByOrder,
+  onDelete,
   orders,
   productsById,
 }: {
   clientsById: Map<number, Client>;
+  deletingId: number | null;
   itemsByOrder: Map<number, OrderItem[]>;
+  onDelete: (order: Order) => void;
   orders: Order[];
   productsById: Map<number, Product>;
 }) {
@@ -856,10 +891,13 @@ function OrdersTable({
                 </td>
                 <td className="px-4 py-3 text-right">
                   <button
-                    className="text-xs font-extrabold text-frenchRose transition hover:text-froly"
+                    aria-label={`Excluir pedido ${formatOrderNumber(order.id)}`}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-frenchRose transition hover:bg-chantilly/45 disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={deletingId === order.id}
+                    onClick={() => onDelete(order)}
                     type="button"
                   >
-                    Ver
+                    <Trash2 aria-hidden className="h-4 w-4" />
                   </button>
                 </td>
               </tr>

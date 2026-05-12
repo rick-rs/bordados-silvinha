@@ -70,6 +70,12 @@ export function createOrder(payload: OrderPayload) {
   });
 }
 
+export function deleteOrder(id: number) {
+  return apiRequest<void>(`/api/pedidos/${id}/`, {
+    method: 'DELETE',
+  });
+}
+
 export function listOrderItems() {
   return apiRequest<OrderItem[]>('/api/itens-pedido/');
 }
@@ -83,4 +89,10 @@ export function createOrderItem(payload: OrderItemPayload) {
 
 export function listProducts() {
   return apiRequest<Product[]>('/api/produtos/');
+}
+
+export function deleteProduct(id: number) {
+  return apiRequest<void>(`/api/produtos/${id}/`, {
+    method: 'DELETE',
+  });
 }

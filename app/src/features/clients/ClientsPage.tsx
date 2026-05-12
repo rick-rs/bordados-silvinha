@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { Inbox, Plus } from 'lucide-react';
+import { Inbox, Plus, Trash2 } from 'lucide-react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
@@ -9,6 +9,7 @@ import {
   Client,
   ClientPayload,
   createClient,
+  deleteClient,
   listClients,
   searchCep,
 } from '../../services/clients';
@@ -50,6 +51,7 @@ export function ClientsPage() {
   const user = getSession();
   const [clients, setClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -83,6 +85,32 @@ export function ClientsPage() {
 
   if (!user) {
     return <Navigate replace to="/login" />;
+  }
+
+  async function handleDelete(client: Client) {
+    const confirmed = window.confirm(
+      `Excluir o cliente "${client.nome}"? Esta ação não pode ser desfeita.`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingId(client.id);
+    setError('');
+
+    try {
+      await deleteClient(client.id);
+      setClients((currentClients) =>
+        currentClients.filter((currentClient) => currentClient.id !== client.id),
+      );
+    } catch {
+      setError(
+        'Não foi possível excluir o cliente. Verifique se ele possui pedidos vinculados.',
+      );
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   return (
@@ -138,6 +166,7 @@ export function ClientsPage() {
                   <th className="px-4 py-3">E-mail</th>
                   <th className="px-4 py-3">Cidade</th>
                   <th className="px-4 py-3">Estado</th>
+                  <th className="px-4 py-3 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -157,6 +186,17 @@ export function ClientsPage() {
                     </td>
                     <td className="px-4 py-3 text-slate-600">
                       {client.estado || '-'}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        aria-label={`Excluir cliente ${client.nome}`}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-frenchRose transition hover:bg-chantilly/45 disabled:cursor-not-allowed disabled:opacity-60"
+                        disabled={deletingId === client.id}
+                        onClick={() => handleDelete(client)}
+                        type="button"
+                      >
+                        <Trash2 aria-hidden className="h-4 w-4" />
+                      </button>
                     </td>
                   </tr>
                 ))}

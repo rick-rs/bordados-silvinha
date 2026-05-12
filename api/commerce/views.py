@@ -69,12 +69,26 @@ class ClienteViewSet(viewsets.ModelViewSet):
     queryset = models.Cliente.objects.all()
     serializer_class = serializers.ClienteSerializer
 
+    def destroy(self, request, *args, **kwargs):
+        """Delete a client and dependent demo orders."""
+        cliente = self.get_object()
+        models.Pedido.objects.filter(cliente=cliente).delete()
+        cliente.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class ProdutoViewSet(viewsets.ModelViewSet):
     """ViewSet for `Produto`."""
 
     queryset = models.Produto.objects.all()
     serializer_class = serializers.ProdutoSerializer
+
+    def destroy(self, request, *args, **kwargs):
+        """Delete a product and dependent order items."""
+        produto = self.get_object()
+        models.ItemPedido.objects.filter(produto=produto).delete()
+        produto.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class PedidoViewSet(viewsets.ModelViewSet):
