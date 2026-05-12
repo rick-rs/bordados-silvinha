@@ -264,12 +264,9 @@ export function DashboardPage() {
                   </div>
                   <div className="sm:text-right">
                     <p className="text-xs font-extrabold text-frenchRose">
-                      {deadline.status}
-                    </p>
-                    <p className="mt-1 text-[11px] font-bold text-rose-600">
                       {deadline.overdue_days === 1
-                        ? '1 dia atrasado'
-                        : `${deadline.overdue_days} dias atrasado`}
+                        ? 'Atrasado 1 dia'
+                        : `Atrasado ${deadline.overdue_days} dias`}
                     </p>
                     <p className="mt-1 text-[11px] text-slate-500">
                       {deadline.due_date}
