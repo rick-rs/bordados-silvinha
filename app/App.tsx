@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 
+import { AgendaPage } from './src/features/agenda/AgendaPage';
 import { ClientsPage, NewClientPage } from './src/features/clients/ClientsPage';
 import { DashboardPage } from './src/features/dashboard/DashboardPage';
 import { LoginPage } from './src/features/auth/LoginPage';
@@ -13,6 +14,7 @@ function App() {
       <Routes>
         <Route element={<LoginPage />} path="/login" />
         <Route element={<DashboardPage />} path="/dashboard" />
+        <Route element={<AgendaPage />} path="/agenda" />
         <Route element={<OrdersPage />} path="/pedidos" />
         <Route element={<NewOrderPage />} path="/pedidos/novo" />
         <Route element={<ClientsPage />} path="/clientes" />
