@@ -41,6 +41,11 @@ O Docker Compose lê o arquivo `.env` da raiz para valores como banco e URL do f
 - **API Schema (OpenAPI):** http://localhost:8000/api/schema/
 - **API Docs (Swagger UI):** http://localhost:8000/api/docs/
 
+Usuário de teste criado automaticamente no ambiente local:
+
+- **E-mail:** `admin@teste.com`
+- **Senha:** `admin`
+
 Outras rotas úteis (serão expandidas):
 - Recursos de domínio estão disponíveis sob `/api/` — ex.: `/api/clientes/`, `/api/produtos/`, `/api/pedidos/`.
 

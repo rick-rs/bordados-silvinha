@@ -1,15 +1,17 @@
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 
-const apiBaseUrl = import.meta.env.VITE_API_URL;
-
-if (!apiBaseUrl) {
-  throw new Error('VITE_API_URL is required');
-}
+import { DashboardPage } from './src/features/dashboard/DashboardPage';
+import { LoginPage } from './src/features/auth/LoginPage';
+import './src/theme/global.css';
 
 function App() {
   return (
     <BrowserRouter>
-      <div data-api-base-url={apiBaseUrl}>App Content</div>
+      <Routes>
+        <Route element={<LoginPage />} path="/login" />
+        <Route element={<DashboardPage />} path="/dashboard" />
+        <Route element={<Navigate replace to="/dashboard" />} path="*" />
+      </Routes>
     </BrowserRouter>
   );
 }
