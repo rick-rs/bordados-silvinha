@@ -9,6 +9,7 @@ import { listOrders, Order } from '../../services/orders';
 
 const weekDays = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
 type CalendarView = 'month' | 'week';
+const calendarViewStorageKey = 'bordados:agenda-view';
 
 const monthNames = [
   'Janeiro',
@@ -106,6 +107,12 @@ function buildWeekDays(referenceDate: Date) {
   });
 }
 
+function getInitialCalendarView(): CalendarView {
+  const storedView = window.localStorage.getItem(calendarViewStorageKey);
+
+  return storedView === 'week' || storedView === 'month' ? storedView : 'month';
+}
+
 export function AgendaPage() {
   const user = getSession();
   const navigate = useNavigate();
@@ -113,7 +120,8 @@ export function AgendaPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [visibleMonth, setVisibleMonth] = useState(() => new Date());
   const [selectedDate, setSelectedDate] = useState(() => new Date());
-  const [calendarView, setCalendarView] = useState<CalendarView>('month');
+  const [calendarView, setCalendarView] =
+    useState<CalendarView>(getInitialCalendarView);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -149,6 +157,10 @@ export function AgendaPage() {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(calendarViewStorageKey, calendarView);
+  }, [calendarView]);
 
   const clientsById = useMemo(() => {
     return new Map(clients.map((client) => [client.id, client]));
