@@ -353,7 +353,12 @@ export function NewClientPage() {
             >
               Cancelar
             </button>
-            <Button className="min-h-11 px-5 text-sm" isLoading={isSaving} type="submit">
+            <Button
+              className="min-h-11 px-5 text-sm"
+              isLoading={isSaving}
+              loadingLabel="Salvando..."
+              type="submit"
+            >
               Salvar
             </Button>
           </div>

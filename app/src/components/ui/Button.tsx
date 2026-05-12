@@ -3,6 +3,7 @@ import type { ButtonHTMLAttributes, ReactNode } from 'react';
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   children: ReactNode;
   isLoading?: boolean;
+  loadingLabel?: string;
 };
 
 export function Button({
@@ -10,6 +11,7 @@ export function Button({
   className = '',
   disabled,
   isLoading = false,
+  loadingLabel = 'Entrando...',
   type = 'button',
   ...props
 }: ButtonProps) {
@@ -29,7 +31,7 @@ export function Button({
       type={type}
       {...props}
     >
-      {isLoading ? 'Entrando...' : children}
+      {isLoading ? loadingLabel : children}
     </button>
   );
 }

@@ -8,7 +8,7 @@ import {
   WalletCards,
   type LucideIcon,
 } from 'lucide-react';
-import { Navigate } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
@@ -164,7 +164,7 @@ export function DashboardPage() {
         </div>
         <Button className="min-h-11 w-full gap-2 px-4 text-sm sm:min-h-9 sm:w-auto sm:self-auto sm:text-xs">
           <Plus aria-hidden className="h-4 w-4" />
-          Nova Encomenda
+          <Link to="/pedidos/novo">Nova Encomenda</Link>
         </Button>
       </header>
 

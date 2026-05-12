@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { ClientsPage, NewClientPage } from './src/features/clients/ClientsPage';
 import { DashboardPage } from './src/features/dashboard/DashboardPage';
 import { LoginPage } from './src/features/auth/LoginPage';
+import { NewOrderPage, OrdersPage } from './src/features/orders/OrdersPage';
 import { ProfilePage } from './src/features/profile/ProfilePage';
 import './src/theme/global.css';
 
@@ -12,6 +13,8 @@ function App() {
       <Routes>
         <Route element={<LoginPage />} path="/login" />
         <Route element={<DashboardPage />} path="/dashboard" />
+        <Route element={<OrdersPage />} path="/pedidos" />
+        <Route element={<NewOrderPage />} path="/pedidos/novo" />
         <Route element={<ClientsPage />} path="/clientes" />
         <Route element={<NewClientPage />} path="/clientes/novo" />
         <Route element={<ProfilePage />} path="/perfil" />
