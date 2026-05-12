@@ -1,5 +1,21 @@
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
-import { Inbox, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import {
+  ChangeEvent,
+  DragEvent,
+  FormEvent,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+import {
+  ArrowRight,
+  Columns3,
+  Inbox,
+  List,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+} from 'lucide-react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
@@ -19,8 +35,12 @@ import {
   OrderItemPayload,
   OrderPayload,
   Product,
+  updateOrder,
 } from '../../services/orders';
 import { formatCurrency } from '../../utils/format';
+
+type OrdersView = 'list' | 'board';
+const ordersViewStorageKey = 'bordados:orders-view';
 
 const statusOptions = [
   'Recebido',
@@ -97,6 +117,16 @@ function statusLabel(status: string | null) {
   }
 
   return status || 'Recebido';
+}
+
+function getNextStatus(status: string) {
+  const currentIndex = statusOptions.indexOf(status);
+
+  if (currentIndex < 0 || currentIndex === statusOptions.length - 1) {
+    return null;
+  }
+
+  return statusOptions[currentIndex + 1];
 }
 
 function paymentLabel(payment: string | null) {
@@ -217,6 +247,12 @@ function EmptyState() {
   );
 }
 
+function getInitialOrdersView(): OrdersView {
+  const storedView = window.localStorage.getItem(ordersViewStorageKey);
+
+  return storedView === 'board' || storedView === 'list' ? storedView : 'list';
+}
+
 export function OrdersPage() {
   const user = getSession();
   const [orders, setOrders] = useState<Order[]>([]);
@@ -226,8 +262,10 @@ export function OrdersPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [paymentFilter, setPaymentFilter] = useState('');
   const [search, setSearch] = useState('');
+  const [ordersView, setOrdersView] = useState<OrdersView>(getInitialOrdersView);
   const [isLoading, setIsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [updatingStatusId, setUpdatingStatusId] = useState<number | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -267,6 +305,10 @@ export function OrdersPage() {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(ordersViewStorageKey, ordersView);
+  }, [ordersView]);
 
   const clientsById = useMemo(
     () => new Map(clients.map((client) => [client.id, client])),
@@ -348,6 +390,38 @@ export function OrdersPage() {
     }
   }
 
+  async function handleStatusChange(order: Order, status: string) {
+    if (order.status === status) {
+      return;
+    }
+
+    const previousOrders = orders;
+
+    setUpdatingStatusId(order.id);
+    setError('');
+    setOrders((currentOrders) =>
+      currentOrders.map((currentOrder) =>
+        currentOrder.id === order.id
+          ? { ...currentOrder, status, atualizado_em: new Date().toISOString() }
+          : currentOrder,
+      ),
+    );
+
+    try {
+      const updatedOrder = await updateOrder(order.id, { status });
+      setOrders((currentOrders) =>
+        currentOrders.map((currentOrder) =>
+          currentOrder.id === updatedOrder.id ? updatedOrder : currentOrder,
+        ),
+      );
+    } catch {
+      setOrders(previousOrders);
+      setError('Não foi possível atualizar o status do pedido.');
+    } finally {
+      setUpdatingStatusId(null);
+    }
+  }
+
   return (
     <AppShell activePage="Pedidos">
       <header className="mb-5 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
@@ -378,7 +452,7 @@ export function OrdersPage() {
       ) : null}
 
       <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
-        <div className="grid gap-3 border-b border-slate-100 px-4 py-3 lg:grid-cols-[180px_180px_1fr]">
+        <div className="grid gap-3 border-b border-slate-100 px-4 py-3 lg:grid-cols-[180px_180px_1fr_auto]">
           <label className="sr-only" htmlFor="status-filter">
             Filtrar por status
           </label>
@@ -428,6 +502,37 @@ export function OrdersPage() {
               value={search}
             />
           </label>
+
+          <div className="inline-grid min-h-10 grid-cols-2 rounded-lg bg-slate-100 p-1 text-xs font-extrabold text-slate-500">
+            <button
+              aria-label="Visualizar pedidos em lista"
+              className={[
+                'inline-flex items-center justify-center gap-2 rounded-md px-3 transition',
+                ordersView === 'list'
+                  ? 'bg-white text-frenchRose shadow-sm'
+                  : 'hover:text-ink',
+              ].join(' ')}
+              onClick={() => setOrdersView('list')}
+              type="button"
+            >
+              <List aria-hidden className="h-4 w-4" />
+              Lista
+            </button>
+            <button
+              aria-label="Visualizar pedidos em quadro"
+              className={[
+                'inline-flex items-center justify-center gap-2 rounded-md px-3 transition',
+                ordersView === 'board'
+                  ? 'bg-white text-frenchRose shadow-sm'
+                  : 'hover:text-ink',
+              ].join(' ')}
+              onClick={() => setOrdersView('board')}
+              type="button"
+            >
+              <Columns3 aria-hidden className="h-4 w-4" />
+              Quadro
+            </button>
+          </div>
         </div>
 
         {isLoading ? (
@@ -439,15 +544,29 @@ export function OrdersPage() {
               />
             ))}
           </div>
-        ) : filteredOrders.length > 0 ? (
+        ) : filteredOrders.length > 0 && ordersView === 'list' ? (
           <OrdersTable
             clientsById={clientsById}
             deletingId={deletingId}
             itemsByOrder={itemsByOrder}
+            onAdvanceStatus={handleStatusChange}
             onEdit={showEditPlaceholder}
             onDelete={handleDelete}
             orders={filteredOrders}
             productsById={productsById}
+            updatingStatusId={updatingStatusId}
+          />
+        ) : filteredOrders.length > 0 ? (
+          <OrdersBoard
+            clientsById={clientsById}
+            deletingId={deletingId}
+            itemsByOrder={itemsByOrder}
+            onDelete={handleDelete}
+            onEdit={showEditPlaceholder}
+            onStatusChange={handleStatusChange}
+            orders={filteredOrders}
+            productsById={productsById}
+            updatingStatusId={updatingStatusId}
           />
         ) : (
           <EmptyState />
@@ -831,18 +950,22 @@ function OrdersTable({
   clientsById,
   deletingId,
   itemsByOrder,
+  onAdvanceStatus,
   onEdit,
   onDelete,
   orders,
   productsById,
+  updatingStatusId,
 }: {
   clientsById: Map<number, Client>;
   deletingId: number | null;
   itemsByOrder: Map<number, OrderItem[]>;
+  onAdvanceStatus: (order: Order, status: string) => void;
   onEdit: () => void;
   onDelete: (order: Order) => void;
   orders: Order[];
   productsById: Map<number, Product>;
+  updatingStatusId: number | null;
 }) {
   const navigate = useNavigate();
 
@@ -865,6 +988,7 @@ function OrdersTable({
             const itemSummary = buildItemSummary(order.id, itemsByOrder, productsById);
             const total = formatCurrency(order.valor_total) ?? 'R$ 0,00';
             const payment = paymentLabel(order.status_pagamento);
+            const nextStatus = getNextStatus(order.status);
 
             return (
               <tr
@@ -904,12 +1028,33 @@ function OrdersTable({
                 </td>
                 <td className="px-4 py-3 text-right">
                   <button
+                    aria-label={`Avançar pedido ${formatOrderNumber(order.id)} para o próximo status`}
+                    className="mr-1 inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
+                    disabled={!nextStatus || updatingStatusId === order.id}
+                    onClick={(event) => {
+                      event.stopPropagation();
+
+                      if (nextStatus) {
+                        onAdvanceStatus(order, nextStatus);
+                      }
+                    }}
+                    title={
+                      nextStatus
+                        ? `Avançar para ${statusLabel(nextStatus)}`
+                        : 'Pedido no último status'
+                    }
+                    type="button"
+                  >
+                    <ArrowRight aria-hidden className="h-4 w-4" />
+                  </button>
+                  <button
                     aria-label={`Editar pedido ${formatOrderNumber(order.id)}`}
                     className="mr-1 inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-ink"
                     onClick={(event) => {
                       event.stopPropagation();
                       onEdit();
                     }}
+                    title="Editar pedido"
                     type="button"
                   >
                     <Pencil aria-hidden className="h-4 w-4" />
@@ -922,6 +1067,7 @@ function OrdersTable({
                       event.stopPropagation();
                       onDelete(order);
                     }}
+                    title="Excluir pedido"
                     type="button"
                   >
                     <Trash2 aria-hidden className="h-4 w-4" />
@@ -932,6 +1078,274 @@ function OrdersTable({
           })}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function OrdersBoard({
+  clientsById,
+  deletingId,
+  itemsByOrder,
+  onDelete,
+  onEdit,
+  onStatusChange,
+  orders,
+  productsById,
+  updatingStatusId,
+}: {
+  clientsById: Map<number, Client>;
+  deletingId: number | null;
+  itemsByOrder: Map<number, OrderItem[]>;
+  onDelete: (order: Order) => void;
+  onEdit: () => void;
+  onStatusChange: (order: Order, status: string) => void;
+  orders: Order[];
+  productsById: Map<number, Product>;
+  updatingStatusId: number | null;
+}) {
+  const navigate = useNavigate();
+  const [dragOverStatus, setDragOverStatus] = useState<string | null>(null);
+  const [orderedIds, setOrderedIds] = useState<number[]>([]);
+
+  useEffect(() => {
+    setOrderedIds((currentIds) => {
+      const orderIds = orders.map((order) => order.id);
+      const keptIds = currentIds.filter((id) => orderIds.includes(id));
+      const newIds = orderIds.filter((id) => !keptIds.includes(id));
+
+      return [...keptIds, ...newIds];
+    });
+  }, [orders]);
+
+  const orderedOrders = useMemo(() => {
+    const orderIndex = new Map(orderedIds.map((id, index) => [id, index]));
+
+    return [...orders].sort(
+      (leftOrder, rightOrder) =>
+        (orderIndex.get(leftOrder.id) ?? Number.MAX_SAFE_INTEGER) -
+        (orderIndex.get(rightOrder.id) ?? Number.MAX_SAFE_INTEGER),
+    );
+  }, [orderedIds, orders]);
+
+  const ordersByStatus = useMemo(() => {
+    const groupedOrders = new Map<string, Order[]>();
+
+    statusOptions.forEach((status) => {
+      groupedOrders.set(status, []);
+    });
+
+    orderedOrders.forEach((order) => {
+      const status = statusOptions.includes(order.status) ? order.status : 'Recebido';
+      groupedOrders.set(status, [...(groupedOrders.get(status) ?? []), order]);
+    });
+
+    return groupedOrders;
+  }, [orderedOrders]);
+
+  function moveOrderBefore(draggedOrderId: number, targetOrderId: number) {
+    if (draggedOrderId === targetOrderId) {
+      return;
+    }
+
+    setOrderedIds((currentIds) => {
+      const nextIds = currentIds.filter((id) => id !== draggedOrderId);
+      const targetIndex = nextIds.indexOf(targetOrderId);
+
+      if (targetIndex < 0) {
+        return [...nextIds, draggedOrderId];
+      }
+
+      nextIds.splice(targetIndex, 0, draggedOrderId);
+      return nextIds;
+    });
+  }
+
+  function moveOrderToColumnEnd(orderId: number) {
+    setOrderedIds((currentIds) => [
+      ...currentIds.filter((id) => id !== orderId),
+      orderId,
+    ]);
+  }
+
+  function handleDragStart(event: DragEvent<HTMLElement>, order: Order) {
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', String(order.id));
+  }
+
+  function handleDrop(event: DragEvent<HTMLElement>, status: string) {
+    event.preventDefault();
+    setDragOverStatus(null);
+
+    const orderId = Number(event.dataTransfer.getData('text/plain'));
+    const order = orders.find((currentOrder) => currentOrder.id === orderId);
+
+    if (!order) {
+      return;
+    }
+
+    moveOrderToColumnEnd(order.id);
+    onStatusChange(order, status);
+  }
+
+  function handleCardDrop(event: DragEvent<HTMLElement>, targetOrder: Order) {
+    event.preventDefault();
+    event.stopPropagation();
+    setDragOverStatus(null);
+
+    const draggedOrderId = Number(event.dataTransfer.getData('text/plain'));
+    const draggedOrder = orders.find(
+      (currentOrder) => currentOrder.id === draggedOrderId,
+    );
+
+    if (!draggedOrder || draggedOrder.id === targetOrder.id) {
+      return;
+    }
+
+    moveOrderBefore(draggedOrder.id, targetOrder.id);
+
+    if (draggedOrder.status !== targetOrder.status) {
+      onStatusChange(draggedOrder, targetOrder.status);
+    }
+  }
+
+  return (
+    <div className="overflow-x-auto bg-slate-50/60 p-4">
+      <div className="grid min-w-[1180px] grid-cols-6 gap-3">
+        {statusOptions.map((status) => {
+          const columnOrders = ordersByStatus.get(status) ?? [];
+          const isDraggingOver = dragOverStatus === status;
+
+          return (
+            <section
+              className={[
+                'flex min-h-[520px] flex-col rounded-lg border bg-white shadow-sm transition',
+                isDraggingOver
+                  ? 'border-frenchRose bg-chantilly/20 ring-4 ring-frenchRose/10'
+                  : 'border-slate-200',
+              ].join(' ')}
+              key={status}
+              onDragLeave={() => setDragOverStatus(null)}
+              onDragOver={(event) => {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = 'move';
+                setDragOverStatus(status);
+              }}
+              onDrop={(event) => handleDrop(event, status)}
+            >
+              <header className="flex items-center justify-between gap-2 border-b border-slate-100 px-3 py-3">
+                <h3 className="text-xs font-extrabold text-ink">
+                  {statusLabel(status)}
+                </h3>
+                <span className="rounded-full bg-chantilly/45 px-2 py-1 text-[11px] font-extrabold text-frenchRose">
+                  {columnOrders.length}
+                </span>
+              </header>
+
+              <div className="grid flex-1 content-start gap-3 p-3">
+                {columnOrders.length > 0 ? (
+                  columnOrders.map((order) => {
+                    const client = clientsById.get(order.cliente);
+                    const itemSummary = buildItemSummary(
+                      order.id,
+                      itemsByOrder,
+                      productsById,
+                    );
+                    const payment = paymentLabel(order.status_pagamento);
+                    const isUpdating = updatingStatusId === order.id;
+
+                    return (
+                      <article
+                        className={[
+                          'cursor-grab rounded-lg border border-slate-200 bg-white p-3 text-left shadow-sm transition',
+                          'hover:-translate-y-0.5 hover:border-frenchRose/30 hover:shadow-md',
+                          isUpdating ? 'opacity-60' : '',
+                        ].join(' ')}
+                        draggable={!isUpdating}
+                        key={order.id}
+                        onClick={() => navigate(`/pedidos/${order.id}`)}
+                        onDragEnd={() => setDragOverStatus(null)}
+                        onDragOver={(event) => {
+                          event.preventDefault();
+                          event.dataTransfer.dropEffect = 'move';
+                          setDragOverStatus(order.status);
+                        }}
+                        onDragStart={(event) => handleDragStart(event, order)}
+                        onDrop={(event) => handleCardDrop(event, order)}
+                        title="Arraste para mudar o status ou a prioridade visual"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-extrabold text-ink">
+                              {client?.nome ?? `Cliente #${order.cliente}`}
+                            </p>
+                            <p className="mt-1 text-[11px] font-bold text-frenchRose">
+                              {formatDate(order.prazo)}
+                            </p>
+                          </div>
+                          <span
+                            className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-bold ${paymentClassName(
+                              payment,
+                            )}`}
+                          >
+                            {payment}
+                          </span>
+                        </div>
+
+                        <p className="mt-3 line-clamp-2 text-xs leading-relaxed text-slate-600">
+                          {itemSummary}
+                        </p>
+
+                        <div className="mt-3 flex items-center justify-between gap-2">
+                          <p className="text-sm font-extrabold text-ink">
+                            {formatCurrency(order.valor_total) ?? 'R$ 0,00'}
+                          </p>
+                          <div className="flex items-center gap-1">
+                            <button
+                              aria-label={`Editar pedido de ${
+                                client?.nome ?? 'cliente não identificado'
+                              }`}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-ink"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                onEdit();
+                              }}
+                              title="Editar pedido"
+                              type="button"
+                            >
+                              <Pencil aria-hidden className="h-4 w-4" />
+                            </button>
+                            <button
+                              aria-label={`Excluir pedido de ${
+                                client?.nome ?? 'cliente não identificado'
+                              }`}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-frenchRose transition hover:bg-chantilly/45 disabled:cursor-not-allowed disabled:opacity-60"
+                              disabled={deletingId === order.id}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                onDelete(order);
+                              }}
+                              title="Excluir pedido"
+                              type="button"
+                            >
+                              <Trash2 aria-hidden className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  })
+                ) : (
+                  <div className="grid min-h-32 place-items-center rounded-lg border border-dashed border-slate-200 px-3 py-5 text-center">
+                    <p className="text-xs font-bold text-slate-400">
+                      Arraste pedidos para cá
+                    </p>
+                  </div>
+                )}
+              </div>
+            </section>
+          );
+        })}
+      </div>
     </div>
   );
 }

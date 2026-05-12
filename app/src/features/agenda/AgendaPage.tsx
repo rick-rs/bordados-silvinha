@@ -332,7 +332,12 @@ export function AgendaPage() {
             <div className="grid grid-cols-7 gap-2 p-3 sm:p-4">
               {calendarDays.map((day, index) => {
                 if (!day) {
-                  return <div className="aspect-square" key={`empty-${index}`} />;
+                  return (
+                    <div
+                      className="aspect-square rounded-lg border border-slate-100 bg-white/60"
+                      key={`empty-${index}`}
+                    />
+                  );
                 }
 
                 const key = dateKey(day);
@@ -350,7 +355,7 @@ export function AgendaPage() {
                         : 'aspect-square',
                       isSelected
                         ? 'border-frenchRose bg-chantilly/50 text-frenchRose shadow-sm'
-                        : 'border-transparent text-slate-600 hover:bg-slate-100',
+                        : 'border-slate-100 text-slate-600 hover:bg-slate-100',
                       isToday && !isSelected
                         ? 'border-froly bg-white text-frenchRose ring-2 ring-froly/15'
                         : '',

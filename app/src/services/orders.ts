@@ -28,6 +28,10 @@ export type OrderPayload = {
   valor_total: string;
 };
 
+export type OrderPatchPayload = Partial<OrderPayload> & {
+  status?: string;
+};
+
 export type OrderItem = {
   id: number;
   pedido: number;
@@ -70,6 +74,13 @@ export function getOrder(id: number) {
 export function createOrder(payload: OrderPayload) {
   return apiRequest<Order>('/api/pedidos/', {
     method: 'POST',
+    body: payload,
+  });
+}
+
+export function updateOrder(id: number, payload: OrderPatchPayload) {
+  return apiRequest<Order>(`/api/pedidos/${id}/`, {
+    method: 'PATCH',
     body: payload,
   });
 }
