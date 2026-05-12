@@ -19,7 +19,7 @@ def test_produto_crud_api():
     # Retrieve list
     resp = client.get("/api/produtos/")
     assert resp.status_code == 200
-    items = resp.json()
+    items = resp.json()["results"]
     assert any(p["id"] == produto_id for p in items)
 
     # Retrieve detail

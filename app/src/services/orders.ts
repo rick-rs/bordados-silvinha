@@ -1,4 +1,10 @@
 import { apiRequest } from './api';
+import {
+  buildQuery,
+  PaginatedResponse,
+  PaginationParams,
+  unwrapResults,
+} from './pagination';
 
 export type Order = {
   id: number;
@@ -63,6 +69,12 @@ export type Product = {
   ativo: boolean;
 };
 
+export type ListProductsParams = PaginationParams & {
+  q?: string;
+  tipo?: string;
+  ativo?: string;
+};
+
 export function listOrders() {
   return apiRequest<Order[]>('/api/pedidos/');
 }
@@ -103,11 +115,25 @@ export function createOrderItem(payload: OrderItemPayload) {
 }
 
 export function listProducts() {
-  return apiRequest<Product[]>('/api/produtos/');
+  return apiRequest<Product[] | PaginatedResponse<Product>>(
+    `/api/produtos/${buildQuery({ page_size: 100 })}`,
+  ).then(unwrapResults);
 }
 
 export function getProduct(id: number) {
   return apiRequest<Product>(`/api/produtos/${id}/`);
+}
+
+export function listProductsPage(params: ListProductsParams) {
+  return apiRequest<PaginatedResponse<Product>>(
+    `/api/produtos/${buildQuery({
+      q: params.q,
+      tipo: params.tipo,
+      ativo: params.ativo,
+      page: params.page,
+      page_size: params.pageSize,
+    })}`,
+  );
 }
 
 export function deleteProduct(id: number) {

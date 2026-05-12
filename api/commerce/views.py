@@ -1,6 +1,7 @@
 """API viewsets for commerce resources."""
 
 from django.contrib.auth.hashers import check_password
+from django.db.models import F, Q
 from django.utils.crypto import constant_time_compare
 from rest_framework import status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
@@ -8,6 +9,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from . import dashboard, models, serializers
+from .pagination import StandardResultsSetPagination
 
 
 def senha_confere(senha: str, senha_armazenada: str) -> bool:
@@ -67,7 +69,28 @@ class ClienteViewSet(viewsets.ModelViewSet):
     """ViewSet for `Cliente`."""
 
     queryset = models.Cliente.objects.all()
+    pagination_class = StandardResultsSetPagination
     serializer_class = serializers.ClienteSerializer
+
+    def get_queryset(self):
+        """Filter clients by search text and location."""
+        queryset = super().get_queryset().order_by("nome")
+        query = self.request.query_params.get("q", "").strip()
+        estado = self.request.query_params.get("estado", "").strip()
+
+        if query:
+            queryset = queryset.filter(
+                Q(nome__icontains=query)
+                | Q(telefone__icontains=query)
+                | Q(email__icontains=query)
+                | Q(rede_social__icontains=query)
+                | Q(cidade__icontains=query)
+            )
+
+        if estado:
+            queryset = queryset.filter(estado__iexact=estado)
+
+        return queryset
 
     def destroy(self, request, *args, **kwargs):
         """Delete a client and dependent demo orders."""
@@ -81,7 +104,31 @@ class ProdutoViewSet(viewsets.ModelViewSet):
     """ViewSet for `Produto`."""
 
     queryset = models.Produto.objects.all()
+    pagination_class = StandardResultsSetPagination
     serializer_class = serializers.ProdutoSerializer
+
+    def get_queryset(self):
+        """Filter products by search, type and active status."""
+        queryset = super().get_queryset().order_by("nome")
+        query = self.request.query_params.get("q", "").strip()
+        tipo = self.request.query_params.get("tipo", "").strip()
+        ativo = self.request.query_params.get("ativo", "").strip().lower()
+
+        if query:
+            queryset = queryset.filter(
+                Q(nome__icontains=query)
+                | Q(descricao__icontains=query)
+                | Q(categoria__icontains=query)
+                | Q(subcategoria__icontains=query)
+            )
+
+        if tipo:
+            queryset = queryset.filter(tipo=tipo)
+
+        if ativo in ("true", "false"):
+            queryset = queryset.filter(ativo=ativo == "true")
+
+        return queryset
 
     def destroy(self, request, *args, **kwargs):
         """Delete a product and dependent order items."""
@@ -121,7 +168,30 @@ class MaterialViewSet(viewsets.ModelViewSet):
     """ViewSet for `Material`."""
 
     queryset = models.Material.objects.all()
+    pagination_class = StandardResultsSetPagination
     serializer_class = serializers.MaterialSerializer
+
+    def get_queryset(self):
+        """Filter materials by search text, unit and stock situation."""
+        queryset = super().get_queryset().order_by("nome")
+        query = self.request.query_params.get("q", "").strip()
+        unidade = self.request.query_params.get("unidade", "").strip()
+        situacao = self.request.query_params.get("situacao", "").strip()
+
+        if query:
+            queryset = queryset.filter(
+                Q(nome__icontains=query) | Q(descricao__icontains=query)
+            )
+
+        if unidade:
+            queryset = queryset.filter(unidade_medida=unidade)
+
+        if situacao == "reposicao":
+            queryset = queryset.filter(quantidade_atual__lte=F("estoque_minimo"))
+        elif situacao == "ok":
+            queryset = queryset.filter(quantidade_atual__gt=F("estoque_minimo"))
+
+        return queryset
 
 
 class MovimentacaoEstoqueViewSet(viewsets.ModelViewSet):

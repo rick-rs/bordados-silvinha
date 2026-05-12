@@ -1,4 +1,10 @@
 import { apiRequest } from './api';
+import {
+  buildQuery,
+  PaginatedResponse,
+  PaginationParams,
+  unwrapResults,
+} from './pagination';
 
 export type Client = {
   id: number;
@@ -29,6 +35,11 @@ export type ClientPayload = {
   estado: string;
 };
 
+export type ListClientsParams = PaginationParams & {
+  q?: string;
+  estado?: string;
+};
+
 type ViaCepResponse = {
   erro?: boolean;
   cep?: string;
@@ -40,7 +51,20 @@ type ViaCepResponse = {
 };
 
 export function listClients() {
-  return apiRequest<Client[]>('/api/clientes/');
+  return apiRequest<Client[] | PaginatedResponse<Client>>(
+    `/api/clientes/${buildQuery({ page_size: 100 })}`,
+  ).then(unwrapResults);
+}
+
+export function listClientsPage(params: ListClientsParams) {
+  return apiRequest<PaginatedResponse<Client>>(
+    `/api/clientes/${buildQuery({
+      q: params.q,
+      estado: params.estado,
+      page: params.page,
+      page_size: params.pageSize,
+    })}`,
+  );
 }
 
 export function getClient(id: number) {

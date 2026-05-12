@@ -1,8 +1,9 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { Inbox, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Inbox, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
+import { PaginationControls } from '../../components/ui/PaginationControls';
 import { Button } from '../../components/ui/Button';
 import { TextField } from '../../components/ui/TextField';
 import {
@@ -10,7 +11,7 @@ import {
   ClientPayload,
   createClient,
   deleteClient,
-  listClients,
+  listClientsPage,
   searchCep,
 } from '../../services/clients';
 import { getSession } from '../../services/auth';
@@ -51,6 +52,11 @@ export function ClientsPage() {
   const user = getSession();
   const navigate = useNavigate();
   const [clients, setClients] = useState<Client[]>([]);
+  const [search, setSearch] = useState('');
+  const [stateFilter, setStateFilter] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [count, setCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [error, setError] = useState('');
@@ -59,11 +65,19 @@ export function ClientsPage() {
     let isMounted = true;
 
     async function loadClients() {
+      setIsLoading(true);
+
       try {
-        const response = await listClients();
+        const response = await listClientsPage({
+          estado: stateFilter,
+          page,
+          pageSize,
+          q: search,
+        });
 
         if (isMounted) {
-          setClients(response);
+          setClients(response.results);
+          setCount(response.count);
           setError('');
         }
       } catch {
@@ -82,7 +96,22 @@ export function ClientsPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [page, pageSize, search, stateFilter]);
+
+  function updateSearch(value: string) {
+    setSearch(value);
+    setPage(1);
+  }
+
+  function updateStateFilter(value: string) {
+    setStateFilter(value.toUpperCase());
+    setPage(1);
+  }
+
+  function updatePageSize(value: number) {
+    setPageSize(value);
+    setPage(1);
+  }
 
   if (!user) {
     return <Navigate replace to="/login" />;
@@ -148,8 +177,34 @@ export function ClientsPage() {
       ) : null}
 
       <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-100 px-4 py-3">
-          <h2 className="text-sm font-extrabold text-ink">Clientes Cadastrados</h2>
+        <div className="grid gap-3 border-b border-slate-100 px-4 py-3 lg:grid-cols-[1fr_140px]">
+          <label className="relative block" htmlFor="client-search">
+            <span className="sr-only">Buscar cliente</span>
+            <Search
+              aria-hidden
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+            />
+            <input
+              className="min-h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm text-ink outline-none transition placeholder:text-slate-400 focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
+              id="client-search"
+              onChange={(event) => updateSearch(event.target.value)}
+              placeholder="Buscar por nome, telefone, e-mail ou cidade"
+              type="search"
+              value={search}
+            />
+          </label>
+
+          <label className="sr-only" htmlFor="client-state-filter">
+            Filtrar por estado
+          </label>
+          <input
+            className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold uppercase text-slate-700 outline-none transition placeholder:normal-case placeholder:text-slate-400 focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
+            id="client-state-filter"
+            maxLength={2}
+            onChange={(event) => updateStateFilter(event.target.value)}
+            placeholder="Estado"
+            value={stateFilter}
+          />
         </div>
 
         {isLoading ? (
@@ -229,6 +284,13 @@ export function ClientsPage() {
         ) : (
           <EmptyState />
         )}
+        <PaginationControls
+          count={count}
+          onPageChange={setPage}
+          onPageSizeChange={updatePageSize}
+          page={page}
+          pageSize={pageSize}
+        />
       </section>
     </AppShell>
   );
