@@ -1,16 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Pencil } from 'lucide-react';
-import { Navigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
 import { getSession } from '../../services/auth';
 import { getProduct, Product } from '../../services/orders';
 import { formatCurrency } from '../../utils/format';
-
-function showEditPlaceholder() {
-  window.alert('A edição será implementada em uma próxima etapa.');
-}
 
 function DetailItem({
   label,
@@ -29,6 +25,7 @@ function DetailItem({
 
 export function CatalogDetailPage() {
   const user = getSession();
+  const navigate = useNavigate();
   const { id } = useParams();
   const [product, setProduct] = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -87,7 +84,8 @@ export function CatalogDetailPage() {
         </div>
         <Button
           className="min-h-11 gap-2 px-4 text-sm sm:min-h-9 sm:text-xs"
-          onClick={showEditPlaceholder}
+          onClick={() => navigate(`/catalogo/${id}/editar`)}
+          title="Editar item"
           type="button"
         >
           <Pencil aria-hidden className="h-4 w-4" />

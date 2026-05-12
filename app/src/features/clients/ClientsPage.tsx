@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { Inbox, Pencil, Plus, Search, Trash2 } from 'lucide-react';
-import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
 import { PaginationControls } from '../../components/ui/PaginationControls';
@@ -11,8 +11,10 @@ import {
   ClientPayload,
   createClient,
   deleteClient,
+  getClient,
   listClientsPage,
   searchCep,
+  updateClient,
 } from '../../services/clients';
 import { getSession } from '../../services/auth';
 
@@ -143,10 +145,6 @@ export function ClientsPage() {
     }
   }
 
-  function showEditPlaceholder() {
-    window.alert('A edição será implementada em uma próxima etapa.');
-  }
-
   return (
     <AppShell activePage="Clientes">
       <header className="mb-5 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
@@ -257,8 +255,9 @@ export function ClientsPage() {
                         className="mr-1 inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-ink"
                         onClick={(event) => {
                           event.stopPropagation();
-                          showEditPlaceholder();
+                          navigate(`/clientes/${client.id}/editar`);
                         }}
+                        title="Editar cliente"
                         type="button"
                       >
                         <Pencil aria-hidden className="h-4 w-4" />
@@ -271,6 +270,7 @@ export function ClientsPage() {
                           event.stopPropagation();
                           handleDelete(client);
                         }}
+                        title="Excluir cliente"
                         type="button"
                       >
                         <Trash2 aria-hidden className="h-4 w-4" />
@@ -284,13 +284,15 @@ export function ClientsPage() {
         ) : (
           <EmptyState />
         )}
-        <PaginationControls
-          count={count}
-          onPageChange={setPage}
-          onPageSizeChange={updatePageSize}
-          page={page}
-          pageSize={pageSize}
-        />
+        {count > pageSize ? (
+          <PaginationControls
+            count={count}
+            onPageChange={setPage}
+            onPageSizeChange={updatePageSize}
+            page={page}
+            pageSize={pageSize}
+          />
+        ) : null}
       </section>
     </AppShell>
   );
@@ -493,6 +495,309 @@ export function NewClientPage() {
             </Button>
           </div>
         </form>
+      </section>
+    </AppShell>
+  );
+}
+
+export function EditClientPage() {
+  const user = getSession();
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const [form, setForm] = useState(initialForm);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSearchingCep, setIsSearchingCep] = useState(false);
+  const [lastSearchedCep, setLastSearchedCep] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let isMounted = true;
+    const clientId = Number(id);
+
+    async function loadClient() {
+      if (!clientId) {
+        setError('Cliente inválido.');
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const client = await getClient(clientId);
+
+        if (isMounted) {
+          setForm({
+            nome: client.nome,
+            telefone: client.telefone ?? '',
+            email: client.email ?? '',
+            rede_social: client.rede_social ?? '',
+            cep: client.cep ?? '',
+            endereco: client.endereco ?? '',
+            numero: client.numero ?? '',
+            complemento: client.complemento ?? '',
+            bairro: client.bairro ?? '',
+            cidade: client.cidade ?? '',
+            estado: client.estado ?? '',
+          });
+          setError('');
+        }
+      } catch {
+        if (isMounted) {
+          setError('Não foi possível carregar o cliente.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadClient();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id]);
+
+  function updateField(field: keyof ClientPayload, value: string) {
+    setForm((currentForm) => ({ ...currentForm, [field]: value }));
+  }
+
+  useEffect(() => {
+    let isMounted = true;
+    const normalizedCep = form.cep.replace(/\D/g, '');
+
+    if (normalizedCep.length !== 8 || normalizedCep === lastSearchedCep) {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(async () => {
+      setIsSearchingCep(true);
+
+      try {
+        const address = await searchCep(normalizedCep);
+
+        if (address && isMounted) {
+          setForm((currentForm) => ({
+            ...currentForm,
+            cep: address.cep,
+            endereco: address.endereco || currentForm.endereco,
+            complemento: address.complemento || currentForm.complemento,
+            bairro: address.bairro || currentForm.bairro,
+            cidade: address.cidade || currentForm.cidade,
+            estado: address.estado || currentForm.estado,
+          }));
+        }
+      } finally {
+        if (isMounted) {
+          setLastSearchedCep(normalizedCep);
+          setIsSearchingCep(false);
+        }
+      }
+    }, 350);
+
+    return () => {
+      isMounted = false;
+      window.clearTimeout(timeoutId);
+    };
+  }, [form.cep, lastSearchedCep]);
+
+  if (!user) {
+    return <Navigate replace to="/login" />;
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const clientId = Number(id);
+
+    if (!clientId) {
+      setError('Cliente inválido.');
+      return;
+    }
+
+    setIsSaving(true);
+    setError('');
+
+    try {
+      const client = await updateClient(clientId, form);
+      navigate(`/clientes/${client.id}`, { replace: true });
+    } catch {
+      setError('Não foi possível salvar as alterações do cliente.');
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  return (
+    <ClientFormPage
+      breadcrumb="Dashboard / Clientes / Editar Cliente"
+      error={error}
+      form={form}
+      isLoading={isLoading}
+      isSaving={isSaving}
+      isSearchingCep={isSearchingCep}
+      onCancel={() => navigate(`/clientes/${id}`)}
+      onChange={updateField}
+      onSubmit={handleSubmit}
+      submitLabel="Salvar Alterações"
+      title="Editar Cliente"
+    />
+  );
+}
+
+function ClientFormPage({
+  breadcrumb,
+  error,
+  form,
+  isLoading = false,
+  isSaving,
+  isSearchingCep,
+  onCancel,
+  onChange,
+  onSubmit,
+  submitLabel,
+  title,
+}: {
+  breadcrumb: string;
+  error: string;
+  form: ClientPayload;
+  isLoading?: boolean;
+  isSaving: boolean;
+  isSearchingCep: boolean;
+  onCancel: () => void;
+  onChange: (field: keyof ClientPayload, value: string) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  submitLabel: string;
+  title: string;
+}) {
+  return (
+    <AppShell activePage="Clientes">
+      <header className="mb-5 sm:mb-6">
+        <p className="text-xs font-semibold text-mauve">{breadcrumb}</p>
+        <h1 className="text-2xl font-extrabold text-ink sm:text-3xl">{title}</h1>
+      </header>
+
+      <section className="mx-auto max-w-3xl rounded-lg border border-slate-200 bg-white shadow-sm">
+        {isLoading ? (
+          <div className="grid gap-3 p-5 sm:p-6">
+            {[0, 1, 2, 3].map((item) => (
+              <div className="h-14 animate-pulse rounded-lg bg-slate-100" key={item} />
+            ))}
+          </div>
+        ) : (
+          <form className="grid gap-5 p-5 sm:p-6" onSubmit={onSubmit}>
+            <TextField
+              label="Nome Completo *"
+              name="nome"
+              onChange={(event) => onChange('nome', event.target.value)}
+              required
+              value={form.nome}
+            />
+
+            <div className="grid gap-5 sm:grid-cols-2">
+              <TextField
+                label="Telefone/Whatsapp *"
+                name="telefone"
+                onChange={(event) => onChange('telefone', event.target.value)}
+                required
+                value={form.telefone}
+              />
+              <TextField
+                label="E-mail"
+                name="email"
+                onChange={(event) => onChange('email', event.target.value)}
+                type="email"
+                value={form.email}
+              />
+            </div>
+
+            <div className="grid gap-5 sm:grid-cols-2">
+              <TextField
+                label="Rede Social"
+                name="rede_social"
+                onChange={(event) => onChange('rede_social', event.target.value)}
+                placeholder="Ex: @usuario_instagram"
+                value={form.rede_social}
+              />
+              <TextField
+                label={isSearchingCep ? 'CEP (buscando...)' : 'CEP'}
+                name="cep"
+                onChange={(event) => onChange('cep', event.target.value)}
+                value={form.cep}
+              />
+            </div>
+
+            <TextField
+              label="Endereço"
+              name="endereco"
+              onChange={(event) => onChange('endereco', event.target.value)}
+              value={form.endereco}
+            />
+
+            <div className="grid gap-5 sm:grid-cols-2">
+              <TextField
+                label="Número"
+                name="numero"
+                onChange={(event) => onChange('numero', event.target.value)}
+                value={form.numero}
+              />
+              <TextField
+                label="Complemento"
+                name="complemento"
+                onChange={(event) => onChange('complemento', event.target.value)}
+                value={form.complemento}
+              />
+            </div>
+
+            <div className="grid gap-5 sm:grid-cols-2">
+              <TextField
+                label="Bairro"
+                name="bairro"
+                onChange={(event) => onChange('bairro', event.target.value)}
+                value={form.bairro}
+              />
+              <TextField
+                label="Cidade"
+                name="cidade"
+                onChange={(event) => onChange('cidade', event.target.value)}
+                value={form.cidade}
+              />
+            </div>
+
+            <TextField
+              className="sm:max-w-[50%]"
+              label="Estado"
+              maxLength={2}
+              name="estado"
+              onChange={(event) => onChange('estado', event.target.value.toUpperCase())}
+              value={form.estado}
+            />
+
+            {error ? (
+              <p className="rounded-lg border border-frenchRose/30 bg-chantilly/40 px-4 py-3 text-sm leading-relaxed text-rose-900">
+                {error}
+              </p>
+            ) : null}
+
+            <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
+              <button
+                className="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-200 bg-white px-5 text-sm font-bold text-slate-600 transition hover:bg-slate-50"
+                onClick={onCancel}
+                type="button"
+              >
+                Cancelar
+              </button>
+              <Button
+                className="min-h-11 px-5 text-sm"
+                isLoading={isSaving}
+                loadingLabel="Salvando..."
+                type="submit"
+              >
+                {submitLabel}
+              </Button>
+            </div>
+          </form>
+        )}
       </section>
     </AppShell>
   );

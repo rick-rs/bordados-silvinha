@@ -202,10 +202,6 @@ function paymentClassName(payment: string | null) {
   return 'text-orange-500';
 }
 
-function showEditPlaceholder() {
-  window.alert('A edição será implementada em uma próxima etapa.');
-}
-
 function buildItemSummary(
   orderId: number,
   itemsByOrder: Map<number, OrderItem[]>,
@@ -255,6 +251,7 @@ function getInitialOrdersView(): OrdersView {
 
 export function OrdersPage() {
   const user = getSession();
+  const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [items, setItems] = useState<OrderItem[]>([]);
@@ -550,7 +547,7 @@ export function OrdersPage() {
             deletingId={deletingId}
             itemsByOrder={itemsByOrder}
             onAdvanceStatus={handleStatusChange}
-            onEdit={showEditPlaceholder}
+            onEdit={(order) => navigate(`/pedidos/${order.id}/editar`)}
             onDelete={handleDelete}
             orders={filteredOrders}
             productsById={productsById}
@@ -562,7 +559,7 @@ export function OrdersPage() {
             deletingId={deletingId}
             itemsByOrder={itemsByOrder}
             onDelete={handleDelete}
-            onEdit={showEditPlaceholder}
+            onEdit={(order) => navigate(`/pedidos/${order.id}/editar`)}
             onStatusChange={handleStatusChange}
             orders={filteredOrders}
             productsById={productsById}
@@ -961,7 +958,7 @@ function OrdersTable({
   deletingId: number | null;
   itemsByOrder: Map<number, OrderItem[]>;
   onAdvanceStatus: (order: Order, status: string) => void;
-  onEdit: () => void;
+  onEdit: (order: Order) => void;
   onDelete: (order: Order) => void;
   orders: Order[];
   productsById: Map<number, Product>;
@@ -1052,7 +1049,7 @@ function OrdersTable({
                     className="mr-1 inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-ink"
                     onClick={(event) => {
                       event.stopPropagation();
-                      onEdit();
+                      onEdit(order);
                     }}
                     title="Editar pedido"
                     type="button"
@@ -1097,7 +1094,7 @@ function OrdersBoard({
   deletingId: number | null;
   itemsByOrder: Map<number, OrderItem[]>;
   onDelete: (order: Order) => void;
-  onEdit: () => void;
+  onEdit: (order: Order) => void;
   onStatusChange: (order: Order, status: string) => void;
   orders: Order[];
   productsById: Map<number, Product>;
@@ -1307,7 +1304,7 @@ function OrdersBoard({
                               className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-ink"
                               onClick={(event) => {
                                 event.stopPropagation();
-                                onEdit();
+                                onEdit(order);
                               }}
                               title="Editar pedido"
                               type="button"

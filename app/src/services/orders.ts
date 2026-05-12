@@ -69,6 +69,18 @@ export type Product = {
   ativo: boolean;
 };
 
+export type ProductPayload = {
+  nome: string;
+  descricao: string;
+  preco_base: string;
+  categoria: string;
+  subcategoria: string;
+  tipo: string;
+  ativo: boolean;
+};
+
+export type ProductPatchPayload = Partial<ProductPayload>;
+
 export type ListProductsParams = PaginationParams & {
   q?: string;
   tipo?: string;
@@ -134,6 +146,13 @@ export function listProductsPage(params: ListProductsParams) {
       page_size: params.pageSize,
     })}`,
   );
+}
+
+export function updateProduct(id: number, payload: ProductPatchPayload) {
+  return apiRequest<Product>(`/api/produtos/${id}/`, {
+    method: 'PATCH',
+    body: payload,
+  });
 }
 
 export function deleteProduct(id: number) {

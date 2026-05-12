@@ -122,10 +122,6 @@ export function CatalogPage() {
     }
   }
 
-  function showEditPlaceholder() {
-    window.alert('A edição será implementada em uma próxima etapa.');
-  }
-
   return (
     <AppShell activePage="Catálogo">
       <header className="mb-5 sm:mb-6">
@@ -234,8 +230,9 @@ export function CatalogPage() {
                         className="mr-1 inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-ink"
                         onClick={(event) => {
                           event.stopPropagation();
-                          showEditPlaceholder();
+                          navigate(`/catalogo/${product.id}/editar`);
                         }}
+                        title="Editar item"
                         type="button"
                       >
                         <Pencil aria-hidden className="h-4 w-4" />
@@ -248,6 +245,7 @@ export function CatalogPage() {
                           event.stopPropagation();
                           handleDelete(product);
                         }}
+                        title="Excluir item"
                         type="button"
                       >
                         <Trash2 aria-hidden className="h-4 w-4" />
@@ -270,13 +268,15 @@ export function CatalogPage() {
             </div>
           </div>
         )}
-        <PaginationControls
-          count={count}
-          onPageChange={setPage}
-          onPageSizeChange={updatePageSize}
-          page={page}
-          pageSize={pageSize}
-        />
+        {count > pageSize ? (
+          <PaginationControls
+            count={count}
+            onPageChange={setPage}
+            onPageSizeChange={updatePageSize}
+            page={page}
+            pageSize={pageSize}
+          />
+        ) : null}
       </section>
     </AppShell>
   );

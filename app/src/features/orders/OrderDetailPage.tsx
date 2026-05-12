@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Pencil } from 'lucide-react';
-import { Navigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
@@ -33,12 +33,9 @@ function statusLabel(status: string | null) {
   return status === 'Em Producao' ? 'Em Produção' : status || 'Recebido';
 }
 
-function showEditPlaceholder() {
-  window.alert('A edição será implementada em uma próxima etapa.');
-}
-
 export function OrderDetailPage() {
   const user = getSession();
+  const navigate = useNavigate();
   const { id } = useParams();
   const [order, setOrder] = useState<Order | null>(null);
   const [client, setClient] = useState<Client | null>(null);
@@ -113,7 +110,8 @@ export function OrderDetailPage() {
         </div>
         <Button
           className="min-h-11 gap-2 px-4 text-sm sm:min-h-9 sm:text-xs"
-          onClick={showEditPlaceholder}
+          onClick={() => navigate(`/pedidos/${id}/editar`)}
+          title="Editar pedido"
           type="button"
         >
           <Pencil aria-hidden className="h-4 w-4" />

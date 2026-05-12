@@ -109,10 +109,6 @@ export function StockPage() {
     }
   }
 
-  function showEditPlaceholder() {
-    window.alert('A edição será implementada em uma próxima etapa.');
-  }
-
   return (
     <AppShell activePage="Estoque">
       <header className="mb-5 sm:mb-6">
@@ -241,8 +237,9 @@ export function StockPage() {
                           className="mr-1 inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-ink"
                           onClick={(event) => {
                             event.stopPropagation();
-                            showEditPlaceholder();
+                            navigate(`/estoque/${material.id}/editar`);
                           }}
+                          title="Editar material"
                           type="button"
                         >
                           <Pencil aria-hidden className="h-4 w-4" />
@@ -255,6 +252,7 @@ export function StockPage() {
                             event.stopPropagation();
                             handleDelete(material);
                           }}
+                          title="Excluir material"
                           type="button"
                         >
                           <Trash2 aria-hidden className="h-4 w-4" />
@@ -278,13 +276,15 @@ export function StockPage() {
             </div>
           </div>
         )}
-        <PaginationControls
-          count={count}
-          onPageChange={setPage}
-          onPageSizeChange={updatePageSize}
-          page={page}
-          pageSize={pageSize}
-        />
+        {count > pageSize ? (
+          <PaginationControls
+            count={count}
+            onPageChange={setPage}
+            onPageSizeChange={updatePageSize}
+            page={page}
+            pageSize={pageSize}
+          />
+        ) : null}
       </section>
     </AppShell>
   );

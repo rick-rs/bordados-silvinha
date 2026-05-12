@@ -35,6 +35,8 @@ export type ClientPayload = {
   estado: string;
 };
 
+export type ClientPatchPayload = Partial<ClientPayload>;
+
 export type ListClientsParams = PaginationParams & {
   q?: string;
   estado?: string;
@@ -74,6 +76,13 @@ export function getClient(id: number) {
 export function createClient(payload: ClientPayload) {
   return apiRequest<Client>('/api/clientes/', {
     method: 'POST',
+    body: payload,
+  });
+}
+
+export function updateClient(id: number, payload: ClientPatchPayload) {
+  return apiRequest<Client>(`/api/clientes/${id}/`, {
+    method: 'PATCH',
     body: payload,
   });
 }

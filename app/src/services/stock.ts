@@ -15,6 +15,16 @@ export type Material = {
   estoque_minimo: string;
 };
 
+export type MaterialPayload = {
+  nome: string;
+  descricao: string;
+  unidade_medida: string;
+  quantidade_atual: string;
+  estoque_minimo: string;
+};
+
+export type MaterialPatchPayload = Partial<MaterialPayload>;
+
 export type ListMaterialsParams = PaginationParams & {
   q?: string;
   unidade?: string;
@@ -29,6 +39,13 @@ export function listMaterials() {
 
 export function getMaterial(id: number) {
   return apiRequest<Material>(`/api/materiais/${id}/`);
+}
+
+export function updateMaterial(id: number, payload: MaterialPatchPayload) {
+  return apiRequest<Material>(`/api/materiais/${id}/`, {
+    method: 'PATCH',
+    body: payload,
+  });
 }
 
 export function listMaterialsPage(params: ListMaterialsParams) {

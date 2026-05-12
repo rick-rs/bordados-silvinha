@@ -1,15 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Pencil } from 'lucide-react';
-import { Navigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
 import { getSession } from '../../services/auth';
 import { getMaterial, Material } from '../../services/stock';
-
-function showEditPlaceholder() {
-  window.alert('A edição será implementada em uma próxima etapa.');
-}
 
 function DetailItem({
   label,
@@ -28,6 +24,7 @@ function DetailItem({
 
 export function StockDetailPage() {
   const user = getSession();
+  const navigate = useNavigate();
   const { id } = useParams();
   const [material, setMaterial] = useState<Material | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -88,7 +85,8 @@ export function StockDetailPage() {
         </div>
         <Button
           className="min-h-11 gap-2 px-4 text-sm sm:min-h-9 sm:text-xs"
-          onClick={showEditPlaceholder}
+          onClick={() => navigate(`/estoque/${id}/editar`)}
+          title="Editar material"
           type="button"
         >
           <Pencil aria-hidden className="h-4 w-4" />
