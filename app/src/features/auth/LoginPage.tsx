@@ -55,7 +55,7 @@ export function LoginPage() {
   return (
     <main className="grid min-h-screen place-items-center bg-gradient-to-br from-chantilly/60 via-white to-illusion/40 px-4 py-8">
       <section
-        className="w-full max-w-[420px] rounded-lg border border-frenchRose/20 bg-white/90 p-8 shadow-softPink"
+        className="w-full max-w-[420px] rounded-lg border border-frenchRose/20 bg-white/90 p-6 shadow-softPink sm:p-8"
         aria-labelledby="login-title"
       >
         <div className="mb-7">

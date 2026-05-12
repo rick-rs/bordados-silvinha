@@ -1,13 +1,8 @@
-import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 
+import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
-import { clearSession, getSession } from '../../services/auth';
-
-type NavItem = {
-  label: string;
-  icon: string;
-  active?: boolean;
-};
+import { getSession } from '../../services/auth';
 
 type Metric = {
   label: string;
@@ -35,15 +30,6 @@ type RecentOrder = {
   status: string;
   payment: string;
 };
-
-const navItems: NavItem[] = [
-  { label: 'Dashboard', icon: '▦', active: true },
-  { label: 'Agenda', icon: '◷' },
-  { label: 'Pedidos', icon: '▤' },
-  { label: 'Clientes', icon: '◉' },
-  { label: 'Catálogo', icon: '◇' },
-  { label: 'Estoque', icon: '▣' },
-];
 
 const metrics: Metric[] = [
   {
@@ -162,74 +148,35 @@ function paymentClassName(payment: string) {
 
 export function DashboardPage() {
   const user = getSession();
-  const navigate = useNavigate();
 
   if (!user) {
     return <Navigate replace to="/login" />;
   }
 
-  function handleLogout() {
-    clearSession();
-    navigate('/login', { replace: true });
-  }
-
   return (
-    <div className="min-h-screen bg-slate-50 text-ink">
-      <aside className="fixed inset-y-0 left-0 hidden w-40 border-r border-slate-200 bg-white md:flex md:flex-col">
-        <Link className="flex h-14 items-center px-4 text-sm font-extrabold text-frenchRose" to="/dashboard">
-          BordadosApp
-        </Link>
-
-        <nav className="flex flex-1 flex-col gap-1 px-2 py-3">
-          {navItems.map((item) => (
-            <button
-              className={[
-                'flex h-9 items-center gap-2 rounded-md px-3 text-left text-xs font-semibold transition',
-                item.active
-                  ? 'bg-chantilly/45 text-frenchRose'
-                  : 'text-slate-600 hover:bg-slate-100 hover:text-ink',
-              ].join(' ')}
-              key={item.label}
-              type="button"
-            >
-              <span className="w-4 text-center text-sm">{item.icon}</span>
-              {item.label}
-            </button>
-          ))}
-        </nav>
-
-        <div className="border-t border-slate-100 p-2">
-          <button className="mb-2 flex h-9 w-full items-center gap-2 rounded-md px-3 text-left text-xs font-semibold text-slate-600 hover:bg-slate-100" type="button">
-            <span className="w-4 text-center text-sm">◌</span>
-            Perfil
-          </button>
-          <button
-            className="flex h-9 w-full items-center gap-2 rounded-md px-3 text-left text-xs font-semibold text-frenchRose hover:bg-chantilly/35"
-            onClick={handleLogout}
-            type="button"
-          >
-            <span className="w-4 text-center text-sm">↳</span>
-            Sair
-          </button>
-        </div>
-      </aside>
-
-      <main className="mx-auto min-h-screen max-w-6xl px-4 py-5 md:ml-40 md:px-8">
-        <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <AppShell activePage="Dashboard">
+        <header className="mb-5 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs font-semibold text-mauve">Olá, {user.nome}</p>
-            <h1 className="text-2xl font-extrabold text-ink">Dashboard</h1>
+            <h1 className="text-2xl font-extrabold text-ink sm:text-3xl">
+              Dashboard
+            </h1>
           </div>
-          <Button className="min-h-9 self-start px-4 text-xs sm:self-auto">
+          <Button className="min-h-11 w-full px-4 text-sm sm:min-h-9 sm:w-auto sm:self-auto sm:text-xs">
             + Nova Encomenda
           </Button>
         </header>
 
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {metrics.map((metric) => (
-            <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm" key={metric.label}>
+            <article
+              className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
+              key={metric.label}
+            >
               <div className="flex items-center gap-3">
-                <span className={`grid h-10 w-10 place-items-center rounded-full ring-1 ${metric.tone}`}>
+                <span
+                  className={`grid h-10 w-10 shrink-0 place-items-center rounded-full ring-1 ${metric.tone}`}
+                >
                   {metric.icon}
                 </span>
                 <div>
@@ -248,12 +195,15 @@ export function DashboardPage() {
             </div>
             <div className="divide-y divide-rose-100">
               {deadlines.map((deadline) => (
-                <div className="grid grid-cols-[1fr_auto] gap-3 bg-rose-50/70 px-4 py-3" key={deadline.order}>
+                <div
+                  className="grid gap-3 bg-rose-50/70 px-4 py-3 sm:grid-cols-[1fr_auto]"
+                  key={deadline.order}
+                >
                   <div>
                     <p className="text-sm font-extrabold text-ink">{deadline.order}</p>
                     <p className="mt-1 text-xs text-slate-600">{deadline.client}</p>
                   </div>
-                  <div className="text-right">
+                  <div className="sm:text-right">
                     <p className="text-xs font-extrabold text-frenchRose">{deadline.dueDate}</p>
                     <p className="mt-1 text-[11px] text-slate-500">{deadline.status}</p>
                   </div>
@@ -268,9 +218,14 @@ export function DashboardPage() {
             </div>
             <div className="grid gap-4 p-4">
               {stockAlerts.map((alert) => (
-                <div className="flex items-center justify-between gap-4" key={alert.name}>
+                <div
+                  className="grid gap-1 sm:flex sm:items-center sm:justify-between sm:gap-4"
+                  key={alert.name}
+                >
                   <p className="text-sm font-semibold text-slate-700">{alert.name}</p>
-                  <p className="text-right text-xs font-extrabold text-frenchRose">{alert.remaining}</p>
+                  <p className="text-xs font-extrabold text-frenchRose sm:text-right">
+                    {alert.remaining}
+                  </p>
                 </div>
               ))}
             </div>
@@ -312,7 +267,6 @@ export function DashboardPage() {
             </table>
           </div>
         </section>
-      </main>
-    </div>
+    </AppShell>
   );
 }
