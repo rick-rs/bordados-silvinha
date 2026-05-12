@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { Inbox, Plus, Trash2 } from 'lucide-react';
+import { Inbox, Pencil, Plus, Trash2 } from 'lucide-react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
@@ -49,6 +49,7 @@ function EmptyState() {
 
 export function ClientsPage() {
   const user = getSession();
+  const navigate = useNavigate();
   const [clients, setClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -113,6 +114,10 @@ export function ClientsPage() {
     }
   }
 
+  function showEditPlaceholder() {
+    window.alert('A edição será implementada em uma próxima etapa.');
+  }
+
   return (
     <AppShell activePage="Clientes">
       <header className="mb-5 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
@@ -171,7 +176,11 @@ export function ClientsPage() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {clients.map((client) => (
-                  <tr className="bg-white" key={client.id}>
+                  <tr
+                    className="cursor-pointer bg-white transition hover:bg-chantilly/20"
+                    key={client.id}
+                    onClick={() => navigate(`/clientes/${client.id}`)}
+                  >
                     <td className="px-4 py-3 font-extrabold text-ink">
                       {client.nome}
                     </td>
@@ -189,10 +198,24 @@ export function ClientsPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <button
+                        aria-label={`Editar cliente ${client.nome}`}
+                        className="mr-1 inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-ink"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          showEditPlaceholder();
+                        }}
+                        type="button"
+                      >
+                        <Pencil aria-hidden className="h-4 w-4" />
+                      </button>
+                      <button
                         aria-label={`Excluir cliente ${client.nome}`}
                         className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-frenchRose transition hover:bg-chantilly/45 disabled:cursor-not-allowed disabled:opacity-60"
                         disabled={deletingId === client.id}
-                        onClick={() => handleDelete(client)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleDelete(client);
+                        }}
                         type="button"
                       >
                         <Trash2 aria-hidden className="h-4 w-4" />

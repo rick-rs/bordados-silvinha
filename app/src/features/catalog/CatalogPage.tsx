@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Inbox, Trash2 } from 'lucide-react';
-import { Navigate } from 'react-router-dom';
+import { Inbox, Pencil, Trash2 } from 'lucide-react';
+import { Navigate, useNavigate } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
 import { getSession } from '../../services/auth';
@@ -21,6 +21,7 @@ function formatMoney(value: string) {
 
 export function CatalogPage() {
   const user = getSession();
+  const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -85,6 +86,10 @@ export function CatalogPage() {
     }
   }
 
+  function showEditPlaceholder() {
+    window.alert('A edição será implementada em uma próxima etapa.');
+  }
+
   return (
     <AppShell activePage="Catálogo">
       <header className="mb-5 sm:mb-6">
@@ -124,7 +129,11 @@ export function CatalogPage() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {products.map((product) => (
-                  <tr className="bg-white" key={product.id}>
+                  <tr
+                    className="cursor-pointer bg-white transition hover:bg-chantilly/20"
+                    key={product.id}
+                    onClick={() => navigate(`/catalogo/${product.id}`)}
+                  >
                     <td className="px-4 py-3">
                       <p className="font-extrabold text-ink">{product.nome}</p>
                       <p className="mt-1 text-xs text-slate-500">
@@ -143,10 +152,24 @@ export function CatalogPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <button
+                        aria-label={`Editar ${product.nome}`}
+                        className="mr-1 inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-ink"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          showEditPlaceholder();
+                        }}
+                        type="button"
+                      >
+                        <Pencil aria-hidden className="h-4 w-4" />
+                      </button>
+                      <button
                         aria-label={`Excluir ${product.nome}`}
                         className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-frenchRose transition hover:bg-chantilly/45 disabled:cursor-not-allowed disabled:opacity-60"
                         disabled={deletingId === product.id}
-                        onClick={() => handleDelete(product)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleDelete(product);
+                        }}
                         type="button"
                       >
                         <Trash2 aria-hidden className="h-4 w-4" />

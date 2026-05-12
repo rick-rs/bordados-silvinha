@@ -1,5 +1,5 @@
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
-import { Inbox, Plus, Search, Trash2 } from 'lucide-react';
+import { Inbox, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
@@ -170,6 +170,10 @@ function paymentClassName(payment: string | null) {
   }
 
   return 'text-orange-500';
+}
+
+function showEditPlaceholder() {
+  window.alert('A edição será implementada em uma próxima etapa.');
 }
 
 function buildItemSummary(
@@ -440,6 +444,7 @@ export function OrdersPage() {
             clientsById={clientsById}
             deletingId={deletingId}
             itemsByOrder={itemsByOrder}
+            onEdit={showEditPlaceholder}
             onDelete={handleDelete}
             orders={filteredOrders}
             productsById={productsById}
@@ -826,6 +831,7 @@ function OrdersTable({
   clientsById,
   deletingId,
   itemsByOrder,
+  onEdit,
   onDelete,
   orders,
   productsById,
@@ -833,10 +839,13 @@ function OrdersTable({
   clientsById: Map<number, Client>;
   deletingId: number | null;
   itemsByOrder: Map<number, OrderItem[]>;
+  onEdit: () => void;
   onDelete: (order: Order) => void;
   orders: Order[];
   productsById: Map<number, Product>;
 }) {
+  const navigate = useNavigate();
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[980px] border-collapse text-left text-sm">
@@ -858,7 +867,11 @@ function OrdersTable({
             const payment = paymentLabel(order.status_pagamento);
 
             return (
-              <tr className="bg-white align-top" key={order.id}>
+              <tr
+                className="cursor-pointer bg-white align-top transition hover:bg-chantilly/20"
+                key={order.id}
+                onClick={() => navigate(`/pedidos/${order.id}`)}
+              >
                 <td className="px-4 py-3">
                   <p className="font-extrabold text-ink">{formatOrderNumber(order.id)}</p>
                   <p className="mt-1 text-xs font-semibold text-slate-500">
@@ -891,10 +904,24 @@ function OrdersTable({
                 </td>
                 <td className="px-4 py-3 text-right">
                   <button
+                    aria-label={`Editar pedido ${formatOrderNumber(order.id)}`}
+                    className="mr-1 inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-ink"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onEdit();
+                    }}
+                    type="button"
+                  >
+                    <Pencil aria-hidden className="h-4 w-4" />
+                  </button>
+                  <button
                     aria-label={`Excluir pedido ${formatOrderNumber(order.id)}`}
                     className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-frenchRose transition hover:bg-chantilly/45 disabled:cursor-not-allowed disabled:opacity-60"
                     disabled={deletingId === order.id}
-                    onClick={() => onDelete(order)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onDelete(order);
+                    }}
                     type="button"
                   >
                     <Trash2 aria-hidden className="h-4 w-4" />

@@ -43,6 +43,10 @@ export function listClients() {
   return apiRequest<Client[]>('/api/clientes/');
 }
 
+export function getClient(id: number) {
+  return apiRequest<Client>(`/api/clientes/${id}/`);
+}
+
 export function createClient(payload: ClientPayload) {
   return apiRequest<Client>('/api/clientes/', {
     method: 'POST',

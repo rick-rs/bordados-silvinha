@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Inbox, Trash2 } from 'lucide-react';
-import { Navigate } from 'react-router-dom';
+import { Inbox, Pencil, Trash2 } from 'lucide-react';
+import { Navigate, useNavigate } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
 import { getSession } from '../../services/auth';
@@ -8,6 +8,7 @@ import { deleteMaterial, listMaterials, Material } from '../../services/stock';
 
 export function StockPage() {
   const user = getSession();
+  const navigate = useNavigate();
   const [materials, setMaterials] = useState<Material[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -72,6 +73,10 @@ export function StockPage() {
     }
   }
 
+  function showEditPlaceholder() {
+    window.alert('A edição será implementada em uma próxima etapa.');
+  }
+
   return (
     <AppShell activePage="Estoque">
       <header className="mb-5 sm:mb-6">
@@ -116,7 +121,11 @@ export function StockPage() {
                   const isLow = current <= minimum;
 
                   return (
-                    <tr className="bg-white" key={material.id}>
+                    <tr
+                      className="cursor-pointer bg-white transition hover:bg-chantilly/20"
+                      key={material.id}
+                      onClick={() => navigate(`/estoque/${material.id}`)}
+                    >
                       <td className="px-4 py-3">
                         <p className="font-extrabold text-ink">{material.nome}</p>
                         <p className="mt-1 text-xs text-slate-500">
@@ -146,10 +155,24 @@ export function StockPage() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <button
+                          aria-label={`Editar ${material.nome}`}
+                          className="mr-1 inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-ink"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            showEditPlaceholder();
+                          }}
+                          type="button"
+                        >
+                          <Pencil aria-hidden className="h-4 w-4" />
+                        </button>
+                        <button
                           aria-label={`Excluir ${material.nome}`}
                           className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-frenchRose transition hover:bg-chantilly/45 disabled:cursor-not-allowed disabled:opacity-60"
                           disabled={deletingId === material.id}
-                          onClick={() => handleDelete(material)}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleDelete(material);
+                          }}
                           type="button"
                         >
                           <Trash2 aria-hidden className="h-4 w-4" />

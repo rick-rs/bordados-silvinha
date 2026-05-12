@@ -13,6 +13,10 @@ export function listMaterials() {
   return apiRequest<Material[]>('/api/materiais/');
 }
 
+export function getMaterial(id: number) {
+  return apiRequest<Material>(`/api/materiais/${id}/`);
+}
+
 export function deleteMaterial(id: number) {
   return apiRequest<void>(`/api/materiais/${id}/`, {
     method: 'DELETE',

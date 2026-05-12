@@ -8,7 +8,7 @@ import {
   WalletCards,
   type LucideIcon,
 } from 'lucide-react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
 import { getSession } from '../../services/auth';
@@ -113,6 +113,7 @@ function MetricCard({ metric }: { metric: Metric }) {
 
 export function DashboardPage() {
   const user = getSession();
+  const navigate = useNavigate();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -207,8 +208,9 @@ export function DashboardPage() {
             <div className="divide-y divide-rose-100">
               {summary.deadline_alerts.map((deadline) => (
                 <div
-                  className="grid gap-3 bg-rose-50/70 px-4 py-3 sm:grid-cols-[1fr_auto]"
+                  className="grid cursor-pointer gap-3 bg-rose-50/70 px-4 py-3 transition hover:bg-rose-100/70 sm:grid-cols-[1fr_auto]"
                   key={deadline.id}
+                  onClick={() => navigate(`/pedidos/${deadline.id}`)}
                 >
                   <div>
                     <p className="text-sm font-extrabold text-ink">{deadline.order}</p>
@@ -240,8 +242,9 @@ export function DashboardPage() {
             <div className="grid gap-4 p-4">
               {summary.stock_replacements.map((alert) => (
                 <div
-                  className="grid gap-1 sm:flex sm:items-center sm:justify-between sm:gap-4"
+                  className="grid cursor-pointer gap-1 rounded-lg px-2 py-1 transition hover:bg-chantilly/20 sm:flex sm:items-center sm:justify-between sm:gap-4"
                   key={alert.id}
+                  onClick={() => navigate(`/estoque/${alert.id}`)}
                 >
                   <p className="text-sm font-semibold text-slate-700">{alert.name}</p>
                   <p className="text-xs font-extrabold text-frenchRose sm:text-right">
@@ -271,6 +274,8 @@ export function DashboardPage() {
 }
 
 function RecentOrdersTable({ orders }: { orders: RecentOrder[] }) {
+  const navigate = useNavigate();
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[680px] border-collapse text-left text-sm">
@@ -285,7 +290,11 @@ function RecentOrdersTable({ orders }: { orders: RecentOrder[] }) {
         </thead>
         <tbody className="divide-y divide-slate-100">
           {orders.map((order) => (
-            <tr className="bg-white" key={order.id}>
+            <tr
+              className="cursor-pointer bg-white transition hover:bg-chantilly/20"
+              key={order.id}
+              onClick={() => navigate(`/pedidos/${order.id}`)}
+            >
               <td className="px-4 py-3 font-extrabold text-frenchRose">
                 {order.number}
               </td>

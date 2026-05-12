@@ -63,6 +63,10 @@ export function listOrders() {
   return apiRequest<Order[]>('/api/pedidos/');
 }
 
+export function getOrder(id: number) {
+  return apiRequest<Order>(`/api/pedidos/${id}/`);
+}
+
 export function createOrder(payload: OrderPayload) {
   return apiRequest<Order>('/api/pedidos/', {
     method: 'POST',
@@ -89,6 +93,10 @@ export function createOrderItem(payload: OrderItemPayload) {
 
 export function listProducts() {
   return apiRequest<Product[]>('/api/produtos/');
+}
+
+export function getProduct(id: number) {
+  return apiRequest<Product>(`/api/produtos/${id}/`);
 }
 
 export function deleteProduct(id: number) {

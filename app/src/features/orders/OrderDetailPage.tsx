@@ -1,0 +1,190 @@
+import { useEffect, useState } from 'react';
+import { Pencil } from 'lucide-react';
+import { Navigate, useParams } from 'react-router-dom';
+
+import { AppShell } from '../../components/layout/AppShell';
+import { Button } from '../../components/ui/Button';
+import { getSession } from '../../services/auth';
+import { Client, listClients } from '../../services/clients';
+import {
+  getOrder,
+  listOrderItems,
+  listProducts,
+  Order,
+  OrderItem,
+  Product,
+} from '../../services/orders';
+import { formatCurrency } from '../../utils/format';
+
+function formatOrderNumber(id: number) {
+  return `#${String(id).padStart(3, '0')}`;
+}
+
+function formatDate(value: string | null) {
+  if (!value) {
+    return '-';
+  }
+
+  const [year, month, day] = value.split('-');
+  return year && month && day ? `${day}/${month}/${year}` : value;
+}
+
+function statusLabel(status: string | null) {
+  return status === 'Em Producao' ? 'Em Produção' : status || 'Recebido';
+}
+
+function showEditPlaceholder() {
+  window.alert('A edição será implementada em uma próxima etapa.');
+}
+
+export function OrderDetailPage() {
+  const user = getSession();
+  const { id } = useParams();
+  const [order, setOrder] = useState<Order | null>(null);
+  const [client, setClient] = useState<Client | null>(null);
+  const [items, setItems] = useState<OrderItem[]>([]);
+  const [productsById, setProductsById] = useState<Map<number, Product>>(
+    () => new Map(),
+  );
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let isMounted = true;
+    const orderId = Number(id);
+
+    async function loadOrder() {
+      if (!orderId) {
+        setError('Pedido inválido.');
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const [orderResponse, clientsResponse, itemsResponse, productsResponse] =
+          await Promise.all([
+            getOrder(orderId),
+            listClients(),
+            listOrderItems(),
+            listProducts(),
+          ]);
+
+        if (isMounted) {
+          setOrder(orderResponse);
+          setClient(
+            clientsResponse.find((item) => item.id === orderResponse.cliente) ?? null,
+          );
+          setItems(itemsResponse.filter((item) => item.pedido === orderResponse.id));
+          setProductsById(
+            new Map(productsResponse.map((product) => [product.id, product])),
+          );
+          setError('');
+        }
+      } catch {
+        if (isMounted) {
+          setError('Não foi possível carregar o pedido.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadOrder();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id]);
+
+  if (!user) {
+    return <Navigate replace to="/login" />;
+  }
+
+  return (
+    <AppShell activePage="Pedidos">
+      <header className="mb-5 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold text-mauve">Dashboard / Pedidos</p>
+          <h1 className="text-2xl font-extrabold text-ink sm:text-3xl">
+            {order ? formatOrderNumber(order.id) : 'Detalhes do Pedido'}
+          </h1>
+        </div>
+        <Button
+          className="min-h-11 gap-2 px-4 text-sm sm:min-h-9 sm:text-xs"
+          onClick={showEditPlaceholder}
+          type="button"
+        >
+          <Pencil aria-hidden className="h-4 w-4" />
+          Editar
+        </Button>
+      </header>
+
+      {error ? (
+        <p className="mb-5 rounded-lg border border-frenchRose/30 bg-chantilly/40 px-4 py-3 text-sm leading-relaxed text-rose-900">
+          {error}
+        </p>
+      ) : null}
+
+      {isLoading ? (
+        <div className="h-56 animate-pulse rounded-lg bg-white shadow-sm" />
+      ) : order ? (
+        <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
+          <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
+            <div className="border-b border-slate-100 px-4 py-3">
+              <h2 className="text-sm font-extrabold text-ink">Itens do Pedido</h2>
+            </div>
+            <div className="divide-y divide-slate-100">
+              {items.map((item) => {
+                const product = productsById.get(item.produto);
+
+                return (
+                  <div className="grid gap-2 px-4 py-4" key={item.id}>
+                    <p className="text-sm font-extrabold text-ink">
+                      {item.quantidade}x {product?.nome ?? item.peca ?? 'Item'}
+                    </p>
+                    <p className="text-xs text-slate-600">
+                      {item.descricao_bordado || 'Sem descrição'}
+                    </p>
+                    <p className="text-xs font-bold text-frenchRose">
+                      Subtotal {formatCurrency(item.subtotal) ?? 'R$ 0,00'}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          <aside className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <h2 className="text-sm font-extrabold text-ink">Resumo</h2>
+            <dl className="mt-4 grid gap-3 text-sm">
+              <div>
+                <dt className="text-xs font-bold text-slate-500">Cliente</dt>
+                <dd className="font-extrabold text-ink">
+                  {client?.nome ?? `Cliente #${order.cliente}`}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-bold text-slate-500">Prazo</dt>
+                <dd className="font-extrabold text-frenchRose">
+                  {formatDate(order.prazo)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-bold text-slate-500">Status</dt>
+                <dd>{statusLabel(order.status)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-bold text-slate-500">Total</dt>
+                <dd className="text-lg font-extrabold text-ink">
+                  {formatCurrency(order.valor_total) ?? 'R$ 0,00'}
+                </dd>
+              </div>
+            </dl>
+          </aside>
+        </div>
+      ) : null}
+    </AppShell>
+  );
+}
