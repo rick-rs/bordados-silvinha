@@ -1,19 +1,28 @@
 import { useEffect, useState } from 'react';
+import {
+  Clock,
+  Inbox,
+  PackageX,
+  Plus,
+  TriangleAlert,
+  WalletCards,
+  type LucideIcon,
+} from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
+import { getSession } from '../../services/auth';
 import {
   DashboardSummary,
   getDashboardSummary,
   RecentOrder,
 } from '../../services/dashboard';
-import { getSession } from '../../services/auth';
 
 type Metric = {
   label: string;
   value: string;
-  icon: string;
+  icon: LucideIcon;
   tone: string;
 };
 
@@ -46,25 +55,25 @@ function buildMetrics(summary: DashboardSummary): Metric[] {
     {
       label: 'Pedidos em Andamento',
       value: String(summary.metrics.orders_in_progress),
-      icon: '◷',
+      icon: Clock,
       tone: 'bg-blue-50 text-blue-600 ring-blue-100',
     },
     {
       label: 'Faturamento (Mês)',
       value: summary.metrics.monthly_revenue,
-      icon: '▣',
+      icon: WalletCards,
       tone: 'bg-emerald-50 text-emerald-600 ring-emerald-100',
     },
     {
       label: 'Pedidos Atrasados',
       value: String(summary.metrics.overdue_orders),
-      icon: '△',
+      icon: TriangleAlert,
       tone: 'bg-rose-50 text-rose-600 ring-rose-100',
     },
     {
       label: 'Alertas de Estoque',
       value: String(summary.metrics.stock_alerts),
-      icon: '◌',
+      icon: PackageX,
       tone: 'bg-amber-50 text-amber-600 ring-amber-100',
     },
   ];
@@ -74,12 +83,32 @@ function EmptyState({ label }: { label: string }) {
   return (
     <div className="grid min-h-40 place-items-center px-6 py-8 text-center">
       <div>
-        <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-chantilly/50 text-xl text-frenchRose">
-          ◌
+        <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-chantilly/50 text-frenchRose">
+          <Inbox aria-hidden className="h-5 w-5" />
         </div>
         <p className="mt-3 text-sm font-bold text-slate-600">{label}</p>
       </div>
     </div>
+  );
+}
+
+function MetricCard({ metric }: { metric: Metric }) {
+  const Icon = metric.icon;
+
+  return (
+    <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-center gap-3">
+        <span
+          className={`grid h-10 w-10 shrink-0 place-items-center rounded-full ring-1 ${metric.tone}`}
+        >
+          <Icon aria-hidden className="h-5 w-5" />
+        </span>
+        <div>
+          <p className="text-xs font-semibold text-slate-500">{metric.label}</p>
+          <p className="mt-1 text-xl font-extrabold text-ink">{metric.value}</p>
+        </div>
+      </div>
+    </article>
   );
 }
 
@@ -126,63 +155,49 @@ export function DashboardPage() {
 
   return (
     <AppShell activePage="Dashboard">
-        <header className="mb-5 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-xs font-semibold text-mauve">Olá, {user.nome}</p>
-            <h1 className="text-2xl font-extrabold text-ink sm:text-3xl">
-              Dashboard
-            </h1>
+      <header className="mb-5 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold text-mauve">Olá, {user.nome}</p>
+          <h1 className="text-2xl font-extrabold text-ink sm:text-3xl">
+            Dashboard
+          </h1>
+        </div>
+        <Button className="min-h-11 w-full gap-2 px-4 text-sm sm:min-h-9 sm:w-auto sm:self-auto sm:text-xs">
+          <Plus aria-hidden className="h-4 w-4" />
+          Nova Encomenda
+        </Button>
+      </header>
+
+      {error ? (
+        <p className="mb-5 rounded-lg border border-frenchRose/30 bg-chantilly/40 px-4 py-3 text-sm leading-relaxed text-rose-900">
+          {error}
+        </p>
+      ) : null}
+
+      {isLoading ? (
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {[0, 1, 2, 3].map((item) => (
+            <article
+              className="h-[74px] animate-pulse rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
+              key={item}
+            />
+          ))}
+        </section>
+      ) : (
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {metrics.map((metric) => (
+            <MetricCard key={metric.label} metric={metric} />
+          ))}
+        </section>
+      )}
+
+      <section className="mt-5 grid gap-4 lg:grid-cols-2">
+        <article className="rounded-lg border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-100 px-4 py-3">
+            <h2 className="text-sm font-extrabold text-ink">Atenção aos Prazos</h2>
           </div>
-          <Button className="min-h-11 w-full px-4 text-sm sm:min-h-9 sm:w-auto sm:self-auto sm:text-xs">
-            + Nova Encomenda
-          </Button>
-        </header>
-
-        {error ? (
-          <p className="mb-5 rounded-lg border border-frenchRose/30 bg-chantilly/40 px-4 py-3 text-sm leading-relaxed text-rose-900">
-            {error}
-          </p>
-        ) : null}
-
-        {isLoading ? (
-          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {[0, 1, 2, 3].map((item) => (
-              <article
-                className="h-[74px] animate-pulse rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
-                key={item}
-              />
-            ))}
-          </section>
-        ) : (
-          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {metrics.map((metric) => (
-              <article
-                className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
-                key={metric.label}
-              >
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`grid h-10 w-10 shrink-0 place-items-center rounded-full ring-1 ${metric.tone}`}
-                  >
-                    {metric.icon}
-                  </span>
-                  <div>
-                    <p className="text-xs font-semibold text-slate-500">{metric.label}</p>
-                    <p className="mt-1 text-xl font-extrabold text-ink">{metric.value}</p>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </section>
-        )}
-
-        <section className="mt-5 grid gap-4 lg:grid-cols-2">
-          <article className="rounded-lg border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-100 px-4 py-3">
-              <h2 className="text-sm font-extrabold text-ink">Atenção aos Prazos</h2>
-            </div>
-            {summary && summary.deadline_alerts.length > 0 ? (
-              <div className="divide-y divide-rose-100">
+          {summary && summary.deadline_alerts.length > 0 ? (
+            <div className="divide-y divide-rose-100">
               {summary.deadline_alerts.map((deadline) => (
                 <div
                   className="grid gap-3 bg-rose-50/70 px-4 py-3 sm:grid-cols-[1fr_auto]"
@@ -204,18 +219,18 @@ export function DashboardPage() {
                   </div>
                 </div>
               ))}
-              </div>
-            ) : (
-              <EmptyState label="Nenhum prazo atrasado por enquanto." />
-            )}
-          </article>
-
-          <article className="rounded-lg border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-100 px-4 py-3">
-              <h2 className="text-sm font-extrabold text-ink">Reposição de Estoque</h2>
             </div>
-            {summary && summary.stock_replacements.length > 0 ? (
-              <div className="grid gap-4 p-4">
+          ) : (
+            <EmptyState label="Nenhum prazo atrasado por enquanto." />
+          )}
+        </article>
+
+        <article className="rounded-lg border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-100 px-4 py-3">
+            <h2 className="text-sm font-extrabold text-ink">Reposição de Estoque</h2>
+          </div>
+          {summary && summary.stock_replacements.length > 0 ? (
+            <div className="grid gap-4 p-4">
               {summary.stock_replacements.map((alert) => (
                 <div
                   className="grid gap-1 sm:flex sm:items-center sm:justify-between sm:gap-4"
@@ -227,23 +242,23 @@ export function DashboardPage() {
                   </p>
                 </div>
               ))}
-              </div>
-            ) : (
-              <EmptyState label="Nenhum alerta de estoque no momento." />
-            )}
-          </article>
-        </section>
-
-        <section className="mt-5 rounded-lg border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-100 px-4 py-3">
-            <h2 className="text-sm font-extrabold text-ink">Pedidos Recentes</h2>
-          </div>
-          {summary && summary.recent_orders.length > 0 ? (
-            <RecentOrdersTable orders={summary.recent_orders} />
+            </div>
           ) : (
-            <EmptyState label="Nenhum pedido recente para exibir." />
+            <EmptyState label="Nenhum alerta de estoque no momento." />
           )}
-        </section>
+        </article>
+      </section>
+
+      <section className="mt-5 rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-100 px-4 py-3">
+          <h2 className="text-sm font-extrabold text-ink">Pedidos Recentes</h2>
+        </div>
+        {summary && summary.recent_orders.length > 0 ? (
+          <RecentOrdersTable orders={summary.recent_orders} />
+        ) : (
+          <EmptyState label="Nenhum pedido recente para exibir." />
+        )}
+      </section>
     </AppShell>
   );
 }
