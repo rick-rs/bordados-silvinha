@@ -7,7 +7,7 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from . import models, serializers
+from . import dashboard, models, serializers
 
 
 def senha_confere(senha: str, senha_armazenada: str) -> bool:
@@ -82,6 +82,11 @@ class PedidoViewSet(viewsets.ModelViewSet):
 
     queryset = models.Pedido.objects.all()
     serializer_class = serializers.PedidoSerializer
+
+    @action(detail=False, methods=["get"], url_path="dashboard")
+    def dashboard(self, request):
+        """Return dashboard summary data."""
+        return Response(dashboard.get_dashboard_summary())
 
 
 class ItemPedidoViewSet(viewsets.ModelViewSet):
