@@ -45,9 +45,14 @@ def order_status_label(value: str | None) -> str:
 
 def stock_remaining_label(material: models.Material) -> str:
     """Return remaining stock label for a material."""
-    quantity = f"{material.quantidade_atual:g}"
-    minimum = f"{material.estoque_minimo:g}"
-    return f"Apenas {quantity} {material.unidade_medida} (Min: {minimum})"
+    quantity = f"{material.quantidade_atual:.2f}".rstrip("0").rstrip(".")
+    minimum = f"{material.estoque_minimo:.2f}".rstrip("0").rstrip(".")
+    unit = material.unidade_medida
+
+    if material.quantidade_atual != 1 and unit in {"cone", "metro", "rolo", "kg"}:
+        unit = f"{unit}s"
+
+    return f"Apenas {quantity} {unit} (Min: {minimum})"
 
 
 def get_dashboard_summary() -> dict:
@@ -79,10 +84,11 @@ def get_dashboard_summary() -> dict:
         "deadline_alerts": [
             {
                 "id": pedido.id,
-                "order": f"#{pedido.id:03d} - {pedido.cliente.nome}",
+                "order": pedido.cliente.nome,
                 "description": pedido.observacoes or order_status_label(pedido.status),
                 "status": "Atrasado",
                 "due_date": f"Prazo {format_date(pedido.prazo)}",
+                "overdue_days": (today - pedido.prazo).days,
             }
             for pedido in overdue_orders.select_related("cliente").order_by(
                 "prazo", "id"

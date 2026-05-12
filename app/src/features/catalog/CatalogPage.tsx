@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Inbox, Pencil, Search, Trash2 } from 'lucide-react';
+import { Grid2X2, Image, Inbox, List, Pencil, Search, Trash2 } from 'lucide-react';
 import { Navigate, useNavigate } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
 import { PaginationControls } from '../../components/ui/PaginationControls';
 import { getSession } from '../../services/auth';
 import { deleteProduct, listProductsPage, Product } from '../../services/orders';
+
+type CatalogView = 'list' | 'cards';
+const catalogViewStorageKey = 'bordados:catalog-view';
 
 function formatMoney(value: string) {
   const amount = Number.parseFloat(value);
@@ -20,6 +23,12 @@ function formatMoney(value: string) {
   }).format(amount);
 }
 
+function getInitialCatalogView(): CatalogView {
+  const storedView = window.localStorage.getItem(catalogViewStorageKey);
+
+  return storedView === 'cards' || storedView === 'list' ? storedView : 'list';
+}
+
 export function CatalogPage() {
   const user = getSession();
   const navigate = useNavigate();
@@ -27,6 +36,7 @@ export function CatalogPage() {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [activeFilter, setActiveFilter] = useState('');
+  const [catalogView, setCatalogView] = useState<CatalogView>(getInitialCatalogView);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [count, setCount] = useState(0);
@@ -71,6 +81,10 @@ export function CatalogPage() {
       isMounted = false;
     };
   }, [activeFilter, page, pageSize, search, typeFilter]);
+
+  useEffect(() => {
+    window.localStorage.setItem(catalogViewStorageKey, catalogView);
+  }, [catalogView]);
 
   function updateSearch(value: string) {
     setSearch(value);
@@ -136,7 +150,7 @@ export function CatalogPage() {
       ) : null}
 
       <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
-        <div className="grid gap-3 border-b border-slate-100 px-4 py-3 lg:grid-cols-[1fr_160px_160px]">
+        <div className="grid gap-3 border-b border-slate-100 px-4 py-3 lg:grid-cols-[1fr_160px_160px_auto]">
           <label className="relative block" htmlFor="catalog-search">
             <span className="sr-only">Buscar item do catálogo</span>
             <Search
@@ -180,6 +194,37 @@ export function CatalogPage() {
             <option value="true">Ativo</option>
             <option value="false">Inativo</option>
           </select>
+
+          <div className="inline-grid min-h-10 grid-cols-2 rounded-lg bg-slate-100 p-1 text-xs font-extrabold text-slate-500">
+            <button
+              aria-label="Visualizar catálogo em lista"
+              className={[
+                'inline-flex items-center justify-center gap-2 rounded-md px-3 transition',
+                catalogView === 'list'
+                  ? 'bg-white text-frenchRose shadow-sm'
+                  : 'hover:text-ink',
+              ].join(' ')}
+              onClick={() => setCatalogView('list')}
+              type="button"
+            >
+              <List aria-hidden className="h-4 w-4" />
+              Lista
+            </button>
+            <button
+              aria-label="Visualizar catálogo em cards"
+              className={[
+                'inline-flex items-center justify-center gap-2 rounded-md px-3 transition',
+                catalogView === 'cards'
+                  ? 'bg-white text-frenchRose shadow-sm'
+                  : 'hover:text-ink',
+              ].join(' ')}
+              onClick={() => setCatalogView('cards')}
+              type="button"
+            >
+              <Grid2X2 aria-hidden className="h-4 w-4" />
+              Cards
+            </button>
+          </div>
         </div>
 
         {isLoading ? (
@@ -188,7 +233,7 @@ export function CatalogPage() {
               <div className="h-16 animate-pulse rounded-lg bg-slate-100" key={item} />
             ))}
           </div>
-        ) : products.length > 0 ? (
+        ) : products.length > 0 && catalogView === 'list' ? (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px] border-collapse text-left text-sm">
               <thead className="bg-slate-50 text-xs font-bold text-slate-500">
@@ -255,6 +300,76 @@ export function CatalogPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        ) : products.length > 0 ? (
+          <div className="grid gap-4 p-4 sm:grid-cols-2 xl:grid-cols-3">
+            {products.map((product) => (
+              <article
+                className="cursor-pointer overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-frenchRose/30 hover:shadow-md"
+                key={product.id}
+                onClick={() => navigate(`/catalogo/${product.id}`)}
+              >
+                {product.imagem_url ? (
+                  <img
+                    alt={product.nome}
+                    className="h-40 w-full object-cover"
+                    src={product.imagem_url}
+                  />
+                ) : (
+                  <div className="grid h-40 place-items-center bg-chantilly/25 text-frenchRose">
+                    <Image aria-hidden className="h-9 w-9" />
+                  </div>
+                )}
+                <div className="grid gap-3 p-4">
+                  <div>
+                    <p className="font-extrabold text-ink">{product.nome}</p>
+                    <p className="mt-1 line-clamp-2 text-xs text-slate-500">
+                      {product.descricao || 'Sem descrição'}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="rounded-full bg-chantilly/45 px-2 py-1 text-xs font-bold text-frenchRose">
+                      {product.tipo}
+                    </span>
+                    <p className="font-extrabold text-frenchRose">
+                      {formatMoney(product.preco_base)}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
+                    <span className="text-xs font-bold text-slate-500">
+                      {product.ativo ? 'Ativo' : 'Inativo'}
+                    </span>
+                    <div>
+                      <button
+                        aria-label={`Editar ${product.nome}`}
+                        className="mr-1 inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-ink"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          navigate(`/catalogo/${product.id}/editar`);
+                        }}
+                        title="Editar item"
+                        type="button"
+                      >
+                        <Pencil aria-hidden className="h-4 w-4" />
+                      </button>
+                      <button
+                        aria-label={`Excluir ${product.nome}`}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-frenchRose transition hover:bg-chantilly/45 disabled:cursor-not-allowed disabled:opacity-60"
+                        disabled={deletingId === product.id}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleDelete(product);
+                        }}
+                        title="Excluir item"
+                        type="button"
+                      >
+                        <Trash2 aria-hidden className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            ))}
           </div>
         ) : (
           <div className="grid min-h-56 place-items-center px-6 py-10 text-center">

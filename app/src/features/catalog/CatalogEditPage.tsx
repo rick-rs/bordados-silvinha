@@ -14,6 +14,7 @@ import {
 const initialForm: ProductPayload = {
   nome: '',
   descricao: '',
+  imagem_url: '',
   preco_base: '',
   categoria: '',
   subcategoria: '',
@@ -48,6 +49,7 @@ export function CatalogEditPage() {
           setForm({
             nome: product.nome,
             descricao: product.descricao ?? '',
+            imagem_url: product.imagem_url ?? '',
             preco_base: product.preco_base,
             categoria: product.categoria ?? '',
             subcategoria: product.subcategoria ?? '',
@@ -130,6 +132,15 @@ export function CatalogEditPage() {
               onChange={(event) => updateField('nome', event.target.value)}
               required
               value={form.nome}
+            />
+
+            <TextField
+              label="URL da foto"
+              name="imagem_url"
+              onChange={(event) => updateField('imagem_url', event.target.value)}
+              placeholder="https://..."
+              type="url"
+              value={form.imagem_url}
             />
 
             <div className="grid gap-5 sm:grid-cols-2">

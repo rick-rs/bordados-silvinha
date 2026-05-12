@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
+  ArrowUpDown,
   Clock,
   Inbox,
   PackageX,
@@ -24,6 +25,49 @@ type Metric = {
   icon: LucideIcon;
   tone: string;
 };
+
+type RecentSortKey = keyof Pick<
+  RecentOrder,
+  'number' | 'client' | 'due_date' | 'status' | 'payment'
+>;
+type SortDirection = 'asc' | 'desc' | null;
+type RecentSortState = {
+  key: RecentSortKey | null;
+  direction: SortDirection;
+};
+const recentOrdersSortStorageKey = 'bordados:dashboard-recent-sort';
+
+const recentOrderColumns: Array<{ key: RecentSortKey; label: string }> = [
+  { key: 'number', label: 'Nº' },
+  { key: 'client', label: 'Cliente' },
+  { key: 'due_date', label: 'Prazo' },
+  { key: 'status', label: 'Status' },
+  { key: 'payment', label: 'Pgto' },
+];
+
+function getInitialRecentSort(): RecentSortState {
+  const storedValue = window.localStorage.getItem(recentOrdersSortStorageKey);
+
+  if (!storedValue) {
+    return { key: null, direction: null };
+  }
+
+  try {
+    const parsedValue = JSON.parse(storedValue) as RecentSortState;
+
+    if (
+      parsedValue.key &&
+      ['number', 'client', 'due_date', 'status', 'payment'].includes(parsedValue.key) &&
+      (parsedValue.direction === 'asc' || parsedValue.direction === 'desc')
+    ) {
+      return parsedValue;
+    }
+  } catch {
+    return { key: null, direction: null };
+  }
+
+  return { key: null, direction: null };
+}
 
 function statusClassName(status: string) {
   if (status === 'Em Produção') {
@@ -222,6 +266,11 @@ export function DashboardPage() {
                     <p className="text-xs font-extrabold text-frenchRose">
                       {deadline.status}
                     </p>
+                    <p className="mt-1 text-[11px] font-bold text-rose-600">
+                      {deadline.overdue_days === 1
+                        ? '1 dia atrasado'
+                        : `${deadline.overdue_days} dias atrasado`}
+                    </p>
                     <p className="mt-1 text-[11px] text-slate-500">
                       {deadline.due_date}
                     </p>
@@ -275,21 +324,81 @@ export function DashboardPage() {
 
 function RecentOrdersTable({ orders }: { orders: RecentOrder[] }) {
   const navigate = useNavigate();
+  const [sortState, setSortState] = useState<RecentSortState>(
+    getInitialRecentSort,
+  );
+
+  useEffect(() => {
+    if (!sortState.key || !sortState.direction) {
+      window.localStorage.removeItem(recentOrdersSortStorageKey);
+      return;
+    }
+
+    window.localStorage.setItem(
+      recentOrdersSortStorageKey,
+      JSON.stringify(sortState),
+    );
+  }, [sortState]);
+
+  const sortedOrders = useMemo(() => {
+    if (!sortState.key || !sortState.direction) {
+      return orders;
+    }
+
+    const sortKey = sortState.key;
+
+    return [...orders].sort((leftOrder, rightOrder) => {
+      const leftValue = leftOrder[sortKey];
+      const rightValue = rightOrder[sortKey];
+      const comparison = leftValue.localeCompare(rightValue, 'pt-BR', {
+        numeric: true,
+      });
+
+      return sortState.direction === 'asc' ? comparison : -comparison;
+    });
+  }, [orders, sortState]);
+
+  function updateSort(key: RecentSortKey) {
+    setSortState((currentState) => {
+      if (currentState.key !== key) {
+        return { key, direction: 'asc' };
+      }
+
+      if (currentState.direction === 'asc') {
+        return { key, direction: 'desc' };
+      }
+
+      return { key: null, direction: null };
+    });
+  }
 
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[680px] border-collapse text-left text-sm">
         <thead className="bg-slate-50 text-xs font-bold text-slate-500">
           <tr>
-            <th className="px-4 py-3">Nº</th>
-            <th className="px-4 py-3">Cliente</th>
-            <th className="px-4 py-3">Prazo</th>
-            <th className="px-4 py-3">Status</th>
-            <th className="px-4 py-3">Pgto</th>
+            {recentOrderColumns.map((column) => (
+              <th className="px-4 py-3" key={column.key}>
+                <button
+                  className="inline-flex items-center gap-1 transition hover:text-ink"
+                  onClick={() => updateSort(column.key)}
+                  title="Ordenar coluna"
+                  type="button"
+                >
+                  {column.label}
+                  <ArrowUpDown aria-hidden className="h-3.5 w-3.5" />
+                  {sortState.key === column.key && sortState.direction ? (
+                    <span className="text-[10px] text-frenchRose">
+                      {sortState.direction === 'asc' ? 'ASC' : 'DESC'}
+                    </span>
+                  ) : null}
+                </button>
+              </th>
+            ))}
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
-          {orders.map((order) => (
+          {sortedOrders.map((order) => (
             <tr
               className="cursor-pointer bg-white transition hover:bg-chantilly/20"
               key={order.id}

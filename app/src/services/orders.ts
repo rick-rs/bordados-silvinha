@@ -62,6 +62,7 @@ export type Product = {
   id: number;
   nome: string;
   descricao: string | null;
+  imagem_url: string | null;
   preco_base: string;
   categoria: string | null;
   subcategoria: string | null;
@@ -72,6 +73,7 @@ export type Product = {
 export type ProductPayload = {
   nome: string;
   descricao: string;
+  imagem_url: string;
   preco_base: string;
   categoria: string;
   subcategoria: string;

@@ -84,14 +84,18 @@ const initialOrderForm: Omit<OrderPayload, 'cliente' | 'valor_total'> & {
   observacoes: '',
 };
 
-const initialQuickClientForm: Pick<
-  ClientPayload,
-  'nome' | 'telefone' | 'email' | 'rede_social'
-> = {
+const initialQuickClientForm: ClientPayload = {
   nome: '',
   telefone: '',
   email: '',
   rede_social: '',
+  cep: '',
+  endereco: '',
+  numero: '',
+  complemento: '',
+  bairro: '',
+  cidade: '',
+  estado: '',
 };
 
 function createEmptyItem(): OrderItemForm {
@@ -600,6 +604,7 @@ export function NewOrderPage() {
   const [items, setItems] = useState<OrderItemForm[]>([createEmptyItem()]);
   const [quickClientForm, setQuickClientForm] = useState(initialQuickClientForm);
   const [clientMode, setClientMode] = useState<'existing' | 'new'>('existing');
+  const [clientSearch, setClientSearch] = useState('');
   const [clients, setClients] = useState<Client[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoadingOptions, setIsLoadingOptions] = useState(true);
@@ -640,10 +645,6 @@ export function NewOrderPage() {
     };
   }, []);
 
-  if (!user) {
-    return <Navigate replace to="/login" />;
-  }
-
   const embroideryProducts = products.filter(
     (product) => product.ativo && product.tipo === 'bordado',
   );
@@ -652,15 +653,34 @@ export function NewOrderPage() {
     : products.filter((product) => product.ativo);
   const total = items.reduce((currentTotal, item) => currentTotal + itemSubtotal(item), 0);
   const selectedClient = clients.find((client) => String(client.id) === form.cliente);
+  const filteredClients = useMemo(() => {
+    const normalizedSearch = normalizeText(clientSearch.trim());
+
+    if (!normalizedSearch) {
+      return clients;
+    }
+
+    return clients.filter((client) =>
+      normalizeText(
+        [
+          client.nome,
+          client.telefone ?? '',
+          client.email ?? '',
+          client.rede_social ?? '',
+        ].join(' '),
+      ).includes(normalizedSearch),
+    );
+  }, [clientSearch, clients]);
+
+  if (!user) {
+    return <Navigate replace to="/login" />;
+  }
 
   function updateField(field: keyof typeof form, value: string) {
     setForm((currentForm) => ({ ...currentForm, [field]: value }));
   }
 
-  function updateQuickClientField(
-    field: keyof typeof quickClientForm,
-    value: string,
-  ) {
+  function updateQuickClientField(field: keyof ClientPayload, value: string) {
     setQuickClientForm((currentForm) => ({ ...currentForm, [field]: value }));
   }
 
@@ -728,22 +748,8 @@ export function NewOrderPage() {
     setError('');
     setIsCreatingClient(true);
 
-    const payload: ClientPayload = {
-      nome: quickClientForm.nome,
-      telefone: quickClientForm.telefone,
-      email: quickClientForm.email,
-      rede_social: quickClientForm.rede_social,
-      cep: '',
-      endereco: '',
-      numero: '',
-      complemento: '',
-      bairro: '',
-      cidade: '',
-      estado: '',
-    };
-
     try {
-      const client = await createClient(payload);
+      const client = await createClient(quickClientForm);
       setClients((currentClients) => [...currentClients, client]);
       updateField('cliente', String(client.id));
       setQuickClientForm(initialQuickClientForm);
@@ -857,6 +863,21 @@ export function NewOrderPage() {
 
             {clientMode === 'existing' ? (
               <div className="grid gap-4">
+                <label className="relative block" htmlFor="client-search-order">
+                  <span className="sr-only">Buscar cliente</span>
+                  <Search
+                    aria-hidden
+                    className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                  />
+                  <input
+                    className="min-h-12 w-full rounded-lg border border-frenchRose/20 bg-white pl-9 pr-4 text-ink outline-none transition placeholder:text-mauve/60 focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
+                    id="client-search-order"
+                    onChange={(event) => setClientSearch(event.target.value)}
+                    placeholder="Buscar por nome, telefone, e-mail ou rede social"
+                    type="search"
+                    value={clientSearch}
+                  />
+                </label>
                 <label className="grid gap-2" htmlFor="cliente">
                   <span className="text-sm font-bold text-mauve">Cliente *</span>
                   <select
@@ -867,7 +888,7 @@ export function NewOrderPage() {
                     value={form.cliente}
                   >
                     <option value="">Selecione</option>
-                    {clients.map((client) => (
+                    {filteredClients.map((client) => (
                       <option key={client.id} value={client.id}>
                         {client.nome}
                       </option>
@@ -925,6 +946,72 @@ export function NewOrderPage() {
                   placeholder="Ex: @usuario_instagram"
                   value={quickClientForm.rede_social}
                 />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <TextField
+                    label="CEP"
+                    name="quick_cep"
+                    onChange={(event) =>
+                      updateQuickClientField('cep', event.target.value)
+                    }
+                    value={quickClientForm.cep}
+                  />
+                  <TextField
+                    label="Endereço"
+                    name="quick_endereco"
+                    onChange={(event) =>
+                      updateQuickClientField('endereco', event.target.value)
+                    }
+                    value={quickClientForm.endereco}
+                  />
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <TextField
+                    label="Número"
+                    name="quick_numero"
+                    onChange={(event) =>
+                      updateQuickClientField('numero', event.target.value)
+                    }
+                    value={quickClientForm.numero}
+                  />
+                  <TextField
+                    label="Complemento"
+                    name="quick_complemento"
+                    onChange={(event) =>
+                      updateQuickClientField('complemento', event.target.value)
+                    }
+                    value={quickClientForm.complemento}
+                  />
+                </div>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <TextField
+                    label="Bairro"
+                    name="quick_bairro"
+                    onChange={(event) =>
+                      updateQuickClientField('bairro', event.target.value)
+                    }
+                    value={quickClientForm.bairro}
+                  />
+                  <TextField
+                    label="Cidade"
+                    name="quick_cidade"
+                    onChange={(event) =>
+                      updateQuickClientField('cidade', event.target.value)
+                    }
+                    value={quickClientForm.cidade}
+                  />
+                  <TextField
+                    label="Estado"
+                    maxLength={2}
+                    name="quick_estado"
+                    onChange={(event) =>
+                      updateQuickClientField(
+                        'estado',
+                        event.target.value.toUpperCase(),
+                      )
+                    }
+                    value={quickClientForm.estado}
+                  />
+                </div>
                 <div className="flex justify-end">
                   <Button
                     className="min-h-11 px-4 text-sm"

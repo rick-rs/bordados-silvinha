@@ -103,6 +103,13 @@ export function CatalogDetailPage() {
         <div className="h-56 animate-pulse rounded-lg bg-white shadow-sm" />
       ) : product ? (
         <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
+          {product.imagem_url ? (
+            <img
+              alt={product.nome}
+              className="h-56 w-full rounded-t-lg object-cover"
+              src={product.imagem_url}
+            />
+          ) : null}
           <div className="border-b border-slate-100 px-4 py-3">
             <h2 className="text-sm font-extrabold text-ink">Informações do Item</h2>
           </div>

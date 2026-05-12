@@ -13,6 +13,7 @@ export type DeadlineAlert = {
   description: string;
   status: string;
   due_date: string;
+  overdue_days: number;
 };
 
 export type StockReplacement = {
