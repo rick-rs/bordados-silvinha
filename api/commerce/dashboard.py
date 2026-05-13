@@ -119,9 +119,9 @@ def get_dashboard_summary() -> dict:
                 "due_date": format_date(pedido.prazo),
                 "status": order_status_label(pedido.status),
             }
-            for pedido in urgent_orders.select_related("cliente").order_by("prazo", "id")[
-                :6
-            ]
+            for pedido in urgent_orders.select_related("cliente").order_by(
+                "prazo", "id"
+            )[:6]
         ],
         "stock_replacements": [
             {

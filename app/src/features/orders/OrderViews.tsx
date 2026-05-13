@@ -1,0 +1,470 @@
+import { DragEvent, useEffect, useMemo, useState } from 'react';
+import { ArrowRight, Flag, Pencil, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+
+import { Client } from '../../services/clients';
+import { Order, OrderItem, Product } from '../../services/orders';
+import { formatCurrency } from '../../utils/format';
+import {
+  buildItemSummary,
+  formatDate,
+  formatOrderNumber,
+  getDeadlineState,
+  getNextStatus,
+  paymentClassName,
+  paymentLabel,
+  statusClassName,
+  statusLabel,
+  statusOptions,
+} from './orderUtils';
+
+type OrdersViewProps = {
+  clientsById: Map<number, Client>;
+  deletingId: number | null;
+  itemsByOrder: Map<number, OrderItem[]>;
+  orders: Order[];
+  productsById: Map<number, Product>;
+  updatingStatusId: number | null;
+};
+
+type OrdersTableProps = OrdersViewProps & {
+  onAdvanceStatus: (order: Order, status: string) => void;
+  onEdit: (order: Order) => void;
+  onDelete: (order: Order) => void;
+};
+
+export function OrdersTable({
+  clientsById,
+  deletingId,
+  itemsByOrder,
+  onAdvanceStatus,
+  onEdit,
+  onDelete,
+  orders,
+  productsById,
+  updatingStatusId,
+}: OrdersTableProps) {
+  const navigate = useNavigate();
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[980px] border-collapse text-left text-sm">
+        <thead className="bg-slate-50 text-xs font-bold text-slate-500">
+          <tr>
+            <th className="px-4 py-3">Pedido / Cliente</th>
+            <th className="px-4 py-3">Itens</th>
+            <th className="px-4 py-3">Prazo</th>
+            <th className="px-4 py-3">Status</th>
+            <th className="px-4 py-3">Valor / Pgto.</th>
+            <th className="px-4 py-3 text-right">Ações</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {orders.map((order) => {
+            const client = clientsById.get(order.cliente);
+            const itemSummary = buildItemSummary(order.id, itemsByOrder, productsById);
+            const total = formatCurrency(order.valor_total) ?? 'R$ 0,00';
+            const payment = paymentLabel(order.status_pagamento);
+            const nextStatus = getNextStatus(order.status);
+            const deadline = getDeadlineState(order);
+
+            return (
+              <tr
+                className={[
+                  'cursor-pointer bg-white align-top transition hover:bg-chantilly/20',
+                  deadline?.label.startsWith('Atrasado')
+                    ? 'border-l-4 border-l-rose-400'
+                    : deadline
+                      ? 'border-l-4 border-l-amber-400'
+                      : '',
+                ].join(' ')}
+                key={order.id}
+                onClick={() => navigate(`/pedidos/${order.id}`)}
+              >
+                <td className="px-4 py-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-extrabold text-ink">
+                      {formatOrderNumber(order.id)}
+                    </p>
+                    {order.urgente ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2 py-0.5 text-[11px] font-extrabold text-rose-700">
+                        <Flag aria-hidden className="h-3 w-3" />
+                        Urgente
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="mt-1 text-xs font-semibold text-slate-500">
+                    {client?.nome ?? `Cliente #${order.cliente}`}
+                  </p>
+                </td>
+                <td className="max-w-80 px-4 py-3 text-slate-600">{itemSummary}</td>
+                <td className="px-4 py-3">
+                  <p className="font-extrabold text-frenchRose">
+                    {formatDate(order.prazo)}
+                  </p>
+                  {deadline ? (
+                    <p
+                      className={`mt-2 inline-flex rounded-full px-2 py-1 text-[11px] font-extrabold ring-1 ${deadline.tone}`}
+                    >
+                      {deadline.label}
+                    </p>
+                  ) : null}
+                  <p className="mt-1 text-xs text-slate-500">
+                    {order.data_pedido ? `Entrada ${formatDate(order.data_pedido)}` : '-'}
+                  </p>
+                </td>
+                <td className="px-4 py-3">
+                  <span
+                    className={`rounded-full px-2 py-1 text-xs font-bold ${statusClassName(
+                      order.status,
+                    )}`}
+                  >
+                    {statusLabel(order.status)}
+                  </span>
+                </td>
+                <td className="px-4 py-3">
+                  <p className="font-extrabold text-ink">{total}</p>
+                  <p className={`mt-1 text-xs font-bold ${paymentClassName(payment)}`}>
+                    {payment}
+                  </p>
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <button
+                    aria-label={`Avançar pedido ${formatOrderNumber(order.id)} para o próximo status`}
+                    className="mr-1 inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
+                    disabled={!nextStatus || updatingStatusId === order.id}
+                    onClick={(event) => {
+                      event.stopPropagation();
+
+                      if (nextStatus) {
+                        onAdvanceStatus(order, nextStatus);
+                      }
+                    }}
+                    title={
+                      nextStatus
+                        ? `Avançar para ${statusLabel(nextStatus)}`
+                        : 'Pedido no último status'
+                    }
+                    type="button"
+                  >
+                    <ArrowRight aria-hidden className="h-4 w-4" />
+                  </button>
+                  <button
+                    aria-label={`Editar pedido ${formatOrderNumber(order.id)}`}
+                    className="mr-1 inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-ink"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onEdit(order);
+                    }}
+                    title="Editar pedido"
+                    type="button"
+                  >
+                    <Pencil aria-hidden className="h-4 w-4" />
+                  </button>
+                  <button
+                    aria-label={`Excluir pedido ${formatOrderNumber(order.id)}`}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-frenchRose transition hover:bg-chantilly/45 disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={deletingId === order.id}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onDelete(order);
+                    }}
+                    title="Excluir pedido"
+                    type="button"
+                  >
+                    <Trash2 aria-hidden className="h-4 w-4" />
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+type OrdersBoardProps = OrdersViewProps & {
+  onDelete: (order: Order) => void;
+  onEdit: (order: Order) => void;
+  onStatusChange: (order: Order, status: string) => void;
+};
+
+export function OrdersBoard({
+  clientsById,
+  deletingId,
+  itemsByOrder,
+  onDelete,
+  onEdit,
+  onStatusChange,
+  orders,
+  productsById,
+  updatingStatusId,
+}: OrdersBoardProps) {
+  const navigate = useNavigate();
+  const [dragOverStatus, setDragOverStatus] = useState<string | null>(null);
+  const [orderedIds, setOrderedIds] = useState<number[]>([]);
+
+  useEffect(() => {
+    setOrderedIds((currentIds) => {
+      const orderIds = orders.map((order) => order.id);
+      const keptIds = currentIds.filter((id) => orderIds.includes(id));
+      const newIds = orderIds.filter((id) => !keptIds.includes(id));
+
+      return [...keptIds, ...newIds];
+    });
+  }, [orders]);
+
+  const orderedOrders = useMemo(() => {
+    const orderIndex = new Map(orderedIds.map((id, index) => [id, index]));
+
+    return [...orders].sort(
+      (leftOrder, rightOrder) =>
+        (orderIndex.get(leftOrder.id) ?? Number.MAX_SAFE_INTEGER) -
+        (orderIndex.get(rightOrder.id) ?? Number.MAX_SAFE_INTEGER),
+    );
+  }, [orderedIds, orders]);
+
+  const ordersByStatus = useMemo(() => {
+    const groupedOrders = new Map<string, Order[]>();
+
+    statusOptions.forEach((status) => {
+      groupedOrders.set(status, []);
+    });
+
+    orderedOrders.forEach((order) => {
+      const status = statusOptions.includes(order.status) ? order.status : 'Recebido';
+      groupedOrders.set(status, [...(groupedOrders.get(status) ?? []), order]);
+    });
+
+    return groupedOrders;
+  }, [orderedOrders]);
+
+  function moveOrderBefore(draggedOrderId: number, targetOrderId: number) {
+    if (draggedOrderId === targetOrderId) {
+      return;
+    }
+
+    setOrderedIds((currentIds) => {
+      const nextIds = currentIds.filter((id) => id !== draggedOrderId);
+      const targetIndex = nextIds.indexOf(targetOrderId);
+
+      if (targetIndex < 0) {
+        return [...nextIds, draggedOrderId];
+      }
+
+      nextIds.splice(targetIndex, 0, draggedOrderId);
+      return nextIds;
+    });
+  }
+
+  function moveOrderToColumnEnd(orderId: number) {
+    setOrderedIds((currentIds) => [
+      ...currentIds.filter((id) => id !== orderId),
+      orderId,
+    ]);
+  }
+
+  function handleDragStart(event: DragEvent<HTMLElement>, order: Order) {
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', String(order.id));
+  }
+
+  function handleDrop(event: DragEvent<HTMLElement>, status: string) {
+    event.preventDefault();
+    setDragOverStatus(null);
+
+    const orderId = Number(event.dataTransfer.getData('text/plain'));
+    const order = orders.find((currentOrder) => currentOrder.id === orderId);
+
+    if (!order) {
+      return;
+    }
+
+    moveOrderToColumnEnd(order.id);
+    onStatusChange(order, status);
+  }
+
+  function handleCardDrop(event: DragEvent<HTMLElement>, targetOrder: Order) {
+    event.preventDefault();
+    event.stopPropagation();
+    setDragOverStatus(null);
+
+    const draggedOrderId = Number(event.dataTransfer.getData('text/plain'));
+    const draggedOrder = orders.find(
+      (currentOrder) => currentOrder.id === draggedOrderId,
+    );
+
+    if (!draggedOrder || draggedOrder.id === targetOrder.id) {
+      return;
+    }
+
+    moveOrderBefore(draggedOrder.id, targetOrder.id);
+
+    if (draggedOrder.status !== targetOrder.status) {
+      onStatusChange(draggedOrder, targetOrder.status);
+    }
+  }
+
+  return (
+    <div className="overflow-x-auto bg-slate-50/60 p-4">
+      <div className="grid min-w-[1180px] grid-cols-6 gap-3">
+        {statusOptions.map((status) => {
+          const columnOrders = ordersByStatus.get(status) ?? [];
+          const isDraggingOver = dragOverStatus === status;
+
+          return (
+            <section
+              className={[
+                'flex min-h-[520px] flex-col rounded-lg border bg-white shadow-sm transition',
+                isDraggingOver
+                  ? 'border-frenchRose bg-chantilly/20 ring-4 ring-frenchRose/10'
+                  : 'border-slate-200',
+              ].join(' ')}
+              key={status}
+              onDragLeave={() => setDragOverStatus(null)}
+              onDragOver={(event) => {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = 'move';
+                setDragOverStatus(status);
+              }}
+              onDrop={(event) => handleDrop(event, status)}
+            >
+              <header className="flex items-center justify-between gap-2 border-b border-slate-100 px-3 py-3">
+                <h3 className="text-xs font-extrabold text-ink">
+                  {statusLabel(status)}
+                </h3>
+                <span className="rounded-full bg-chantilly/45 px-2 py-1 text-[11px] font-extrabold text-frenchRose">
+                  {columnOrders.length}
+                </span>
+              </header>
+
+              <div className="grid flex-1 content-start gap-3 p-3">
+                {columnOrders.length > 0 ? (
+                  columnOrders.map((order) => {
+                    const client = clientsById.get(order.cliente);
+                    const itemSummary = buildItemSummary(
+                      order.id,
+                      itemsByOrder,
+                      productsById,
+                    );
+                    const payment = paymentLabel(order.status_pagamento);
+                    const isUpdating = updatingStatusId === order.id;
+                    const deadline = getDeadlineState(order);
+
+                    return (
+                      <article
+                        className={[
+                          'cursor-grab rounded-lg border bg-white p-3 text-left shadow-sm transition',
+                          'hover:-translate-y-0.5 hover:border-frenchRose/30 hover:shadow-md',
+                          deadline?.label.startsWith('Atrasado')
+                            ? 'border-rose-200'
+                            : deadline
+                              ? 'border-amber-200'
+                              : 'border-slate-200',
+                          isUpdating ? 'opacity-60' : '',
+                        ].join(' ')}
+                        draggable={!isUpdating}
+                        key={order.id}
+                        onClick={() => navigate(`/pedidos/${order.id}`)}
+                        onDragEnd={() => setDragOverStatus(null)}
+                        onDragOver={(event) => {
+                          event.preventDefault();
+                          event.dataTransfer.dropEffect = 'move';
+                          setDragOverStatus(order.status);
+                        }}
+                        onDragStart={(event) => handleDragStart(event, order)}
+                        onDrop={(event) => handleCardDrop(event, order)}
+                        title="Arraste para mudar o status ou a prioridade visual"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="text-sm font-extrabold text-ink">
+                                {client?.nome ?? `Cliente #${order.cliente}`}
+                              </p>
+                              {order.urgente ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-extrabold text-rose-700">
+                                  <Flag aria-hidden className="h-3 w-3" />
+                                  Urgente
+                                </span>
+                              ) : null}
+                            </div>
+                            <p className="mt-1 text-[11px] font-bold text-frenchRose">
+                              {formatDate(order.prazo)}
+                            </p>
+                            {deadline ? (
+                              <p
+                                className={`mt-2 inline-flex rounded-full px-2 py-1 text-[10px] font-extrabold ring-1 ${deadline.tone}`}
+                              >
+                                {deadline.label}
+                              </p>
+                            ) : null}
+                          </div>
+                          <span
+                            className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-bold ${paymentClassName(
+                              payment,
+                            )}`}
+                          >
+                            {payment}
+                          </span>
+                        </div>
+
+                        <p className="mt-3 line-clamp-2 text-xs leading-relaxed text-slate-600">
+                          {itemSummary}
+                        </p>
+
+                        <div className="mt-3 flex items-center justify-between gap-2">
+                          <p className="text-sm font-extrabold text-ink">
+                            {formatCurrency(order.valor_total) ?? 'R$ 0,00'}
+                          </p>
+                          <div className="flex items-center gap-1">
+                            <button
+                              aria-label={`Editar pedido de ${
+                                client?.nome ?? 'cliente não identificado'
+                              }`}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-ink"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                onEdit(order);
+                              }}
+                              title="Editar pedido"
+                              type="button"
+                            >
+                              <Pencil aria-hidden className="h-4 w-4" />
+                            </button>
+                            <button
+                              aria-label={`Excluir pedido de ${
+                                client?.nome ?? 'cliente não identificado'
+                              }`}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-frenchRose transition hover:bg-chantilly/45 disabled:cursor-not-allowed disabled:opacity-60"
+                              disabled={deletingId === order.id}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                onDelete(order);
+                              }}
+                              title="Excluir pedido"
+                              type="button"
+                            >
+                              <Trash2 aria-hidden className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  })
+                ) : (
+                  <div className="grid min-h-32 place-items-center rounded-lg border border-dashed border-slate-200 px-3 py-5 text-center">
+                    <p className="text-xs font-bold text-slate-400">
+                      Arraste pedidos para cá
+                    </p>
+                  </div>
+                )}
+              </div>
+            </section>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

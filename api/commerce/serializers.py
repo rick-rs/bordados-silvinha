@@ -6,7 +6,6 @@ from rest_framework import serializers
 
 from . import models
 
-
 TERMINAL_ORDER_STATUSES = {"Entregue", "Cancelado"}
 
 

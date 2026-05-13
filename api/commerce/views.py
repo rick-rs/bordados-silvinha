@@ -177,8 +177,11 @@ class PedidoViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """Filter orders by status, payment, channel, period and search text."""
-        queryset = super().get_queryset().select_related("cliente").order_by(
-            "-criado_em", "-id"
+        queryset = (
+            super()
+            .get_queryset()
+            .select_related("cliente")
+            .order_by("-criado_em", "-id")
         )
         query = self.request.query_params.get("q", "").strip()
         status_param = self.request.query_params.get("status", "").strip()
@@ -239,9 +242,11 @@ class PedidoViewSet(viewsets.ModelViewSet):
                 status=updated_status,
                 status_anterior=previous_status,
                 status_novo=updated_status,
-                motivo=serializer.instance.motivo_cancelamento
-                if updated_status == "Cancelado"
-                else serializer.instance.observacoes_entrega,
+                motivo=(
+                    serializer.instance.motivo_cancelamento
+                    if updated_status == "Cancelado"
+                    else serializer.instance.observacoes_entrega
+                ),
             )
 
         return Response(serializer.data)
@@ -304,8 +309,11 @@ class MovimentacaoEstoqueViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """Filter stock movements by material and show recent records first."""
-        queryset = super().get_queryset().select_related("material").order_by(
-            "-registrado_em", "-id"
+        queryset = (
+            super()
+            .get_queryset()
+            .select_related("material")
+            .order_by("-registrado_em", "-id")
         )
         material = self.request.query_params.get("material", "").strip()
 
