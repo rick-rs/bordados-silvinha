@@ -22,6 +22,7 @@ import { Link, Navigate, useNavigate } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
+import { FilterToolbar } from '../../components/ui/FilterToolbar';
 import { PaginationControls } from '../../components/ui/PaginationControls';
 import { TextField } from '../../components/ui/TextField';
 import { getSession } from '../../services/auth';
@@ -571,129 +572,135 @@ export function OrdersPage() {
       ) : null}
 
       <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
-        <div className="grid gap-3 border-b border-slate-100 px-4 py-3 md:grid-cols-2 xl:grid-cols-[160px_160px_150px_150px_170px_minmax(220px,1fr)_auto]">
-          <label className="sr-only" htmlFor="status-filter">
-            Filtrar por status
-          </label>
-          <select
-            className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
-            id="status-filter"
-            onChange={updateStatusFilter}
-            value={statusFilter}
-          >
-            <option value="">Todos os status</option>
-            {statusOptions.map((status) => (
-              <option key={status} value={status}>
-                {statusLabel(status)}
-              </option>
-            ))}
-          </select>
+        <FilterToolbar
+          actions={
+            <div className="inline-grid min-h-10 w-full grid-cols-2 rounded-lg bg-slate-100 p-1 text-xs font-extrabold text-slate-500 sm:w-[190px]">
+              <button
+                aria-label="Visualizar pedidos em lista"
+                className={[
+                  'inline-flex min-w-0 items-center justify-center gap-2 rounded-md px-3 transition',
+                  ordersView === 'list'
+                    ? 'bg-white text-frenchRose shadow-sm'
+                    : 'hover:text-ink',
+                ].join(' ')}
+                onClick={() => setOrdersView('list')}
+                type="button"
+              >
+                <List aria-hidden className="h-4 w-4" />
+                Lista
+              </button>
+              <button
+                aria-label="Visualizar pedidos em quadro"
+                className={[
+                  'inline-flex min-w-0 items-center justify-center gap-2 rounded-md px-3 transition',
+                  ordersView === 'board'
+                    ? 'bg-white text-frenchRose shadow-sm'
+                    : 'hover:text-ink',
+                ].join(' ')}
+                onClick={() => setOrdersView('board')}
+                type="button"
+              >
+                <Columns3 aria-hidden className="h-4 w-4" />
+                Quadro
+              </button>
+            </div>
+          }
+          filters={
+            <>
+              <label className="sr-only" htmlFor="status-filter">
+                Filtrar por status
+              </label>
+              <select
+                className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15 xl:w-40"
+                id="status-filter"
+                onChange={updateStatusFilter}
+                value={statusFilter}
+              >
+                <option value="">Todos os status</option>
+                {statusOptions.map((status) => (
+                  <option key={status} value={status}>
+                    {statusLabel(status)}
+                  </option>
+                ))}
+              </select>
 
-          <label className="sr-only" htmlFor="channel-filter">
-            Filtrar por canal
-          </label>
-          <select
-            className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
-            id="channel-filter"
-            onChange={updateChannelFilter}
-            value={channelFilter}
-          >
-            <option value="">Todos os canais</option>
-            {channelOptions.map((channel) => (
-              <option key={channel} value={channel}>
-                {channel}
-              </option>
-            ))}
-          </select>
+              <label className="sr-only" htmlFor="channel-filter">
+                Filtrar por canal
+              </label>
+              <select
+                className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15 xl:w-40"
+                id="channel-filter"
+                onChange={updateChannelFilter}
+                value={channelFilter}
+              >
+                <option value="">Todos os canais</option>
+                {channelOptions.map((channel) => (
+                  <option key={channel} value={channel}>
+                    {channel}
+                  </option>
+                ))}
+              </select>
 
-          <label className="relative block" htmlFor="date-from-filter">
-            <span className="sr-only">Prazo inicial</span>
-            <input
-              className="min-h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
-              id="date-from-filter"
-              onChange={(event) => updateDateFromFilter(event.target.value)}
-              title="Prazo inicial"
-              type="date"
-              value={dateFromFilter}
-            />
-          </label>
+              <label className="relative block xl:w-36" htmlFor="date-from-filter">
+                <span className="sr-only">Prazo inicial</span>
+                <input
+                  className="min-h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
+                  id="date-from-filter"
+                  onChange={(event) => updateDateFromFilter(event.target.value)}
+                  title="Prazo inicial"
+                  type="date"
+                  value={dateFromFilter}
+                />
+              </label>
 
-          <label className="relative block" htmlFor="date-to-filter">
-            <span className="sr-only">Prazo final</span>
-            <input
-              className="min-h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
-              id="date-to-filter"
-              onChange={(event) => updateDateToFilter(event.target.value)}
-              title="Prazo final"
-              type="date"
-              value={dateToFilter}
-            />
-          </label>
+              <label className="relative block xl:w-36" htmlFor="date-to-filter">
+                <span className="sr-only">Prazo final</span>
+                <input
+                  className="min-h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
+                  id="date-to-filter"
+                  onChange={(event) => updateDateToFilter(event.target.value)}
+                  title="Prazo final"
+                  type="date"
+                  value={dateToFilter}
+                />
+              </label>
 
-          <label className="sr-only" htmlFor="payment-filter">
-            Filtrar por pagamento
-          </label>
-          <select
-            className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
-            id="payment-filter"
-            onChange={updatePaymentFilter}
-            value={paymentFilter}
-          >
-            <option value="">Todos os pagamentos</option>
-            {paymentOptions.map((payment) => (
-              <option key={payment} value={payment}>
-                {payment}
-              </option>
-            ))}
-          </select>
-
-          <label className="relative block" htmlFor="order-search">
-            <span className="sr-only">Buscar cliente ou número do pedido</span>
-            <Search
-              aria-hidden
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-            />
-            <input
-              className="min-h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm text-ink outline-none transition placeholder:text-slate-400 focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
-              id="order-search"
-              onChange={(event) => updateSearch(event.target.value)}
-              placeholder="Buscar cliente ou nº pedido"
-              type="search"
-              value={search}
-            />
-          </label>
-
-          <div className="inline-grid min-h-10 grid-cols-2 rounded-lg bg-slate-100 p-1 text-xs font-extrabold text-slate-500 md:col-span-2 xl:col-span-1">
-            <button
-              aria-label="Visualizar pedidos em lista"
-              className={[
-                'inline-flex items-center justify-center gap-2 rounded-md px-3 transition',
-                ordersView === 'list'
-                  ? 'bg-white text-frenchRose shadow-sm'
-                  : 'hover:text-ink',
-              ].join(' ')}
-              onClick={() => setOrdersView('list')}
-              type="button"
-            >
-              <List aria-hidden className="h-4 w-4" />
-              Lista
-            </button>
-            <button
-              aria-label="Visualizar pedidos em quadro"
-              className={[
-                'inline-flex items-center justify-center gap-2 rounded-md px-3 transition',
-                ordersView === 'board'
-                  ? 'bg-white text-frenchRose shadow-sm'
-                  : 'hover:text-ink',
-              ].join(' ')}
-              onClick={() => setOrdersView('board')}
-              type="button"
-            >
-              <Columns3 aria-hidden className="h-4 w-4" />
-              Quadro
-            </button>
-          </div>
-        </div>
+              <label className="sr-only" htmlFor="payment-filter">
+                Filtrar por pagamento
+              </label>
+              <select
+                className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15 xl:w-44"
+                id="payment-filter"
+                onChange={updatePaymentFilter}
+                value={paymentFilter}
+              >
+                <option value="">Todos os pagamentos</option>
+                {paymentOptions.map((payment) => (
+                  <option key={payment} value={payment}>
+                    {payment}
+                  </option>
+                ))}
+              </select>
+            </>
+          }
+          primary={
+            <label className="relative block" htmlFor="order-search">
+              <span className="sr-only">Buscar cliente ou número do pedido</span>
+              <Search
+                aria-hidden
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+              />
+              <input
+                className="min-h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm text-ink outline-none transition placeholder:text-slate-400 focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
+                id="order-search"
+                onChange={(event) => updateSearch(event.target.value)}
+                placeholder="Buscar cliente ou nº pedido"
+                type="search"
+                value={search}
+              />
+            </label>
+          }
+        />
 
         {isLoading ? (
           <div className="grid gap-3 p-4">

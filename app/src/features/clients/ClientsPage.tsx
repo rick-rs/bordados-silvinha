@@ -3,6 +3,7 @@ import { Inbox, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
+import { FilterToolbar } from '../../components/ui/FilterToolbar';
 import { PaginationControls } from '../../components/ui/PaginationControls';
 import { Button } from '../../components/ui/Button';
 import { TextField } from '../../components/ui/TextField';
@@ -175,35 +176,40 @@ export function ClientsPage() {
       ) : null}
 
       <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
-        <div className="grid gap-3 border-b border-slate-100 px-4 py-3 lg:grid-cols-[1fr_140px]">
-          <label className="relative block" htmlFor="client-search">
-            <span className="sr-only">Buscar cliente</span>
-            <Search
-              aria-hidden
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-            />
-            <input
-              className="min-h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm text-ink outline-none transition placeholder:text-slate-400 focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
-              id="client-search"
-              onChange={(event) => updateSearch(event.target.value)}
-              placeholder="Buscar por nome, telefone, e-mail ou cidade"
-              type="search"
-              value={search}
-            />
-          </label>
-
-          <label className="sr-only" htmlFor="client-state-filter">
-            Filtrar por estado
-          </label>
-          <input
-            className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold uppercase text-slate-700 outline-none transition placeholder:normal-case placeholder:text-slate-400 focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
-            id="client-state-filter"
-            maxLength={2}
-            onChange={(event) => updateStateFilter(event.target.value)}
-            placeholder="Estado"
-            value={stateFilter}
-          />
-        </div>
+        <FilterToolbar
+          filters={
+            <>
+              <label className="sr-only" htmlFor="client-state-filter">
+                Filtrar por estado
+              </label>
+              <input
+                className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold uppercase text-slate-700 outline-none transition placeholder:normal-case placeholder:text-slate-400 focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15 xl:w-32"
+                id="client-state-filter"
+                maxLength={2}
+                onChange={(event) => updateStateFilter(event.target.value)}
+                placeholder="Estado"
+                value={stateFilter}
+              />
+            </>
+          }
+          primary={
+            <label className="relative block" htmlFor="client-search">
+              <span className="sr-only">Buscar cliente</span>
+              <Search
+                aria-hidden
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+              />
+              <input
+                className="min-h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm text-ink outline-none transition placeholder:text-slate-400 focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
+                id="client-search"
+                onChange={(event) => updateSearch(event.target.value)}
+                placeholder="Buscar por nome, telefone, e-mail ou cidade"
+                type="search"
+                value={search}
+              />
+            </label>
+          }
+        />
 
         {isLoading ? (
           <div className="grid gap-3 p-4">

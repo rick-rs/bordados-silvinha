@@ -12,6 +12,7 @@ import {
 import { Navigate, useNavigate } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
+import { FilterToolbar } from '../../components/ui/FilterToolbar';
 import { PaginationControls } from '../../components/ui/PaginationControls';
 import { getSession } from '../../services/auth';
 import { deleteProduct, listProductsPage, Product } from '../../services/orders';
@@ -176,52 +177,9 @@ export function CatalogPage() {
       ) : null}
 
       <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
-        <div className="grid gap-3 border-b border-slate-100 px-4 py-3 lg:grid-cols-[1fr_160px_160px_auto]">
-          <label className="relative block" htmlFor="catalog-search">
-            <span className="sr-only">Buscar item do catálogo</span>
-            <Search
-              aria-hidden
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-            />
-            <input
-              className="min-h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm text-ink outline-none transition placeholder:text-slate-400 focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
-              id="catalog-search"
-              onChange={(event) => updateSearch(event.target.value)}
-              placeholder="Buscar por nome, categoria ou descrição"
-              type="search"
-              value={search}
-            />
-          </label>
-
-          <label className="sr-only" htmlFor="catalog-type-filter">
-            Filtrar por tipo
-          </label>
-          <select
-            className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
-            id="catalog-type-filter"
-            onChange={(event) => updateTypeFilter(event.target.value)}
-            value={typeFilter}
-          >
-            <option value="">Todos os tipos</option>
-            <option value="peca">Peça</option>
-            <option value="bordado">Bordado</option>
-          </select>
-
-          <label className="sr-only" htmlFor="catalog-active-filter">
-            Filtrar por status
-          </label>
-          <select
-            className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
-            id="catalog-active-filter"
-            onChange={(event) => updateActiveFilter(event.target.value)}
-            value={activeFilter}
-          >
-            <option value="">Todos os status</option>
-            <option value="true">Ativo</option>
-            <option value="false">Inativo</option>
-          </select>
-
-          <div className="inline-grid min-h-10 grid-cols-2 rounded-lg bg-slate-100 p-1 text-xs font-extrabold text-slate-500">
+        <FilterToolbar
+          actions={
+            <div className="inline-grid min-h-10 w-full grid-cols-2 rounded-lg bg-slate-100 p-1 text-xs font-extrabold text-slate-500 sm:w-[190px]">
             <button
               aria-label="Visualizar catálogo em lista"
               className={[
@@ -251,7 +209,56 @@ export function CatalogPage() {
               Cards
             </button>
           </div>
-        </div>
+          }
+          filters={
+            <>
+              <label className="sr-only" htmlFor="catalog-type-filter">
+                Filtrar por tipo
+              </label>
+              <select
+                className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15 xl:w-40"
+                id="catalog-type-filter"
+                onChange={(event) => updateTypeFilter(event.target.value)}
+                value={typeFilter}
+              >
+                <option value="">Todos os tipos</option>
+                <option value="peca">Peça</option>
+                <option value="bordado">Bordado</option>
+              </select>
+
+              <label className="sr-only" htmlFor="catalog-active-filter">
+                Filtrar por status
+              </label>
+              <select
+                className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15 xl:w-40"
+                id="catalog-active-filter"
+                onChange={(event) => updateActiveFilter(event.target.value)}
+                value={activeFilter}
+              >
+                <option value="">Todos os status</option>
+                <option value="true">Ativo</option>
+                <option value="false">Inativo</option>
+              </select>
+            </>
+          }
+          primary={
+            <label className="relative block" htmlFor="catalog-search">
+              <span className="sr-only">Buscar item do catálogo</span>
+              <Search
+                aria-hidden
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+              />
+              <input
+                className="min-h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm text-ink outline-none transition placeholder:text-slate-400 focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
+                id="catalog-search"
+                onChange={(event) => updateSearch(event.target.value)}
+                placeholder="Buscar por nome, categoria ou descrição"
+                type="search"
+                value={search}
+              />
+            </label>
+          }
+        />
 
         {isLoading ? (
           <div className="grid gap-3 p-4">

@@ -97,7 +97,7 @@ export function AppShell({ activePage, children }: AppShellProps) {
         </div>
       </aside>
 
-      <main className="mx-auto min-h-screen max-w-6xl px-4 pb-28 pt-5 sm:px-5 md:ml-40 md:px-8 md:pb-8">
+      <main className="mx-auto min-h-screen w-full max-w-[1440px] px-4 pb-28 pt-5 sm:px-5 md:px-8 md:pb-8 md:pl-48">
         {children}
       </main>
 
