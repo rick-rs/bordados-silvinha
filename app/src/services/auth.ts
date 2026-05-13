@@ -25,6 +25,26 @@ export function login(credentials: LoginCredentials) {
   });
 }
 
+export function updateUserProfile(
+  id: number,
+  payload: Pick<Usuario, 'nome' | 'email'>,
+) {
+  return apiRequest<Usuario>(`/api/usuarios/${id}/`, {
+    method: 'PATCH',
+    body: payload,
+  });
+}
+
+export function changePassword(
+  id: number,
+  payload: { senha_atual: string; nova_senha: string },
+) {
+  return apiRequest<{ detail: string }>(`/api/usuarios/${id}/trocar-senha/`, {
+    method: 'POST',
+    body: payload,
+  });
+}
+
 export function saveSession(usuario: Usuario) {
   localStorage.setItem(sessionKey, JSON.stringify(usuario));
 }

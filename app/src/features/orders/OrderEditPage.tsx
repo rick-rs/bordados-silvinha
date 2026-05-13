@@ -32,6 +32,9 @@ type OrderEditForm = {
   status_pagamento: string;
   status: string;
   urgente: boolean;
+  data_entrega: string;
+  observacoes_entrega: string;
+  motivo_cancelamento: string;
   observacoes: string;
   valor_total: string;
 };
@@ -44,6 +47,9 @@ const initialForm: OrderEditForm = {
   status_pagamento: 'Pendente',
   status: 'Recebido',
   urgente: false,
+  data_entrega: '',
+  observacoes_entrega: '',
+  motivo_cancelamento: '',
   observacoes: '',
   valor_total: '0.00',
 };
@@ -100,6 +106,9 @@ export function OrderEditPage() {
             status_pagamento: order.status_pagamento ?? 'Pendente',
             status: order.status,
             urgente: order.urgente,
+            data_entrega: order.data_entrega ?? '',
+            observacoes_entrega: order.observacoes_entrega ?? '',
+            motivo_cancelamento: order.motivo_cancelamento ?? '',
             observacoes: order.observacoes ?? '',
             valor_total: order.valor_total,
           });
@@ -152,6 +161,15 @@ export function OrderEditPage() {
       observacoes: form.observacoes,
       valor_total: form.valor_total,
     };
+
+    if (form.status === 'Entregue') {
+      payload.data_entrega = form.data_entrega;
+      payload.observacoes_entrega = form.observacoes_entrega;
+    }
+
+    if (form.status === 'Cancelado') {
+      payload.motivo_cancelamento = form.motivo_cancelamento;
+    }
 
     setIsSaving(true);
     setError('');
@@ -308,7 +326,50 @@ export function OrderEditPage() {
                   Marcar como urgente
                 </span>
               </label>
+
+              {form.status === 'Entregue' ? (
+                <TextField
+                  label="Data de entrega"
+                  name="data_entrega"
+                  onChange={(event) => updateField('data_entrega', event.target.value)}
+                  type="date"
+                  value={form.data_entrega}
+                />
+              ) : null}
             </div>
+
+            {form.status === 'Entregue' ? (
+              <label className="grid gap-2" htmlFor="observacoes_entrega">
+                <span className="text-sm font-bold text-mauve">
+                  Observações da entrega
+                </span>
+                <textarea
+                  className="min-h-24 rounded-lg border border-frenchRose/20 bg-white px-4 py-3 text-ink outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
+                  id="observacoes_entrega"
+                  onChange={(event) =>
+                    updateField('observacoes_entrega', event.target.value)
+                  }
+                  value={form.observacoes_entrega}
+                />
+              </label>
+            ) : null}
+
+            {form.status === 'Cancelado' ? (
+              <label className="grid gap-2" htmlFor="motivo_cancelamento">
+                <span className="text-sm font-bold text-mauve">
+                  Motivo do cancelamento *
+                </span>
+                <textarea
+                  className="min-h-24 rounded-lg border border-frenchRose/20 bg-white px-4 py-3 text-ink outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
+                  id="motivo_cancelamento"
+                  onChange={(event) =>
+                    updateField('motivo_cancelamento', event.target.value)
+                  }
+                  required
+                  value={form.motivo_cancelamento}
+                />
+              </label>
+            ) : null}
 
             <label className="grid gap-2" htmlFor="observacoes">
               <span className="text-sm font-bold text-mauve">Observações</span>

@@ -62,6 +62,7 @@ type OrderItemForm = {
   id: string;
   peca: string;
   produto: string;
+  local_bordado: string;
   descricao_bordado: string;
   quantidade: string;
   valor_unitario: string;
@@ -106,6 +107,7 @@ function createEmptyItem(): OrderItemForm {
     id: String(Date.now() + Math.random()),
     peca: '',
     produto: '',
+    local_bordado: '',
     descricao_bordado: '',
     quantidade: '1',
     valor_unitario: '',
@@ -146,6 +148,10 @@ function statusLabel(status: string | null) {
 }
 
 function getNextStatus(status: string) {
+  if (['Entregue', 'Cancelado'].includes(status)) {
+    return null;
+  }
+
   const currentIndex = statusOptions.indexOf(status);
 
   if (currentIndex < 0 || currentIndex === statusOptions.length - 1) {
@@ -565,7 +571,7 @@ export function OrdersPage() {
       ) : null}
 
       <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
-        <div className="grid gap-3 border-b border-slate-100 px-4 py-3 lg:grid-cols-[180px_180px_180px_150px_150px_1fr_auto]">
+        <div className="grid gap-3 border-b border-slate-100 px-4 py-3 md:grid-cols-2 xl:grid-cols-[160px_160px_150px_150px_170px_minmax(220px,1fr)_auto]">
           <label className="sr-only" htmlFor="status-filter">
             Filtrar por status
           </label>
@@ -600,23 +606,29 @@ export function OrdersPage() {
             ))}
           </select>
 
-          <TextField
-            label=""
-            name="prazo_inicio"
-            onChange={(event) => updateDateFromFilter(event.target.value)}
-            title="Prazo inicial"
-            type="date"
-            value={dateFromFilter}
-          />
+          <label className="relative block" htmlFor="date-from-filter">
+            <span className="sr-only">Prazo inicial</span>
+            <input
+              className="min-h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
+              id="date-from-filter"
+              onChange={(event) => updateDateFromFilter(event.target.value)}
+              title="Prazo inicial"
+              type="date"
+              value={dateFromFilter}
+            />
+          </label>
 
-          <TextField
-            label=""
-            name="prazo_fim"
-            onChange={(event) => updateDateToFilter(event.target.value)}
-            title="Prazo final"
-            type="date"
-            value={dateToFilter}
-          />
+          <label className="relative block" htmlFor="date-to-filter">
+            <span className="sr-only">Prazo final</span>
+            <input
+              className="min-h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
+              id="date-to-filter"
+              onChange={(event) => updateDateToFilter(event.target.value)}
+              title="Prazo final"
+              type="date"
+              value={dateToFilter}
+            />
+          </label>
 
           <label className="sr-only" htmlFor="payment-filter">
             Filtrar por pagamento
@@ -651,7 +663,7 @@ export function OrdersPage() {
             />
           </label>
 
-          <div className="inline-grid min-h-10 grid-cols-2 rounded-lg bg-slate-100 p-1 text-xs font-extrabold text-slate-500">
+          <div className="inline-grid min-h-10 grid-cols-2 rounded-lg bg-slate-100 p-1 text-xs font-extrabold text-slate-500 md:col-span-2 xl:col-span-1">
             <button
               aria-label="Visualizar pedidos em lista"
               className={[
@@ -851,12 +863,13 @@ export function NewOrderPage() {
       (item) =>
         !item.peca ||
         !item.produto ||
+        !item.local_bordado ||
         Number.parseInt(item.quantidade, 10) <= 0 ||
         parseMoney(item.valor_unitario) <= 0,
     );
 
     if (hasInvalidItem) {
-      setError('Preencha peça, bordado, quantidade e valor de todos os itens.');
+      setError('Preencha peça, bordado, local, quantidade e valor de todos os itens.');
       return false;
     }
 
@@ -933,6 +946,7 @@ export function NewOrderPage() {
         pedido: order.id,
         produto: Number(item.produto),
         peca: item.peca,
+        local_bordado: item.local_bordado,
         descricao_bordado: item.descricao_bordado,
         quantidade: Number.parseInt(item.quantidade, 10),
         valor_unitario: toDecimalString(parseMoney(item.valor_unitario)),
@@ -1301,7 +1315,7 @@ export function NewOrderPage() {
                     </button>
                   </div>
 
-                  <div className="grid gap-4 lg:grid-cols-[1.1fr_1.2fr_1.4fr_120px_150px_150px]">
+                  <div className="grid gap-4 lg:grid-cols-[1.1fr_1.2fr_1.2fr_1.4fr_110px_140px_140px]">
                     <TextField
                       label="Peça *"
                       name={`peca-${item.id}`}
@@ -1332,6 +1346,16 @@ export function NewOrderPage() {
                         ))}
                       </select>
                     </label>
+
+                    <TextField
+                      label="Local do bordado *"
+                      name={`local-${item.id}`}
+                      onChange={(event) =>
+                        updateItem(item.id, 'local_bordado', event.target.value)
+                      }
+                      required
+                      value={item.local_bordado}
+                    />
 
                     <TextField
                       label="Descrição do Bordado"
@@ -1433,6 +1457,7 @@ export function NewOrderPage() {
                       </p>
                       <p className="mt-1 text-xs text-slate-600">
                         {product?.nome ?? 'Bordado não selecionado'} ·{' '}
+                        {item.local_bordado || 'Local não informado'} ·{' '}
                         {item.descricao_bordado || 'Sem descrição'}
                       </p>
                     </div>

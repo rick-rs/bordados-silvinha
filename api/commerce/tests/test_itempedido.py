@@ -1,11 +1,18 @@
 import pytest
+from datetime import timedelta
+
+from django.utils import timezone
 
 
 @pytest.mark.django_db
 def test_itempedido_subtotal_model(produto, cliente):
     from commerce import models
 
-    pedido = models.Pedido.objects.create(cliente=cliente)
+    pedido = models.Pedido.objects.create(
+        cliente=cliente,
+        forma_pagamento="Pix",
+        prazo=timezone.localdate() + timedelta(days=2),
+    )
     item = models.ItemPedido(
         pedido=pedido, produto=produto, quantidade=3, valor_unitario=12.5
     )
@@ -16,7 +23,15 @@ def test_itempedido_subtotal_model(produto, cliente):
 @pytest.mark.django_db
 def test_itempedido_api_crud(api_client, produto, cliente):
     # create pedido
-    resp = api_client.post("/api/pedidos/", {"cliente": cliente.id}, format="json")
+    resp = api_client.post(
+        "/api/pedidos/",
+        {
+            "cliente": cliente.id,
+            "forma_pagamento": "Pix",
+            "prazo": (timezone.localdate() + timedelta(days=2)).isoformat(),
+        },
+        format="json",
+    )
     assert resp.status_code == 201
     pedido_id = resp.json()["id"]
 

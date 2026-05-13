@@ -1,4 +1,7 @@
 import pytest
+from django.contrib.auth.hashers import check_password
+
+from commerce import models
 
 
 @pytest.mark.django_db
@@ -8,6 +11,10 @@ def test_usuario_crud_api(api_client):
     assert resp.status_code == 201
     data = resp.json()
     assert data["email"] == payload["email"]
+    assert "senha_hash" not in data
+    usuario = models.Usuario.objects.get(id=data["id"])
+    assert usuario.senha_hash != payload["senha_hash"]
+    assert check_password(payload["senha_hash"], usuario.senha_hash)
 
     uid = data["id"]
     resp = api_client.get(f"/api/usuarios/{uid}/")
@@ -50,3 +57,24 @@ def test_usuario_login_rejeita_credenciais_invalidas(api_client):
     )
 
     assert resp.status_code == 401
+
+
+@pytest.mark.django_db
+def test_usuario_troca_senha_com_hash(api_client):
+    payload = {
+        "nome": "Usu Teste",
+        "email": "troca@test.local",
+        "senha_hash": "abc123",
+    }
+    created = api_client.post("/api/usuarios/", payload, format="json").json()
+
+    resp = api_client.post(
+        f"/api/usuarios/{created['id']}/trocar-senha/",
+        {"senha_atual": "abc123", "nova_senha": "nova123"},
+        format="json",
+    )
+
+    assert resp.status_code == 200
+    usuario = models.Usuario.objects.get(id=created["id"])
+    assert usuario.senha_hash != "nova123"
+    assert check_password("nova123", usuario.senha_hash)

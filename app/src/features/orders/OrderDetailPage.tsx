@@ -143,6 +143,7 @@ export function OrderDetailPage() {
                       {item.quantidade}x {product?.nome ?? item.peca ?? 'Item'}
                     </p>
                     <p className="text-xs text-slate-600">
+                      Local: {item.local_bordado || '-'} ·{' '}
                       {item.descricao_bordado || 'Sem descrição'}
                     </p>
                     <p className="text-xs font-bold text-frenchRose">
@@ -187,10 +188,18 @@ export function OrderDetailPage() {
                 <dd>{statusLabel(order.status)}</dd>
               </div>
               <div>
+                <dt className="text-xs font-bold text-slate-500">Data de entrega</dt>
+                <dd>{formatDate(order.data_entrega)}</dd>
+              </div>
+              <div>
                 <dt className="text-xs font-bold text-slate-500">Total</dt>
                 <dd className="text-lg font-extrabold text-ink">
                   {formatCurrency(order.valor_total) ?? 'R$ 0,00'}
                 </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-bold text-slate-500">Obs. entrega</dt>
+                <dd>{order.observacoes_entrega || '-'}</dd>
               </div>
             </dl>
           </aside>

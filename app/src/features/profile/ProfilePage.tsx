@@ -4,7 +4,12 @@ import { Navigate } from 'react-router-dom';
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
 import { TextField } from '../../components/ui/TextField';
-import { getSession, saveSession } from '../../services/auth';
+import {
+  changePassword,
+  getSession,
+  saveSession,
+  updateUserProfile,
+} from '../../services/auth';
 
 type ProfileForm = {
   nome: string;
@@ -31,8 +36,11 @@ export function ProfilePage() {
   });
   const [passwordForm, setPasswordForm] = useState(initialPasswordForm);
   const [profileMessage, setProfileMessage] = useState('');
+  const [profileError, setProfileError] = useState('');
   const [passwordMessage, setPasswordMessage] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
 
   if (!user) {
     return <Navigate replace to="/login" />;
@@ -48,17 +56,27 @@ export function ProfilePage() {
     setPasswordForm((currentForm) => ({ ...currentForm, [field]: value }));
   }
 
-  function handleProfileSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleProfileSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    saveSession({
-      ...currentUser,
-      nome: profileForm.nome,
-      email: profileForm.email,
-    });
-    setProfileMessage('Dados da conta atualizados para visualização local.');
+    setProfileError('');
+    setProfileMessage('');
+    setIsSavingProfile(true);
+
+    try {
+      const updatedUser = await updateUserProfile(currentUser.id, {
+        nome: profileForm.nome,
+        email: profileForm.email,
+      });
+      saveSession(updatedUser);
+      setProfileMessage('Dados da conta atualizados.');
+    } catch {
+      setProfileError('Não foi possível atualizar os dados da conta.');
+    } finally {
+      setIsSavingProfile(false);
+    }
   }
 
-  function handlePasswordSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handlePasswordSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPasswordError('');
     setPasswordMessage('');
@@ -68,8 +86,20 @@ export function ProfilePage() {
       return;
     }
 
-    setPasswordForm(initialPasswordForm);
-    setPasswordMessage('Senha pronta para ser atualizada quando ligarmos ao backend.');
+    setIsSavingPassword(true);
+
+    try {
+      await changePassword(currentUser.id, {
+        senha_atual: passwordForm.senhaAtual,
+        nova_senha: passwordForm.novaSenha,
+      });
+      setPasswordForm(initialPasswordForm);
+      setPasswordMessage('Senha atualizada com sucesso.');
+    } catch {
+      setPasswordError('Não foi possível atualizar a senha.');
+    } finally {
+      setIsSavingPassword(false);
+    }
   }
 
   return (
@@ -116,7 +146,18 @@ export function ProfilePage() {
               </p>
             ) : null}
 
-            <Button className="min-h-11 w-full px-5 text-sm sm:w-auto sm:justify-self-start" type="submit">
+            {profileError ? (
+              <p className="rounded-lg border border-frenchRose/30 bg-chantilly/40 px-4 py-3 text-sm leading-relaxed text-rose-900">
+                {profileError}
+              </p>
+            ) : null}
+
+            <Button
+              className="min-h-11 w-full px-5 text-sm sm:w-auto sm:justify-self-start"
+              isLoading={isSavingProfile}
+              loadingLabel="Salvando..."
+              type="submit"
+            >
               Salvar alterações
             </Button>
           </form>
@@ -175,7 +216,12 @@ export function ProfilePage() {
               </p>
             ) : null}
 
-            <Button className="min-h-11 w-full px-5 text-sm sm:w-auto sm:justify-self-start" type="submit">
+            <Button
+              className="min-h-11 w-full px-5 text-sm sm:w-auto sm:justify-self-start"
+              isLoading={isSavingPassword}
+              loadingLabel="Atualizando..."
+              type="submit"
+            >
               Atualizar senha
             </Button>
           </form>

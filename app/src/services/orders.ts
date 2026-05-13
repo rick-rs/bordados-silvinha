@@ -12,6 +12,7 @@ export type Order = {
   data_pedido: string | null;
   prazo: string | null;
   data_entrega: string | null;
+  observacoes_entrega: string | null;
   canal: string | null;
   forma_pagamento: string | null;
   status_pagamento: string | null;
@@ -37,6 +38,9 @@ export type OrderPayload = {
 
 export type OrderPatchPayload = Partial<OrderPayload> & {
   status?: string;
+  data_entrega?: string;
+  observacoes_entrega?: string;
+  motivo_cancelamento?: string;
 };
 
 export type OrderItem = {
@@ -44,6 +48,7 @@ export type OrderItem = {
   pedido: number;
   produto: number;
   peca: string | null;
+  local_bordado: string | null;
   descricao_bordado: string | null;
   quantidade: number;
   valor_unitario: string;
@@ -54,6 +59,7 @@ export type OrderItemPayload = {
   pedido: number;
   produto: number;
   peca: string;
+  local_bordado: string;
   descricao_bordado: string;
   quantidade: number;
   valor_unitario: string;

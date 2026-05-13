@@ -4,6 +4,7 @@ from decimal import Decimal
 
 from django.contrib.auth.hashers import check_password
 from django.db.models import F, Q
+from django.utils import timezone
 from django.utils.crypto import constant_time_compare
 from rest_framework import status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
@@ -65,6 +66,33 @@ class UsuarioViewSet(viewsets.ModelViewSet):
     def login(self, request):
         """Authenticate a `Usuario` by email and password."""
         return login_response(request)
+
+    @action(detail=True, methods=["post"], url_path="trocar-senha")
+    def trocar_senha(self, request, pk=None):
+        """Change a user's password after checking the current password."""
+        usuario = self.get_object()
+        senha_atual = request.data.get("senha_atual", "")
+        nova_senha = request.data.get("nova_senha", "")
+
+        if not senha_confere(senha_atual, usuario.senha_hash):
+            return Response(
+                {"detail": "Senha atual invalida."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not nova_senha:
+            return Response(
+                {"detail": "Informe a nova senha."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = self.get_serializer(
+            usuario, data={"senha_hash": nova_senha}, partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response({"detail": "Senha atualizada com sucesso."})
 
 
 class ClienteViewSet(viewsets.ModelViewSet):
@@ -187,6 +215,36 @@ class PedidoViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(prazo__lte=date_to)
 
         return queryset
+
+    def update(self, request, *args, **kwargs):
+        """Set delivery data when needed and keep status history."""
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+        previous_status = instance.status
+        data = request.data.copy()
+
+        if data.get("status") == "Entregue" and not data.get("data_entrega"):
+            data["data_entrega"] = timezone.localdate().isoformat()
+
+        serializer = self.get_serializer(instance, data=data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        updated_status = serializer.instance.status
+
+        if updated_status != previous_status:
+            models.HistoricoStatus.objects.create(
+                pedido=serializer.instance,
+                usuario=None,
+                status=updated_status,
+                status_anterior=previous_status,
+                status_novo=updated_status,
+                motivo=serializer.instance.motivo_cancelamento
+                if updated_status == "Cancelado"
+                else serializer.instance.observacoes_entrega,
+            )
+
+        return Response(serializer.data)
 
     @action(detail=False, methods=["get"], url_path="dashboard")
     def dashboard(self, request):

@@ -4,6 +4,7 @@ from datetime import timedelta
 from decimal import Decimal
 
 from django.core.management.base import BaseCommand
+from django.contrib.auth.hashers import make_password
 from django.utils import timezone
 
 from commerce import models
@@ -20,7 +21,7 @@ class Command(BaseCommand):
             email="admin@teste.com",
             defaults={
                 "nome": "Admin Teste",
-                "senha_hash": "admin",
+                "senha_hash": make_password("admin"),
                 "ativo": True,
             },
         )

@@ -108,6 +108,7 @@ class Pedido(models.Model):
     data_pedido = models.DateField(blank=True, null=True)
     prazo = models.DateField(blank=True, null=True)
     data_entrega = models.DateField(blank=True, null=True)
+    observacoes_entrega = models.TextField(blank=True, null=True)
     canal = models.CharField(
         max_length=32, choices=CANAL_CHOICES, blank=True, null=True
     )
@@ -138,6 +139,7 @@ class ItemPedido(models.Model):
         Produto, on_delete=models.PROTECT, related_name="itens_pedido"
     )
     peca = models.CharField(max_length=255, blank=True, null=True)
+    local_bordado = models.CharField(max_length=255, blank=True, null=True)
     descricao_bordado = models.TextField(blank=True, null=True)
     quantidade = models.IntegerField(default=1)
     valor_unitario = models.DecimalField(max_digits=12, decimal_places=2, default=0)
@@ -162,7 +164,10 @@ class HistoricoStatus(models.Model):
     usuario = models.ForeignKey(
         Usuario, on_delete=models.SET_NULL, null=True, related_name="historico"
     )
+    status_anterior = models.CharField(max_length=32, blank=True, null=True)
+    status_novo = models.CharField(max_length=32, blank=True, null=True)
     status = models.CharField(max_length=32)
+    motivo = models.TextField(blank=True, null=True)
     registrado_em = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
