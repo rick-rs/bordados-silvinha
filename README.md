@@ -1,6 +1,6 @@
 # BordadosApp - Sistema de Gestão de Bordados
 
-Sistema web completo para gestão de um atelier de bordados, permitindo o controle de pedidos, clientes, produtos, catálogo e estoque de materiais.
+Sistema web para gestão de uma microempresa de bordados eletrônicos. O projeto combina uma API Django com um frontend React/TypeScript/Vite/Tailwind e roda localmente com Docker Compose.
 
 ## 📋 Pré-requisitos
 
@@ -46,8 +46,16 @@ Usuário de teste criado automaticamente no ambiente local:
 - **E-mail:** `admin@teste.com`
 - **Senha:** `admin`
 
-Outras rotas úteis (serão expandidas):
-- Recursos de domínio estão disponíveis sob `/api/` — ex.: `/api/clientes/`, `/api/produtos/`, `/api/pedidos/`.
+Rotas úteis da API:
+
+- `/api/usuarios/`
+- `/api/clientes/`
+- `/api/produtos/`
+- `/api/pedidos/`
+- `/api/itens-pedido/`
+- `/api/historico-status/`
+- `/api/materiais/`
+- `/api/movimentacoes-estoque/`
 
 
 ### 4. Parar a aplicação
@@ -58,8 +66,9 @@ docker compose down
 
 ---
 
-## ️ Comandos Úteis de Desenvolvimento
-## 🧹 Qualidade de Código (Code Quality)
+## Comandos úteis de desenvolvimento
+
+### Qualidade de código
 
 Usamos as melhores práticas do mercado para manter a qualidade do código:
 
@@ -142,7 +151,7 @@ Se falhar, o PR não pode ser mergeado até corrigir.
 
 ## 🛠️ Comandos Úteis de Desenvolvimento
 
-### Docker Compose Geral
+### Docker Compose geral
 
 ```bash
 # Reconstruir imagens (após mudanças em Dockerfile)
@@ -170,15 +179,27 @@ docker compose restart frontend
 ```
 bordados-app/
 ├── api/
+│   ├── commerce/
+│   │   ├── dashboard.py
+│   │   ├── models.py
+│   │   ├── serializers.py
+│   │   ├── views.py
+│   │   └── tests/
 │   ├── core/
 │   │   ├── settings.py
-│   │   └── ... (outras configurações)
+│   │   └── urls.py
 │   ├── manage.py
 │   ├── requirements.txt
 │   ├── requirements-dev.txt
 │   ├── Dockerfile
 ├── app/
 │   ├── App.tsx
+│   ├── src/
+│   │   ├── components/
+│   │   ├── features/
+│   │   ├── services/
+│   │   ├── theme/
+│   │   └── utils/
 │   ├── index.tsx
 │   ├── index.html
 │   ├── package.json
@@ -191,6 +212,7 @@ bordados-app/
 ├── pyproject.toml
 ├── Makefile
 ├── CONTRIBUTING.md
+├── simulate-ci.sh
 └── README.md
 ```
 
