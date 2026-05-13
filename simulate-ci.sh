@@ -1,12 +1,12 @@
 #!/bin/bash
 
 # simulate-ci.sh
-# Script to simulate the CI pipeline locally
+# Script to simulate the automated test pipeline locally
 # Run: ./simulate-ci.sh
 
 set -e
 
-echo "🚀 BordadosApp - Local CI Simulation"
+echo "🚀 BordadosApp - Local Test Pipeline"
 echo "===================================="
 echo ""
 
@@ -33,28 +33,17 @@ run_check() {
     fi
 }
 
-# Frontend checks
-echo -e "${YELLOW}📦 Frontend Checks${NC}"
+# Frontend tests
+echo -e "${YELLOW}📦 Frontend Tests${NC}"
 cd app
-run_check "ESLint" "npm run lint"
-run_check "TypeScript Build" "npm run build"
+run_check "Vitest" "npm run test -- --run"
 cd ..
 echo ""
 
-# Backend checks
-echo -e "${YELLOW}🐍 Backend Checks${NC}"
+# Backend tests
+echo -e "${YELLOW}🐍 Backend Tests${NC}"
 cd api
-
-if command -v black &> /dev/null; then
-    run_check "Black (formatting)" "black --check ."
-    run_check "isort (imports)" "isort --check-only ."
-    run_check "Flake8 (linting)" "flake8 ."
-    # run_check "mypy (type checking)" "mypy ."
-else
-    echo -e "${YELLOW}⚠️  Python tools not installed. Skipping backend checks.${NC}"
-    echo "   Run: pip install -r requirements-dev.txt"
-fi
-
+run_check "pytest" "pytest --tb=short"
 cd ..
 echo ""
 

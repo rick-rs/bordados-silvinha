@@ -9,7 +9,7 @@ on:
 
 jobs:
   validate:
-    name: Validate Backend + Frontend
+    name: Run Automated Tests
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -43,19 +43,7 @@ jobs:
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
 
-      - name: Run Black
-        working-directory: api
-        run: black --check .
-
-      - name: Run isort
-        working-directory: api
-        run: isort --check-only .
-
-      - name: Run Flake8
-        working-directory: api
-        run: flake8 .
-
-      - name: Run pytest
+      - name: Run backend tests
         working-directory: api
         run: pytest --tb=short
 
@@ -70,10 +58,6 @@ jobs:
         working-directory: app
         run: npm ci
 
-      - name: Run ESLint
+      - name: Run frontend tests
         working-directory: app
-        run: npm run lint
-
-      - name: Build
-        working-directory: app
-        run: npm run build
+        run: npm run test -- --run

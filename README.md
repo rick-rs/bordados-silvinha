@@ -68,20 +68,12 @@ docker compose down
 
 ## Comandos úteis de desenvolvimento
 
-### Qualidade de código
+### Ferramentas de teste
 
-Usamos as melhores práticas do mercado para manter a qualidade do código:
-
-### Ferramentas de Qualidade
-
-- **Black** - Formatador de código opinionado [📖](https://black.readthedocs.io/)
-- **isort** - Organizador de imports [📖](https://pycqa.github.io/isort/)
-- **Flake8** - Linter Python [📖](https://flake8.pycqa.org/)
-- **mypy** - Type checking estático [📖](https://www.mypy-lang.org/)
 - **pytest** - Framework de testes [📖](https://pytest.org/)
-- **ESLint** - Linter JavaScript/TypeScript (Frontend) [📖](https://eslint.org/)
+- **Vitest** - Framework de testes do frontend [📖](https://vitest.dev/)
 
-### Validar Código
+### Rodar testes
 
 **Usar Makefile (recomendado):**
 
@@ -89,16 +81,10 @@ Usamos as melhores práticas do mercado para manter a qualidade do código:
 # Ver todos os comandos disponíveis
 make help
 
-# Validar tudo (backend + frontend) dentro do Docker Compose
-make lint
-
-# Auto-formatar código dentro do Docker Compose
-make format
-
 # Rodar testes dentro do Docker Compose
 make test
 
-# Simular o pipeline de CI
+# Simular o pipeline de CI localmente
 make ci
 ```
 
@@ -106,19 +92,17 @@ make ci
 
 Quando quiser validar exatamente o que o CI vai executar, siga esta ordem:
 
-1. Rode `make ci` na raiz do projeto. Isso executa lint, testes e build dentro dos containers.
-2. Se falhar no backend, rode `make lint-backend` para ver o erro mais específico.
-3. Se falhar no frontend, rode `make lint-frontend` e depois `make build-frontend`.
+1. Rode `make ci` na raiz do projeto. Isso executa os testes automatizados dentro dos containers.
+2. Se falhar no backend, rode `make test-backend` para ver o erro mais específico.
+3. Se falhar no frontend, rode `make test-frontend` para ver o erro mais específico.
 4. Corrija o arquivo indicado pelo erro e rode o comando que falhou de novo.
 5. Quando os comandos separados passarem, rode `make ci` novamente para confirmar o fluxo completo.
 
 Se quiser inspecionar manualmente os containers, use:
 
 ```bash
-docker compose exec api flake8 .
 docker compose exec api pytest --tb=short
-docker compose exec frontend npm run lint
-docker compose exec frontend npm run build
+docker compose exec frontend npm run test -- --run
 ```
 
 Se houver erro de ambiente, confirme antes que o arquivo `.env` da raiz existe e que `api/.env` e `app/.env` estão preenchidos.
@@ -126,24 +110,18 @@ Se houver erro de ambiente, confirme antes que o arquivo `.env` da raiz existe e
 **Com Docker:**
 
 ```bash
-# Backend linting
-docker compose exec api black --check .
-docker compose exec api isort --check-only .
-docker compose exec api flake8 .
+# Backend
+docker compose exec api pytest --tb=short
 
-# Backend auto-format
-docker compose exec api black . && docker compose exec api isort .
-
-# Frontend linting
-docker compose exec frontend npm run lint
+# Frontend
+docker compose exec frontend npm run test -- --run
 ```
 
 ### CI/CD Pipeline
 
 A cada Push ou Pull Request, o GitHub Actions roda:
-- ✅ Lint completo (backend + frontend)
-- ✅ Build (verifica se compila)
 - ✅ Testes do backend com PostgreSQL
+- ✅ Testes do frontend
 
 Se falhar, o PR não pode ser mergeado até corrigir.
 
@@ -234,12 +212,11 @@ git checkout -b feature/minha-funcionalidade
 ### 3. Validar suas mudanças
 
 ```bash
-# Lint e build do frontend dentro do container
-docker compose exec frontend npm run lint
-docker compose exec frontend npm run build
-
 # Testes do backend dentro do container
-docker compose exec api pytest
+docker compose exec api pytest --tb=short
+
+# Testes do frontend dentro do container
+docker compose exec frontend npm run test -- --run
 ```
 
 ### 4. Fazer commit e push
@@ -253,9 +230,8 @@ git push origin feature/minha-funcionalidade
 ### 5. Abrir Pull Request
 
 O CI/CD rodará automaticamente no GitHub Actions, validando:
-- ✅ Lint do frontend
-- ✅ Build do frontend
 - ✅ Testes do backend com PostgreSQL
+- ✅ Testes do frontend
 
 ---
 

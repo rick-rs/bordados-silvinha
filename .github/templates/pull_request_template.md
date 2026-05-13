@@ -11,5 +11,5 @@ Passos para validar
 
 ## Checklist
 - [ ] Código testado
-- [ ] Lint ok
+- [ ] Testes automatizados passando
 - [ ] Sem conflitos
