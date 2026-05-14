@@ -1,6 +1,8 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import pytest
+from django.test import override_settings
 from django.utils import timezone
 
 from commerce import models
@@ -63,6 +65,26 @@ def test_pedido_valida_prazo_futuro(api_client, cliente):
 
     assert resp.status_code == 400
     assert "prazo" in resp.json()
+
+
+@pytest.mark.django_db
+@override_settings(TIME_ZONE="America/Sao_Paulo")
+def test_pedido_usa_data_local_para_validar_prazo(api_client, cliente, monkeypatch):
+    mocked_now = datetime(2026, 5, 14, 2, 30, tzinfo=ZoneInfo("UTC"))
+    monkeypatch.setattr(timezone, "now", lambda: mocked_now)
+
+    resp = api_client.post(
+        "/api/pedidos/",
+        {
+            "cliente": cliente.id,
+            "forma_pagamento": "Pix",
+            "prazo": "2026-05-14",
+        },
+        format="json",
+    )
+
+    assert timezone.localdate() == datetime(2026, 5, 13).date()
+    assert resp.status_code == 201
 
 
 @pytest.mark.django_db
