@@ -1,5 +1,5 @@
 import { DragEvent, useEffect, useMemo, useState } from 'react';
-import { ArrowRight, Flag, Pencil, Trash2 } from 'lucide-react';
+import { ArrowRight, Ban, Flag, Pencil, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { Client } from '../../services/clients';
@@ -30,6 +30,7 @@ type OrdersViewProps = {
 
 type OrdersTableProps = OrdersViewProps & {
   onAdvanceStatus: (order: Order, status: string) => void;
+  onCancel: (order: Order) => void;
   onEdit: (order: Order) => void;
   onDelete: (order: Order) => void;
 };
@@ -39,6 +40,7 @@ export function OrdersTable({
   deletingId,
   itemsByOrder,
   onAdvanceStatus,
+  onCancel,
   onEdit,
   onDelete,
   orders,
@@ -69,14 +71,16 @@ export function OrdersTable({
             const paymentMethod = paymentMethodLabel(order.forma_pagamento ?? '');
             const nextStatus = getNextStatus(order.status);
             const deadline = getDeadlineState(order);
+            const isCanceled = order.status === 'Cancelado';
 
             return (
               <tr
                 className={[
-                  'cursor-pointer bg-white align-top transition hover:bg-chantilly/20',
-                  deadline?.label.startsWith('Atrasado')
+                  'cursor-pointer align-top transition hover:bg-chantilly/20',
+                  isCanceled ? 'bg-slate-50 opacity-75' : 'bg-white',
+                  !isCanceled && deadline?.label.startsWith('Atrasado')
                     ? 'border-l-4 border-l-rose-400'
-                    : deadline
+                    : !isCanceled && deadline
                       ? 'border-l-4 border-l-amber-400'
                       : '',
                 ].join(' ')}
@@ -152,6 +156,19 @@ export function OrdersTable({
                     <ArrowRight aria-hidden className="h-4 w-4" />
                   </button>
                   <button
+                    aria-label={`Cancelar pedido ${formatOrderNumber(order.id)}`}
+                    className="mr-1 inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-rose-50 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-40"
+                    disabled={isCanceled || updatingStatusId === order.id}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onCancel(order);
+                    }}
+                    title={isCanceled ? 'Pedido já cancelado' : 'Cancelar pedido'}
+                    type="button"
+                  >
+                    <Ban aria-hidden className="h-4 w-4" />
+                  </button>
+                  <button
                     aria-label={`Editar pedido ${formatOrderNumber(order.id)}`}
                     className="mr-1 inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-ink"
                     onClick={(event) => {
@@ -187,6 +204,7 @@ export function OrdersTable({
 }
 
 type OrdersBoardProps = OrdersViewProps & {
+  onCancel: (order: Order) => void;
   onDelete: (order: Order) => void;
   onEdit: (order: Order) => void;
   onStatusChange: (order: Order, status: string) => void;
@@ -196,6 +214,7 @@ export function OrdersBoard({
   clientsById,
   deletingId,
   itemsByOrder,
+  onCancel,
   onDelete,
   onEdit,
   onStatusChange,
@@ -354,15 +373,17 @@ export function OrdersBoard({
                     const paymentMethod = paymentMethodLabel(order.forma_pagamento ?? '');
                     const isUpdating = updatingStatusId === order.id;
                     const deadline = getDeadlineState(order);
+                    const isCanceled = order.status === 'Cancelado';
 
                     return (
                       <article
                         className={[
                           'cursor-grab rounded-lg border bg-white p-3 text-left shadow-sm transition',
                           'hover:-translate-y-0.5 hover:border-frenchRose/30 hover:shadow-md',
-                          deadline?.label.startsWith('Atrasado')
+                          isCanceled ? 'bg-slate-50 opacity-75' : '',
+                          !isCanceled && deadline?.label.startsWith('Atrasado')
                             ? 'border-rose-200'
-                            : deadline
+                            : !isCanceled && deadline
                               ? 'border-amber-200'
                               : 'border-slate-200',
                           isUpdating ? 'opacity-60' : '',
@@ -422,6 +443,21 @@ export function OrdersBoard({
                             {formatCurrency(order.valor_total) ?? 'R$ 0,00'}
                           </p>
                           <div className="flex items-center gap-1">
+                            <button
+                              aria-label={`Cancelar pedido de ${
+                                client?.nome ?? 'cliente não identificado'
+                              }`}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-rose-50 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-40"
+                              disabled={isCanceled || isUpdating}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                onCancel(order);
+                              }}
+                              title={isCanceled ? 'Pedido já cancelado' : 'Cancelar pedido'}
+                              type="button"
+                            >
+                              <Ban aria-hidden className="h-4 w-4" />
+                            </button>
                             <button
                               aria-label={`Editar pedido de ${
                                 client?.nome ?? 'cliente não identificado'

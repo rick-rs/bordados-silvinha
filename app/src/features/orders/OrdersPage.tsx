@@ -3,6 +3,7 @@ import { Columns3, Inbox, List, Plus, Search } from 'lucide-react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { AlertMessage, EmptyState, LoadingRows } from '../../components/ui/Feedback';
 import { FilterToolbar } from '../../components/ui/FilterToolbar';
 import { PageHeader } from '../../components/ui/PageHeader';
@@ -59,6 +60,9 @@ export function OrdersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [updatingStatusId, setUpdatingStatusId] = useState<number | null>(null);
+  const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
+  const [orderToCancel, setOrderToCancel] = useState<Order | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -140,7 +144,21 @@ export function OrdersPage() {
     return groupedItems;
   }, [items]);
 
-  const filteredOrders = orders;
+  const filteredOrders = useMemo(
+    () =>
+      [...orders].sort((leftOrder, rightOrder) => {
+        if (leftOrder.status === 'Cancelado' && rightOrder.status !== 'Cancelado') {
+          return 1;
+        }
+
+        if (leftOrder.status !== 'Cancelado' && rightOrder.status === 'Cancelado') {
+          return -1;
+        }
+
+        return 0;
+      }),
+    [orders],
+  );
 
   if (!user) {
     return <Navigate replace to="/login" />;
@@ -181,30 +199,76 @@ export function OrdersPage() {
     setPage(1);
   }
 
-  async function handleDelete(order: Order) {
-    const confirmed = window.confirm(
-      `Excluir o pedido ${formatOrderNumber(order.id)}? Esta ação não pode ser desfeita.`,
-    );
-
-    if (!confirmed) {
+  async function confirmDelete() {
+    if (!orderToDelete) {
       return;
     }
 
-    setDeletingId(order.id);
+    setDeletingId(orderToDelete.id);
     setError('');
 
     try {
-      await deleteOrder(order.id);
+      await deleteOrder(orderToDelete.id);
       setOrders((currentOrders) =>
-        currentOrders.filter((currentOrder) => currentOrder.id !== order.id),
+        currentOrders.filter((currentOrder) => currentOrder.id !== orderToDelete.id),
       );
       setItems((currentItems) =>
-        currentItems.filter((currentItem) => currentItem.pedido !== order.id),
+        currentItems.filter((currentItem) => currentItem.pedido !== orderToDelete.id),
       );
+      setOrderToDelete(null);
     } catch {
       setError('Não foi possível excluir o pedido.');
     } finally {
       setDeletingId(null);
+    }
+  }
+
+  async function confirmCancel() {
+    if (!orderToCancel) {
+      return;
+    }
+
+    const reason = cancelReason.trim();
+
+    if (!reason) {
+      setError('Informe o motivo do cancelamento.');
+      return;
+    }
+
+    const previousOrders = orders;
+
+    setUpdatingStatusId(orderToCancel.id);
+    setError('');
+    setOrders((currentOrders) =>
+      currentOrders.map((currentOrder) =>
+        currentOrder.id === orderToCancel.id
+          ? {
+              ...currentOrder,
+              motivo_cancelamento: reason,
+              status: 'Cancelado',
+              atualizado_em: new Date().toISOString(),
+            }
+          : currentOrder,
+      ),
+    );
+
+    try {
+      const updatedOrder = await updateOrder(orderToCancel.id, {
+        motivo_cancelamento: reason,
+        status: 'Cancelado',
+      });
+      setOrders((currentOrders) =>
+        currentOrders.map((currentOrder) =>
+          currentOrder.id === updatedOrder.id ? updatedOrder : currentOrder,
+        ),
+      );
+      setOrderToCancel(null);
+      setCancelReason('');
+    } catch {
+      setOrders(previousOrders);
+      setError('Não foi possível cancelar o pedido.');
+    } finally {
+      setUpdatingStatusId(null);
     }
   }
 
@@ -402,8 +466,9 @@ export function OrdersPage() {
             deletingId={deletingId}
             itemsByOrder={itemsByOrder}
             onAdvanceStatus={handleStatusChange}
+            onCancel={(order) => setOrderToCancel(order)}
             onEdit={(order) => navigate(`/pedidos/${order.id}/editar`)}
-            onDelete={handleDelete}
+            onDelete={(order) => setOrderToDelete(order)}
             orders={filteredOrders}
             productsById={productsById}
             updatingStatusId={updatingStatusId}
@@ -413,7 +478,8 @@ export function OrdersPage() {
             clientsById={clientsById}
             deletingId={deletingId}
             itemsByOrder={itemsByOrder}
-            onDelete={handleDelete}
+            onCancel={(order) => setOrderToCancel(order)}
+            onDelete={(order) => setOrderToDelete(order)}
             onEdit={(order) => navigate(`/pedidos/${order.id}/editar`)}
             onStatusChange={handleStatusChange}
             orders={filteredOrders}
@@ -437,6 +503,48 @@ export function OrdersPage() {
           />
         ) : null}
       </Surface>
+
+      <ConfirmDialog
+        confirmLabel="Excluir pedido"
+        description={
+          orderToDelete
+            ? `Excluir o pedido ${formatOrderNumber(orderToDelete.id)}? Esta ação não pode ser desfeita.`
+            : ''
+        }
+        isLoading={deletingId === orderToDelete?.id}
+        isOpen={Boolean(orderToDelete)}
+        onCancel={() => setOrderToDelete(null)}
+        onConfirm={confirmDelete}
+        title="Excluir pedido"
+      />
+
+      <ConfirmDialog
+        confirmLabel="Cancelar pedido"
+        description={
+          orderToCancel
+            ? `Informe o motivo para cancelar o pedido ${formatOrderNumber(orderToCancel.id)}.`
+            : ''
+        }
+        isLoading={updatingStatusId === orderToCancel?.id}
+        isOpen={Boolean(orderToCancel)}
+        onCancel={() => {
+          setOrderToCancel(null);
+          setCancelReason('');
+        }}
+        onConfirm={confirmCancel}
+        title="Cancelar pedido"
+      >
+        <label className="grid gap-2" htmlFor="cancel-reason">
+          <span className="text-sm font-bold text-mauve">Motivo do cancelamento</span>
+          <textarea
+            className="min-h-24 w-full rounded-lg border border-frenchRose/20 bg-white px-4 py-3 text-ink outline-none transition placeholder:text-mauve/60 focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
+            id="cancel-reason"
+            onChange={(event) => setCancelReason(event.target.value)}
+            placeholder="Ex.: cliente desistiu, pedido duplicado..."
+            value={cancelReason}
+          />
+        </label>
+      </ConfirmDialog>
     </AppShell>
   );
 }

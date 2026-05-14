@@ -33,7 +33,8 @@ class Command(BaseCommand):
 
         clients = self.seed_clients()
         products = self.seed_products()
-        self.seed_materials()
+        materials = self.seed_materials()
+        self.seed_stock_movements(materials)
         self.seed_orders(clients, products)
         self.stdout.write(self.style.SUCCESS("Development demo data ready."))
 
@@ -196,11 +197,51 @@ class Command(BaseCommand):
             },
         ]
 
+        materials = {}
         for payload in material_payloads:
-            models.Material.objects.update_or_create(
+            material, _ = models.Material.objects.update_or_create(
                 nome=payload["nome"],
                 defaults=payload,
             )
+            materials[material.nome] = material
+
+        return materials
+
+    def seed_stock_movements(self, materials):
+        """Create stock movement history without changing current stock values."""
+        movement_payloads = [
+            {
+                "material": materials["Linha Poliéster Rosa Bebê"],
+                "tipo": "saida",
+                "quantidade": Decimal("3.00"),
+                "observacao": "DEMO:saida-linha-rosa - Consumo em toalhas bordadas.",
+            },
+            {
+                "material": materials["Linha Dourada Metálica"],
+                "tipo": "saida",
+                "quantidade": Decimal("1.00"),
+                "observacao": "DEMO:saida-linha-dourada - Monograma especial.",
+            },
+            {
+                "material": materials["Entretela Fina"],
+                "tipo": "entrada",
+                "quantidade": Decimal("6.00"),
+                "observacao": "DEMO:entrada-entretela - Reposição de rolo.",
+            },
+            {
+                "material": materials["Bastidor 13x18"],
+                "tipo": "entrada",
+                "quantidade": Decimal("1.00"),
+                "observacao": "DEMO:entrada-bastidor - Compra preventiva.",
+            },
+        ]
+
+        models.MovimentacaoEstoque.objects.filter(
+            observacao__startswith="DEMO:"
+        ).delete()
+
+        for payload in movement_payloads:
+            models.MovimentacaoEstoque.objects.create(**payload)
 
     def seed_orders(self, clients, products):
         """Create demo orders with one or more items."""
@@ -281,6 +322,27 @@ class Command(BaseCommand):
                         "quantidade": 1,
                         "valor_unitario": Decimal("48.00"),
                     },
+                ],
+            },
+            {
+                "key": "DEMO:pedido-hoje-maria",
+                "cliente": clients["Maria Silva"],
+                "data_pedido": today - timedelta(days=1),
+                "prazo": today,
+                "canal": "WhatsApp",
+                "forma_pagamento": "Pix",
+                "status_pagamento": "Pago",
+                "status": "Pronto para Entrega",
+                "valor_total": Decimal("65.00"),
+                "observacoes": "DEMO:pedido-hoje-maria - Nome simples em necessaire.",
+                "items": [
+                    {
+                        "produto": products["Nome Bordado Simples"],
+                        "peca": "Necessaire",
+                        "descricao_bordado": "Nome Ana em fonte cursiva",
+                        "quantidade": 1,
+                        "valor_unitario": Decimal("65.00"),
+                    }
                 ],
             },
             {
