@@ -84,6 +84,12 @@ class PedidoSerializer(serializers.ModelSerializer):
         model = models.Pedido
         fields = "__all__"
 
+    def create(self, validated_data):
+        """Default new orders to the current local date."""
+        validated_data.setdefault("data_pedido", timezone.localdate())
+
+        return super().create(validated_data)
+
     def validate(self, attrs):
         """Validate order business rules that belong to the backend."""
         instance = self.instance

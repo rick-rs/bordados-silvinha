@@ -22,6 +22,7 @@ def test_pedido_create_and_crud(api_client, cliente):
     )
     assert resp.status_code == 201
     data = resp.json()
+    assert data["data_pedido"] == timezone.localdate().isoformat()
     pid = data["id"]
 
     resp = api_client.get(f"/api/pedidos/{pid}/")

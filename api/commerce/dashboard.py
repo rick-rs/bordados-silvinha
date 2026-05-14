@@ -3,7 +3,7 @@
 from datetime import timedelta
 from decimal import Decimal
 
-from django.db.models import Count, F, Sum
+from django.db.models import Count, F, Q, Sum
 from django.utils import timezone
 
 from . import models
@@ -60,16 +60,25 @@ def get_dashboard_summary() -> dict:
     """Build all dashboard metrics and lists."""
     today = timezone.localdate()
     soon_limit = today + timedelta(days=3)
-    month_orders = models.Pedido.objects.filter(
-        data_pedido__year=today.year,
-        data_pedido__month=today.month,
-        status_pagamento="Pago",
+    month_orders = (
+        models.Pedido.objects.filter(
+            Q(data_pedido__year=today.year, data_pedido__month=today.month)
+            | Q(
+                data_pedido__isnull=True,
+                criado_em__year=today.year,
+                criado_em__month=today.month,
+            )
+        )
+        .filter(status_pagamento__in=["Pago", "Parcial"])
+        .exclude(status="Cancelado")
     )
     open_orders = models.Pedido.objects.filter(status__in=OPEN_ORDER_STATUSES)
     overdue_orders = open_orders.filter(prazo__lt=today)
     due_soon_orders = open_orders.filter(prazo__gte=today, prazo__lte=soon_limit)
     urgent_orders = open_orders.filter(urgente=True)
-    pending_payment_orders = models.Pedido.objects.exclude(status_pagamento="Pago")
+    pending_payment_orders = models.Pedido.objects.exclude(
+        status_pagamento="Pago"
+    ).exclude(status="Cancelado")
     stock_alerts = models.Material.objects.filter(
         quantidade_atual__lte=F("estoque_minimo")
     ).order_by("nome")
@@ -78,6 +87,9 @@ def get_dashboard_summary() -> dict:
     )[:8]
 
     revenue = month_orders.aggregate(total=Sum("valor_total"))["total"]
+    pending_payment_total = pending_payment_orders.aggregate(total=Sum("valor_total"))[
+        "total"
+    ]
 
     return {
         "metrics": {
@@ -87,6 +99,7 @@ def get_dashboard_summary() -> dict:
             "stock_alerts": stock_alerts.count(),
             "urgent_orders": urgent_orders.count(),
             "pending_payments": pending_payment_orders.count(),
+            "pending_payments_value": money(pending_payment_total),
         },
         "orders_by_status": [
             {

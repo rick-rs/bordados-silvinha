@@ -26,6 +26,7 @@ import {
 
 type Metric = {
   label: string;
+  supportingValue?: string;
   value: string;
   icon: LucideIcon;
   tone: string;
@@ -132,7 +133,10 @@ function buildMetrics(summary: DashboardSummary): Metric[] {
     },
     {
       label: 'Pagamentos Pendentes',
-      value: String(summary.metrics.pending_payments),
+      value: `${summary.metrics.pending_payments} ${
+        summary.metrics.pending_payments === 1 ? 'pedido' : 'pedidos'
+      }`,
+      supportingValue: `${summary.metrics.pending_payments_value} em aberto`,
       icon: CreditCard,
       tone: 'bg-orange-50 text-orange-600 ring-orange-100',
     },
@@ -153,6 +157,11 @@ function MetricCard({ metric }: { metric: Metric }) {
         <div>
           <p className="text-xs font-semibold text-slate-500">{metric.label}</p>
           <p className="mt-1 text-xl font-extrabold text-ink">{metric.value}</p>
+          {metric.supportingValue ? (
+            <p className="mt-1 text-xs font-bold text-slate-500">
+              {metric.supportingValue}
+            </p>
+          ) : null}
         </div>
       </div>
     </Surface>

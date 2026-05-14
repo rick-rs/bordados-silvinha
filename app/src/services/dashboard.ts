@@ -7,6 +7,7 @@ export type DashboardMetrics = {
   stock_alerts: number;
   urgent_orders: number;
   pending_payments: number;
+  pending_payments_value: string;
 };
 
 export type DeadlineAlert = {
