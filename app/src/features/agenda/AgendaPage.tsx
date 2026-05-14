@@ -7,7 +7,10 @@ import { AlertMessage, EmptyState } from '../../components/ui/Feedback';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Surface, SurfaceHeader } from '../../components/ui/Surface';
 import { getSession } from '../../services/auth';
+import { Client, listClients } from '../../services/clients';
 import { listOrders, Order } from '../../services/orders';
+import { getDeadlineState } from '../orders/orderUtils';
+import { formatCurrency } from '../../utils/format';
 
 const weekDays = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
 type CalendarView = 'month' | 'week';
@@ -94,6 +97,7 @@ function getInitialCalendarView(): CalendarView {
 export function AgendaPage() {
   const user = getSession();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [visibleMonth, setVisibleMonth] = useState(() => new Date());
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [calendarView, setCalendarView] =
@@ -106,10 +110,14 @@ export function AgendaPage() {
 
     async function loadAgenda() {
       try {
-        const ordersResponse = await listOrders();
+        const [ordersResponse, clientsResponse] = await Promise.all([
+          listOrders(),
+          listClients(),
+        ]);
 
         if (isMounted) {
           setOrders(ordersResponse);
+          setClients(clientsResponse);
           setError('');
         }
       } catch {
@@ -148,6 +156,10 @@ export function AgendaPage() {
 
     return groupedOrders;
   }, [orders]);
+  const clientsById = useMemo(
+    () => new Map(clients.map((client) => [client.id, client])),
+    [clients],
+  );
 
   if (!user) {
     return <Navigate replace to="/login" />;
@@ -378,19 +390,64 @@ export function AgendaPage() {
 
             {selectedOrders.length > 0 ? (
               <div className="divide-y divide-slate-100 rounded-lg border border-slate-100">
-                {selectedOrders.map((order) => (
-                  <div className="grid gap-1 px-3 py-3" key={order.id}>
-                    <p className="text-sm font-extrabold text-ink">
-                      Pedido #{String(order.id).padStart(3, '0')}
-                    </p>
-                    <p className="text-xs font-semibold text-slate-500">
-                      Cliente #{order.cliente}
-                    </p>
-                    <span className="w-fit rounded-full bg-chantilly/50 px-2 py-1 text-[11px] font-bold text-frenchRose">
-                      {order.status || 'Recebido'}
-                    </span>
-                  </div>
-                ))}
+                {selectedOrders.map((order) => {
+                  const client = clientsById.get(order.cliente);
+                  const deadlineState = getDeadlineState(order);
+                  const overdueLabel =
+                    deadlineState?.label.startsWith('Atrasado')
+                      ? deadlineState.label
+                      : '';
+                  const isOverdue = Boolean(overdueLabel);
+
+                  return (
+                    <div
+                      className={[
+                        'grid gap-1 px-3 py-3',
+                        isOverdue ? 'bg-rose-50/50 ring-1 ring-inset ring-rose-100' : '',
+                      ].join(' ')}
+                      key={order.id}
+                    >
+                      <p className="text-sm font-extrabold text-ink">
+                        {client?.nome ?? 'Cliente não identificado'}
+                      </p>
+                      <p className="text-xs font-semibold text-slate-500">
+                        {client?.telefone ||
+                          client?.email ||
+                          order.canal ||
+                          'Sem contato informado'}
+                      </p>
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        <span className="w-fit rounded-full bg-chantilly/50 px-2 py-1 text-[11px] font-bold text-frenchRose">
+                          {order.status || 'Recebido'}
+                        </span>
+                        {isOverdue ? (
+                          <span className="w-fit rounded-full bg-white px-2 py-1 text-[11px] font-bold text-rose-700 ring-1 ring-rose-100">
+                            {overdueLabel}
+                          </span>
+                        ) : null}
+                        {order.urgente ? (
+                          <span className="w-fit rounded-full bg-rose-50 px-2 py-1 text-[11px] font-bold text-rose-700">
+                            Urgente
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <p className="font-bold text-slate-400">Valor</p>
+                          <p className="font-extrabold text-ink">
+                            {formatCurrency(order.valor_total) ?? 'R$ 0,00'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-400">Pagamento</p>
+                          <p className="font-extrabold text-ink">
+                            {order.forma_pagamento || order.status_pagamento || '-'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <EmptyState
