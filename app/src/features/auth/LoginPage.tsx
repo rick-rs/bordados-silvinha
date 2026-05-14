@@ -2,9 +2,11 @@ import { FormEvent, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 
 import { Button } from '../../components/ui/Button';
+import { AlertMessage } from '../../components/ui/Feedback';
 import { TextField } from '../../components/ui/TextField';
 import { ApiError } from '../../services/api';
 import { getSession, login, saveSession } from '../../services/auth';
+import { appBrand } from '../../theme/brand';
 
 type LoginForm = {
   email: string;
@@ -60,7 +62,7 @@ export function LoginPage() {
       >
         <div className="mb-7">
           <p className="mb-2 text-sm font-bold uppercase tracking-normal text-frenchRose">
-            Bordados App
+            {appBrand.name}
           </p>
           <h1 className="text-3xl font-bold leading-tight text-ink" id="login-title">
             Entrar
@@ -90,14 +92,9 @@ export function LoginPage() {
             value={form.senha}
           />
 
-          {error ? (
-            <p
-              className="rounded-lg border border-frenchRose/30 bg-chantilly/40 px-4 py-3 text-sm leading-relaxed text-rose-900"
-              role="alert"
-            >
-              {error}
-            </p>
-          ) : null}
+          <AlertMessage className="mb-0" role="alert">
+            {error}
+          </AlertMessage>
 
           <Button className="mt-1" isLoading={isSubmitting} type="submit">
             Logar

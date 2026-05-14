@@ -3,9 +3,13 @@ import { Inbox, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
+import { AlertMessage, EmptyState, LoadingRows } from '../../components/ui/Feedback';
 import { FilterToolbar } from '../../components/ui/FilterToolbar';
+import { IconButton } from '../../components/ui/IconButton';
+import { PageHeader } from '../../components/ui/PageHeader';
 import { PaginationControls } from '../../components/ui/PaginationControls';
 import { Button } from '../../components/ui/Button';
+import { Surface } from '../../components/ui/Surface';
 import { TextField } from '../../components/ui/TextField';
 import {
   Client,
@@ -32,24 +36,6 @@ const initialForm: ClientPayload = {
   cidade: '',
   estado: '',
 };
-
-function EmptyState() {
-  return (
-    <div className="grid min-h-56 place-items-center px-6 py-10 text-center">
-      <div>
-        <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-chantilly/50 text-xl text-frenchRose">
-          <Inbox aria-hidden className="h-5 w-5" />
-        </div>
-        <p className="mt-3 text-sm font-bold text-slate-600">
-          Nenhum cliente cadastrado ainda.
-        </p>
-        <p className="mt-1 text-xs text-slate-500">
-          Cadastre o primeiro cliente para começar a organizar seus pedidos.
-        </p>
-      </div>
-    </div>
-  );
-}
 
 export function ClientsPage() {
   const user = getSession();
@@ -148,34 +134,28 @@ export function ClientsPage() {
 
   return (
     <AppShell activePage="Clientes">
-      <header className="mb-5 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs font-semibold text-mauve">Dashboard / Clientes</p>
-          <h1 className="text-2xl font-extrabold text-ink sm:text-3xl">
-            Clientes
-          </h1>
-        </div>
-        <Link
-          className={[
-            'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-frenchRose px-4 text-sm font-bold text-white shadow-sm transition',
-            'hover:-translate-y-0.5 hover:bg-froly hover:shadow-lg',
-            'focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-froly/30',
-            'sm:min-h-9 sm:w-auto sm:text-xs',
-          ].join(' ')}
-          to="/clientes/novo"
-        >
-          <Plus aria-hidden className="h-4 w-4" />
-          Novo Cliente
-        </Link>
-      </header>
+      <PageHeader
+        actions={
+          <Link
+            className={[
+              'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-frenchRose px-4 text-sm font-bold text-white shadow-sm transition',
+              'hover:-translate-y-0.5 hover:bg-froly hover:shadow-lg',
+              'focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-froly/30',
+              'sm:min-h-9 sm:w-auto sm:text-xs',
+            ].join(' ')}
+            to="/clientes/novo"
+          >
+            <Plus aria-hidden className="h-4 w-4" />
+            Novo Cliente
+          </Link>
+        }
+        breadcrumb="Dashboard / Clientes"
+        title="Clientes"
+      />
 
-      {error ? (
-        <p className="mb-5 rounded-lg border border-frenchRose/30 bg-chantilly/40 px-4 py-3 text-sm leading-relaxed text-rose-900">
-          {error}
-        </p>
-      ) : null}
+      <AlertMessage>{error}</AlertMessage>
 
-      <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
+      <Surface>
         <FilterToolbar
           filters={
             <>
@@ -212,14 +192,7 @@ export function ClientsPage() {
         />
 
         {isLoading ? (
-          <div className="grid gap-3 p-4">
-            {[0, 1, 2].map((item) => (
-              <div
-                className="h-16 animate-pulse rounded-lg bg-slate-100"
-                key={item}
-              />
-            ))}
-          </div>
+          <LoadingRows />
         ) : clients.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px] border-collapse text-left text-sm">
@@ -256,31 +229,29 @@ export function ClientsPage() {
                       {client.estado || '-'}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button
+                      <IconButton
                         aria-label={`Editar cliente ${client.nome}`}
-                        className="mr-1 inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-ink"
+                        className="mr-1"
                         onClick={(event) => {
                           event.stopPropagation();
                           navigate(`/clientes/${client.id}/editar`);
                         }}
                         title="Editar cliente"
-                        type="button"
                       >
                         <Pencil aria-hidden className="h-4 w-4" />
-                      </button>
-                      <button
+                      </IconButton>
+                      <IconButton
                         aria-label={`Excluir cliente ${client.nome}`}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-frenchRose transition hover:bg-chantilly/45 disabled:cursor-not-allowed disabled:opacity-60"
                         disabled={deletingId === client.id}
                         onClick={(event) => {
                           event.stopPropagation();
                           handleDelete(client);
                         }}
                         title="Excluir cliente"
-                        type="button"
+                        tone="danger"
                       >
                         <Trash2 aria-hidden className="h-4 w-4" />
-                      </button>
+                      </IconButton>
                     </td>
                   </tr>
                 ))}
@@ -288,7 +259,11 @@ export function ClientsPage() {
             </table>
           </div>
         ) : (
-          <EmptyState />
+          <EmptyState
+            icon={<Inbox aria-hidden className="h-5 w-5" />}
+            title="Nenhum cliente cadastrado ainda."
+            description="Cadastre o primeiro cliente para começar a organizar seus pedidos."
+          />
         )}
         {count > pageSize ? (
           <PaginationControls
@@ -299,7 +274,7 @@ export function ClientsPage() {
             pageSize={pageSize}
           />
         ) : null}
-      </section>
+      </Surface>
     </AppShell>
   );
 }
@@ -376,133 +351,18 @@ export function NewClientPage() {
   }
 
   return (
-    <AppShell activePage="Clientes">
-      <header className="mb-5 sm:mb-6">
-        <p className="text-xs font-semibold text-mauve">
-          Dashboard / Clientes / Novo Cliente
-        </p>
-        <h1 className="text-2xl font-extrabold text-ink sm:text-3xl">
-          Novo Cliente
-        </h1>
-      </header>
-
-      <section className="mx-auto max-w-3xl rounded-lg border border-slate-200 bg-white shadow-sm">
-        <form className="grid gap-5 p-5 sm:p-6" onSubmit={handleSubmit}>
-          <TextField
-            label="Nome Completo *"
-            name="nome"
-            onChange={(event) => updateField('nome', event.target.value)}
-            required
-            value={form.nome}
-          />
-
-          <div className="grid gap-5 sm:grid-cols-2">
-            <TextField
-              label="Telefone/Whatsapp *"
-              name="telefone"
-              onChange={(event) => updateField('telefone', event.target.value)}
-              required
-              value={form.telefone}
-            />
-            <TextField
-              label="E-mail"
-              name="email"
-              onChange={(event) => updateField('email', event.target.value)}
-              type="email"
-              value={form.email}
-            />
-          </div>
-
-          <div className="grid gap-5 sm:grid-cols-2">
-            <TextField
-              label="Rede Social"
-              name="rede_social"
-              onChange={(event) => updateField('rede_social', event.target.value)}
-              placeholder="Ex: @usuario_instagram"
-              value={form.rede_social}
-            />
-            <TextField
-              label={isSearchingCep ? 'CEP (buscando...)' : 'CEP'}
-              name="cep"
-              onChange={(event) => updateField('cep', event.target.value)}
-              value={form.cep}
-            />
-          </div>
-
-          <TextField
-            label="Endereço"
-            name="endereco"
-            onChange={(event) => updateField('endereco', event.target.value)}
-            value={form.endereco}
-          />
-
-          <div className="grid gap-5 sm:grid-cols-2">
-            <TextField
-              label="Número"
-              name="numero"
-              onChange={(event) => updateField('numero', event.target.value)}
-              value={form.numero}
-            />
-            <TextField
-              label="Complemento"
-              name="complemento"
-              onChange={(event) => updateField('complemento', event.target.value)}
-              value={form.complemento}
-            />
-          </div>
-
-          <div className="grid gap-5 sm:grid-cols-2">
-            <TextField
-              label="Bairro"
-              name="bairro"
-              onChange={(event) => updateField('bairro', event.target.value)}
-              value={form.bairro}
-            />
-            <TextField
-              label="Cidade"
-              name="cidade"
-              onChange={(event) => updateField('cidade', event.target.value)}
-              value={form.cidade}
-            />
-          </div>
-
-          <TextField
-            className="sm:max-w-[50%]"
-            label="Estado"
-            maxLength={2}
-            name="estado"
-            onChange={(event) =>
-              updateField('estado', event.target.value.toUpperCase())
-            }
-            value={form.estado}
-          />
-
-          {error ? (
-            <p className="rounded-lg border border-frenchRose/30 bg-chantilly/40 px-4 py-3 text-sm leading-relaxed text-rose-900">
-              {error}
-            </p>
-          ) : null}
-
-          <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
-            <button
-              className="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-200 bg-white px-5 text-sm font-bold text-slate-600 transition hover:bg-slate-50"
-              onClick={() => navigate('/clientes')}
-              type="button"
-            >
-              Cancelar
-            </button>
-            <Button
-              className="min-h-11 px-5 text-sm"
-              isLoading={isSaving}
-              loadingLabel="Salvando..."
-              type="submit"
-            >
-              Salvar
-            </Button>
-          </div>
-        </form>
-      </section>
-    </AppShell>
+    <ClientFormPage
+      breadcrumb="Dashboard / Clientes / Novo Cliente"
+      error={error}
+      form={form}
+      isSaving={isSaving}
+      isSearchingCep={isSearchingCep}
+      onCancel={() => navigate('/clientes')}
+      onChange={updateField}
+      onSubmit={handleSubmit}
+      submitLabel="Salvar"
+      title="Novo Cliente"
+    />
   );
 }
 
@@ -678,18 +538,11 @@ function ClientFormPage({
 }) {
   return (
     <AppShell activePage="Clientes">
-      <header className="mb-5 sm:mb-6">
-        <p className="text-xs font-semibold text-mauve">{breadcrumb}</p>
-        <h1 className="text-2xl font-extrabold text-ink sm:text-3xl">{title}</h1>
-      </header>
+      <PageHeader breadcrumb={breadcrumb} title={title} />
 
-      <section className="mx-auto max-w-3xl rounded-lg border border-slate-200 bg-white shadow-sm">
+      <Surface className="mx-auto max-w-3xl">
         {isLoading ? (
-          <div className="grid gap-3 p-5 sm:p-6">
-            {[0, 1, 2, 3].map((item) => (
-              <div className="h-14 animate-pulse rounded-lg bg-slate-100" key={item} />
-            ))}
-          </div>
+          <LoadingRows count={4} rowClassName="h-14" />
         ) : (
           <form className="grid gap-5 p-5 sm:p-6" onSubmit={onSubmit}>
             <TextField
@@ -779,11 +632,7 @@ function ClientFormPage({
               value={form.estado}
             />
 
-            {error ? (
-              <p className="rounded-lg border border-frenchRose/30 bg-chantilly/40 px-4 py-3 text-sm leading-relaxed text-rose-900">
-                {error}
-              </p>
-            ) : null}
+            <AlertMessage className="mb-0">{error}</AlertMessage>
 
             <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
               <button
@@ -804,7 +653,7 @@ function ClientFormPage({
             </div>
           </form>
         )}
-      </section>
+      </Surface>
     </AppShell>
   );
 }

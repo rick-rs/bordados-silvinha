@@ -13,8 +13,12 @@ import {
 import { Navigate, useNavigate } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
+import { AlertMessage, EmptyState, LoadingRows } from '../../components/ui/Feedback';
 import { FilterToolbar } from '../../components/ui/FilterToolbar';
+import { IconButton } from '../../components/ui/IconButton';
+import { PageHeader } from '../../components/ui/PageHeader';
 import { PaginationControls } from '../../components/ui/PaginationControls';
+import { Surface } from '../../components/ui/Surface';
 import { getSession } from '../../services/auth';
 import { deleteProduct, listProductsPage, Product } from '../../services/orders';
 
@@ -232,51 +236,45 @@ export function CatalogPage() {
 
   return (
     <AppShell activePage="Catálogo">
-      <header className="mb-5 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs font-semibold text-mauve">Dashboard / Catálogo</p>
-          <h1 className="text-2xl font-extrabold text-ink sm:text-3xl">
-            Catálogo
-          </h1>
-        </div>
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <button
-            className={[
-              'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm transition',
-              'hover:-translate-y-0.5 hover:bg-slate-50 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60',
-              'focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-froly/30',
-              'sm:min-h-9 sm:w-auto sm:text-xs',
-            ].join(' ')}
-            disabled={isExporting}
-            onClick={handleExportCatalog}
-            type="button"
-          >
-            <Download aria-hidden className="h-4 w-4" />
-            {isExporting ? 'Exportando...' : 'Exportar'}
-          </button>
-          <button
-            className={[
-              'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-frenchRose px-4 text-sm font-bold text-white shadow-sm transition',
-              'hover:-translate-y-0.5 hover:bg-froly hover:shadow-lg',
-              'focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-froly/30',
-              'sm:min-h-9 sm:w-auto sm:text-xs',
-            ].join(' ')}
-            onClick={() => navigate('/catalogo/novo')}
-            type="button"
-          >
-            <Plus aria-hidden className="h-4 w-4" />
-            Novo Item
-          </button>
-        </div>
-      </header>
+      <PageHeader
+        actions={
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <button
+              className={[
+                'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm transition',
+                'hover:-translate-y-0.5 hover:bg-slate-50 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60',
+                'focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-froly/30',
+                'sm:min-h-9 sm:w-auto sm:text-xs',
+              ].join(' ')}
+              disabled={isExporting}
+              onClick={handleExportCatalog}
+              type="button"
+            >
+              <Download aria-hidden className="h-4 w-4" />
+              {isExporting ? 'Exportando...' : 'Exportar'}
+            </button>
+            <button
+              className={[
+                'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-frenchRose px-4 text-sm font-bold text-white shadow-sm transition',
+                'hover:-translate-y-0.5 hover:bg-froly hover:shadow-lg',
+                'focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-froly/30',
+                'sm:min-h-9 sm:w-auto sm:text-xs',
+              ].join(' ')}
+              onClick={() => navigate('/catalogo/novo')}
+              type="button"
+            >
+              <Plus aria-hidden className="h-4 w-4" />
+              Novo Item
+            </button>
+          </div>
+        }
+        breadcrumb="Dashboard / Catálogo"
+        title="Catálogo"
+      />
 
-      {error ? (
-        <p className="mb-5 rounded-lg border border-frenchRose/30 bg-chantilly/40 px-4 py-3 text-sm leading-relaxed text-rose-900">
-          {error}
-        </p>
-      ) : null}
+      <AlertMessage>{error}</AlertMessage>
 
-      <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
+      <Surface>
         <FilterToolbar
           actions={
             <div className="inline-grid min-h-10 w-full grid-cols-2 rounded-lg bg-slate-100 p-1 text-xs font-extrabold text-slate-500 sm:w-[190px]">
@@ -361,11 +359,7 @@ export function CatalogPage() {
         />
 
         {isLoading ? (
-          <div className="grid gap-3 p-4">
-            {[0, 1, 2].map((item) => (
-              <div className="h-16 animate-pulse rounded-lg bg-slate-100" key={item} />
-            ))}
-          </div>
+          <LoadingRows />
         ) : products.length > 0 && catalogView === 'list' ? (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px] border-collapse text-left text-sm">
@@ -409,31 +403,29 @@ export function CatalogPage() {
                       {product.ativo ? 'Ativo' : 'Inativo'}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button
+                      <IconButton
                         aria-label={`Editar ${product.nome}`}
-                        className="mr-1 inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-ink"
+                        className="mr-1"
                         onClick={(event) => {
                           event.stopPropagation();
                           navigate(`/catalogo/${product.id}/editar`);
                         }}
                         title="Editar item"
-                        type="button"
                       >
                         <Pencil aria-hidden className="h-4 w-4" />
-                      </button>
-                      <button
+                      </IconButton>
+                      <IconButton
                         aria-label={`Excluir ${product.nome}`}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-frenchRose transition hover:bg-chantilly/45 disabled:cursor-not-allowed disabled:opacity-60"
                         disabled={deletingId === product.id}
                         onClick={(event) => {
                           event.stopPropagation();
                           handleDelete(product);
                         }}
                         title="Excluir item"
-                        type="button"
+                        tone="danger"
                       >
                         <Trash2 aria-hidden className="h-4 w-4" />
-                      </button>
+                      </IconButton>
                     </td>
                   </tr>
                 ))}
@@ -486,31 +478,29 @@ export function CatalogPage() {
                       {product.ativo ? 'Ativo' : 'Inativo'}
                     </span>
                     <div>
-                      <button
+                      <IconButton
                         aria-label={`Editar ${product.nome}`}
-                        className="mr-1 inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-ink"
+                        className="mr-1"
                         onClick={(event) => {
                           event.stopPropagation();
                           navigate(`/catalogo/${product.id}/editar`);
                         }}
                         title="Editar item"
-                        type="button"
                       >
                         <Pencil aria-hidden className="h-4 w-4" />
-                      </button>
-                      <button
+                      </IconButton>
+                      <IconButton
                         aria-label={`Excluir ${product.nome}`}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-frenchRose transition hover:bg-chantilly/45 disabled:cursor-not-allowed disabled:opacity-60"
                         disabled={deletingId === product.id}
                         onClick={(event) => {
                           event.stopPropagation();
                           handleDelete(product);
                         }}
                         title="Excluir item"
-                        type="button"
+                        tone="danger"
                       >
                         <Trash2 aria-hidden className="h-4 w-4" />
-                      </button>
+                      </IconButton>
                     </div>
                   </div>
                 </div>
@@ -518,16 +508,10 @@ export function CatalogPage() {
             ))}
           </div>
         ) : (
-          <div className="grid min-h-56 place-items-center px-6 py-10 text-center">
-            <div>
-              <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-chantilly/50 text-frenchRose">
-                <Inbox aria-hidden className="h-5 w-5" />
-              </div>
-              <p className="mt-3 text-sm font-bold text-slate-600">
-                Nenhum item no catálogo.
-              </p>
-            </div>
-          </div>
+          <EmptyState
+            icon={<Inbox aria-hidden className="h-5 w-5" />}
+            title="Nenhum item no catálogo."
+          />
         )}
         {count > pageSize ? (
           <PaginationControls
@@ -538,7 +522,7 @@ export function CatalogPage() {
             pageSize={pageSize}
           />
         ) : null}
-      </section>
+      </Surface>
     </AppShell>
   );
 }

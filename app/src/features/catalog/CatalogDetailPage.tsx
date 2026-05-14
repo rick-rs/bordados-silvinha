@@ -4,24 +4,13 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
+import { DescriptionItem, DescriptionList } from '../../components/ui/DescriptionList';
+import { AlertMessage } from '../../components/ui/Feedback';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { Surface, SurfaceHeader } from '../../components/ui/Surface';
 import { getSession } from '../../services/auth';
 import { getProduct, Product } from '../../services/orders';
 import { formatCurrency } from '../../utils/format';
-
-function DetailItem({
-  label,
-  value,
-}: {
-  label: string;
-  value: string | null | undefined;
-}) {
-  return (
-    <div>
-      <dt className="text-xs font-bold text-slate-500">{label}</dt>
-      <dd className="mt-1 font-extrabold text-ink">{value || '-'}</dd>
-    </div>
-  );
-}
 
 export function CatalogDetailPage() {
   const user = getSession();
@@ -73,36 +62,28 @@ export function CatalogDetailPage() {
 
   return (
     <AppShell activePage="Catálogo">
-      <header className="mb-5 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs font-semibold text-mauve">
-            Dashboard / Catálogo
-          </p>
-          <h1 className="text-2xl font-extrabold text-ink sm:text-3xl">
-            {product?.nome ?? 'Detalhes do Catálogo'}
-          </h1>
-        </div>
-        <Button
-          className="min-h-11 gap-2 px-4 text-sm sm:min-h-9 sm:text-xs"
-          onClick={() => navigate(`/catalogo/${id}/editar`)}
-          title="Editar item"
-          type="button"
-        >
-          <Pencil aria-hidden className="h-4 w-4" />
-          Editar
-        </Button>
-      </header>
+      <PageHeader
+        actions={
+          <Button
+            className="min-h-11 gap-2 px-4 text-sm sm:min-h-9 sm:text-xs"
+            onClick={() => navigate(`/catalogo/${id}/editar`)}
+            title="Editar item"
+            type="button"
+          >
+            <Pencil aria-hidden className="h-4 w-4" />
+            Editar
+          </Button>
+        }
+        breadcrumb="Dashboard / Catálogo"
+        title={product?.nome ?? 'Detalhes do Catálogo'}
+      />
 
-      {error ? (
-        <p className="mb-5 rounded-lg border border-frenchRose/30 bg-chantilly/40 px-4 py-3 text-sm leading-relaxed text-rose-900">
-          {error}
-        </p>
-      ) : null}
+      <AlertMessage>{error}</AlertMessage>
 
       {isLoading ? (
         <div className="h-56 animate-pulse rounded-lg bg-white shadow-sm" />
       ) : product ? (
-        <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <Surface>
           {product.imagem_url ? (
             <img
               alt={product.nome}
@@ -110,19 +91,19 @@ export function CatalogDetailPage() {
               src={product.imagem_url}
             />
           ) : null}
-          <div className="border-b border-slate-100 px-4 py-3">
+          <SurfaceHeader>
             <h2 className="text-sm font-extrabold text-ink">Informações do Item</h2>
-          </div>
-          <dl className="grid gap-5 p-5 text-sm sm:grid-cols-2 lg:grid-cols-3">
-            <DetailItem label="Nome" value={product.nome} />
-            <DetailItem label="Categoria" value={product.categoria} />
-            <DetailItem label="Subcategoria" value={product.subcategoria} />
-            <DetailItem label="Tipo" value={product.tipo} />
-            <DetailItem
+          </SurfaceHeader>
+          <DescriptionList>
+            <DescriptionItem label="Nome" value={product.nome} />
+            <DescriptionItem label="Categoria" value={product.categoria} />
+            <DescriptionItem label="Subcategoria" value={product.subcategoria} />
+            <DescriptionItem label="Tipo" value={product.tipo} />
+            <DescriptionItem
               label="Preço base"
               value={formatCurrency(product.preco_base) ?? 'R$ 0,00'}
             />
-            <DetailItem
+            <DescriptionItem
               label="Tempo estimado"
               value={
                 product.tempo_estimado
@@ -130,10 +111,10 @@ export function CatalogDetailPage() {
                   : '-'
               }
             />
-            <DetailItem label="Status" value={product.ativo ? 'Ativo' : 'Inativo'} />
-            <DetailItem label="Descrição" value={product.descricao} />
-          </dl>
-        </section>
+            <DescriptionItem label="Status" value={product.ativo ? 'Ativo' : 'Inativo'} />
+            <DescriptionItem label="Descrição" value={product.descricao} />
+          </DescriptionList>
+        </Surface>
       ) : null}
     </AppShell>
   );

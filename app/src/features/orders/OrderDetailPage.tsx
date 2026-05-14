@@ -4,6 +4,10 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
+import { DescriptionItem, DescriptionList } from '../../components/ui/DescriptionList';
+import { AlertMessage } from '../../components/ui/Feedback';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { Surface, SurfaceHeader } from '../../components/ui/Surface';
 import { getSession } from '../../services/auth';
 import { Client, listClients } from '../../services/clients';
 import {
@@ -101,38 +105,32 @@ export function OrderDetailPage() {
 
   return (
     <AppShell activePage="Pedidos">
-      <header className="mb-5 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs font-semibold text-mauve">Dashboard / Pedidos</p>
-          <h1 className="text-2xl font-extrabold text-ink sm:text-3xl">
-            {order ? formatOrderNumber(order.id) : 'Detalhes do Pedido'}
-          </h1>
-        </div>
-        <Button
-          className="min-h-11 gap-2 px-4 text-sm sm:min-h-9 sm:text-xs"
-          onClick={() => navigate(`/pedidos/${id}/editar`)}
-          title="Editar pedido"
-          type="button"
-        >
-          <Pencil aria-hidden className="h-4 w-4" />
-          Editar
-        </Button>
-      </header>
+      <PageHeader
+        actions={
+          <Button
+            className="min-h-11 gap-2 px-4 text-sm sm:min-h-9 sm:text-xs"
+            onClick={() => navigate(`/pedidos/${id}/editar`)}
+            title="Editar pedido"
+            type="button"
+          >
+            <Pencil aria-hidden className="h-4 w-4" />
+            Editar
+          </Button>
+        }
+        breadcrumb="Dashboard / Pedidos"
+        title={order ? formatOrderNumber(order.id) : 'Detalhes do Pedido'}
+      />
 
-      {error ? (
-        <p className="mb-5 rounded-lg border border-frenchRose/30 bg-chantilly/40 px-4 py-3 text-sm leading-relaxed text-rose-900">
-          {error}
-        </p>
-      ) : null}
+      <AlertMessage>{error}</AlertMessage>
 
       {isLoading ? (
-        <div className="h-56 animate-pulse rounded-lg bg-white shadow-sm" />
+        <Surface className="h-56 animate-pulse" />
       ) : order ? (
         <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
-          <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-100 px-4 py-3">
+          <Surface>
+            <SurfaceHeader>
               <h2 className="text-sm font-extrabold text-ink">Itens do Pedido</h2>
-            </div>
+            </SurfaceHeader>
             <div className="divide-y divide-slate-100">
               {items.map((item) => {
                 const product = productsById.get(item.produto);
@@ -153,56 +151,55 @@ export function OrderDetailPage() {
                 );
               })}
             </div>
-          </section>
+          </Surface>
 
-          <aside className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-            <h2 className="text-sm font-extrabold text-ink">Resumo</h2>
-            <dl className="mt-4 grid gap-3 text-sm">
-              <div>
-                <dt className="text-xs font-bold text-slate-500">Cliente</dt>
-                <dd className="font-extrabold text-ink">
-                  {client?.nome ?? `Cliente #${order.cliente}`}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs font-bold text-slate-500">Prazo</dt>
-                <dd className="font-extrabold text-frenchRose">
-                  {formatDate(order.prazo)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs font-bold text-slate-500">Urgência</dt>
-                <dd>
-                  {order.urgente ? (
+          <Surface as="aside">
+            <SurfaceHeader>
+              <h2 className="text-sm font-extrabold text-ink">Resumo</h2>
+            </SurfaceHeader>
+            <DescriptionList className="grid-cols-1">
+              <DescriptionItem
+                label="Cliente"
+                value={client?.nome ?? `Cliente #${order.cliente}`}
+              />
+              <DescriptionItem
+                label="Prazo"
+                value={
+                  <span className="text-frenchRose">{formatDate(order.prazo)}</span>
+                }
+              />
+              <DescriptionItem
+                label="Urgência"
+                value={
+                  order.urgente ? (
                     <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2 py-1 text-xs font-extrabold text-rose-700">
                       <Flag aria-hidden className="h-3.5 w-3.5" />
                       Urgente
                     </span>
                   ) : (
                     'Normal'
-                  )}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs font-bold text-slate-500">Status</dt>
-                <dd>{statusLabel(order.status)}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-bold text-slate-500">Data de entrega</dt>
-                <dd>{formatDate(order.data_entrega)}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-bold text-slate-500">Total</dt>
-                <dd className="text-lg font-extrabold text-ink">
-                  {formatCurrency(order.valor_total) ?? 'R$ 0,00'}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs font-bold text-slate-500">Obs. entrega</dt>
-                <dd>{order.observacoes_entrega || '-'}</dd>
-              </div>
-            </dl>
-          </aside>
+                  )
+                }
+              />
+              <DescriptionItem label="Status" value={statusLabel(order.status)} />
+              <DescriptionItem
+                label="Data de entrega"
+                value={formatDate(order.data_entrega)}
+              />
+              <DescriptionItem
+                label="Total"
+                value={
+                  <span className="text-lg">
+                    {formatCurrency(order.valor_total) ?? 'R$ 0,00'}
+                  </span>
+                }
+              />
+              <DescriptionItem
+                label="Obs. entrega"
+                value={order.observacoes_entrega || '-'}
+              />
+            </DescriptionList>
+          </Surface>
         </div>
       ) : null}
     </AppShell>

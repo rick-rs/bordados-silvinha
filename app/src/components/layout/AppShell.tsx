@@ -7,13 +7,13 @@ import {
   Images,
   LayoutDashboard,
   LogOut,
-  Scissors,
   Users,
   type LucideIcon,
 } from 'lucide-react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 
 import { clearSession } from '../../services/auth';
+import { AppBrand } from './AppBrand';
 
 type AppShellProps = {
   activePage: string;
@@ -47,10 +47,7 @@ export function AppShell({ activePage, children }: AppShellProps) {
     <div className="min-h-screen bg-slate-50 text-ink">
       <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur md:hidden">
         <Link className="text-sm font-extrabold text-frenchRose" to="/dashboard">
-          <span className="inline-flex items-center gap-2">
-            <Scissors aria-hidden className="h-4 w-4" />
-            BordadosApp
-          </span>
+          <AppBrand compact />
         </Link>
         <button
           className="rounded-md px-3 py-2 text-xs font-bold text-frenchRose hover:bg-chantilly/35"
@@ -66,8 +63,7 @@ export function AppShell({ activePage, children }: AppShellProps) {
           className="flex h-14 items-center gap-2 px-4 text-sm font-extrabold text-frenchRose"
           to="/dashboard"
         >
-          <Scissors aria-hidden className="h-4 w-4" />
-          BordadosApp
+          <AppBrand compact />
         </Link>
 
         <nav className="flex flex-1 flex-col gap-1 px-2 py-3">

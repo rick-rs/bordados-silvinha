@@ -4,7 +4,6 @@ import {
   Clock,
   CreditCard,
   Flag,
-  Inbox,
   ListChecks,
   PackageX,
   Plus,
@@ -15,6 +14,9 @@ import {
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
+import { AlertMessage, EmptyState } from '../../components/ui/Feedback';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { Surface, SurfaceHeader } from '../../components/ui/Surface';
 import { getSession } from '../../services/auth';
 import {
   DashboardSummary,
@@ -137,24 +139,11 @@ function buildMetrics(summary: DashboardSummary): Metric[] {
   ];
 }
 
-function EmptyState({ label }: { label: string }) {
-  return (
-    <div className="grid min-h-40 place-items-center px-6 py-8 text-center">
-      <div>
-        <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-chantilly/50 text-frenchRose">
-          <Inbox aria-hidden className="h-5 w-5" />
-        </div>
-        <p className="mt-3 text-sm font-bold text-slate-600">{label}</p>
-      </div>
-    </div>
-  );
-}
-
 function MetricCard({ metric }: { metric: Metric }) {
   const Icon = metric.icon;
 
   return (
-    <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+    <Surface as="article" className="p-4">
       <div className="flex items-center gap-3">
         <span
           className={`grid h-10 w-10 shrink-0 place-items-center rounded-full ring-1 ${metric.tone}`}
@@ -166,7 +155,7 @@ function MetricCard({ metric }: { metric: Metric }) {
           <p className="mt-1 text-xl font-extrabold text-ink">{metric.value}</p>
         </div>
       </div>
-    </article>
+    </Surface>
   );
 }
 
@@ -214,40 +203,31 @@ export function DashboardPage() {
 
   return (
     <AppShell activePage="Dashboard">
-      <header className="mb-5 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs font-semibold text-mauve">Olá, {user.nome}</p>
-          <h1 className="text-2xl font-extrabold text-ink sm:text-3xl">
-            Dashboard
-          </h1>
-        </div>
-        <Link
-          className={[
-            'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-frenchRose px-4 text-sm font-bold text-white shadow-sm transition',
-            'hover:-translate-y-0.5 hover:bg-froly hover:shadow-lg',
-            'focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-froly/30',
-            'sm:min-h-9 sm:w-auto sm:self-auto sm:text-xs',
-          ].join(' ')}
-          to="/pedidos/novo"
-        >
-          <Plus aria-hidden className="h-4 w-4" />
-          Nova Encomenda
-        </Link>
-      </header>
+      <PageHeader
+        actions={
+          <Link
+            className={[
+              'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-frenchRose px-4 text-sm font-bold text-white shadow-sm transition',
+              'hover:-translate-y-0.5 hover:bg-froly hover:shadow-lg',
+              'focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-froly/30',
+              'sm:min-h-9 sm:w-auto sm:self-auto sm:text-xs',
+            ].join(' ')}
+            to="/pedidos/novo"
+          >
+            <Plus aria-hidden className="h-4 w-4" />
+            Nova Encomenda
+          </Link>
+        }
+        breadcrumb={`Olá, ${user.nome}`}
+        title="Dashboard"
+      />
 
-      {error ? (
-        <p className="mb-5 rounded-lg border border-frenchRose/30 bg-chantilly/40 px-4 py-3 text-sm leading-relaxed text-rose-900">
-          {error}
-        </p>
-      ) : null}
+      <AlertMessage>{error}</AlertMessage>
 
       {isLoading ? (
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {[0, 1, 2, 3, 4, 5].map((item) => (
-            <article
-              className="h-[74px] animate-pulse rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
-              key={item}
-            />
+            <Surface as="article" className="h-[74px] animate-pulse" key={item} />
           ))}
         </section>
       ) : (
@@ -259,11 +239,11 @@ export function DashboardPage() {
       )}
 
       <section className="mt-5 grid gap-4 lg:grid-cols-2">
-        <article className="rounded-lg border border-slate-200 bg-white shadow-sm">
-          <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3">
+        <Surface as="article">
+          <SurfaceHeader className="flex items-center gap-2">
             <ListChecks aria-hidden className="h-4 w-4 text-frenchRose" />
             <h2 className="text-sm font-extrabold text-ink">Pedidos por Status</h2>
-          </div>
+          </SurfaceHeader>
           {summary && summary.orders_by_status.length > 0 ? (
             <div className="grid gap-3 p-4">
               {summary.orders_by_status.map((item) => (
@@ -283,15 +263,18 @@ export function DashboardPage() {
               ))}
             </div>
           ) : (
-            <EmptyState label="Nenhum pedido registrado por status." />
+            <EmptyState
+              minHeightClassName="min-h-40"
+              title="Nenhum pedido registrado por status."
+            />
           )}
-        </article>
+        </Surface>
 
-        <article className="rounded-lg border border-slate-200 bg-white shadow-sm">
-          <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3">
+        <Surface as="article">
+          <SurfaceHeader className="flex items-center gap-2">
             <Flag aria-hidden className="h-4 w-4 text-frenchRose" />
             <h2 className="text-sm font-extrabold text-ink">Pedidos Urgentes</h2>
-          </div>
+          </SurfaceHeader>
           {summary && summary.urgent_orders.length > 0 ? (
             <div className="divide-y divide-slate-100">
               {summary.urgent_orders.map((order) => (
@@ -312,16 +295,19 @@ export function DashboardPage() {
               ))}
             </div>
           ) : (
-            <EmptyState label="Nenhum pedido urgente no momento." />
+            <EmptyState
+              minHeightClassName="min-h-40"
+              title="Nenhum pedido urgente no momento."
+            />
           )}
-        </article>
+        </Surface>
       </section>
 
       <section className="mt-5 grid gap-4 lg:grid-cols-2">
-        <article className="rounded-lg border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-100 px-4 py-3">
+        <Surface as="article">
+          <SurfaceHeader>
             <h2 className="text-sm font-extrabold text-ink">Atenção aos Prazos</h2>
-          </div>
+          </SurfaceHeader>
           {summary && summary.deadline_alerts.length > 0 ? (
             <div className="divide-y divide-rose-100">
               {summary.deadline_alerts.map((deadline) => (
@@ -369,14 +355,17 @@ export function DashboardPage() {
               ))}
             </div>
           ) : (
-            <EmptyState label="Nenhum prazo crítico por enquanto." />
+            <EmptyState
+              minHeightClassName="min-h-40"
+              title="Nenhum prazo crítico por enquanto."
+            />
           )}
-        </article>
+        </Surface>
 
-        <article className="rounded-lg border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-100 px-4 py-3">
+        <Surface as="article">
+          <SurfaceHeader>
             <h2 className="text-sm font-extrabold text-ink">Reposição de Estoque</h2>
-          </div>
+          </SurfaceHeader>
           {summary && summary.stock_replacements.length > 0 ? (
             <div className="grid gap-4 p-4">
               {summary.stock_replacements.map((alert) => (
@@ -393,21 +382,27 @@ export function DashboardPage() {
               ))}
             </div>
           ) : (
-            <EmptyState label="Nenhum alerta de estoque no momento." />
+            <EmptyState
+              minHeightClassName="min-h-40"
+              title="Nenhum alerta de estoque no momento."
+            />
           )}
-        </article>
+        </Surface>
       </section>
 
-      <section className="mt-5 rounded-lg border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-100 px-4 py-3">
+      <Surface className="mt-5">
+        <SurfaceHeader>
           <h2 className="text-sm font-extrabold text-ink">Pedidos Recentes</h2>
-        </div>
+        </SurfaceHeader>
         {summary && summary.recent_orders.length > 0 ? (
           <RecentOrdersTable orders={summary.recent_orders} />
         ) : (
-          <EmptyState label="Nenhum pedido recente para exibir." />
+          <EmptyState
+            minHeightClassName="min-h-40"
+            title="Nenhum pedido recente para exibir."
+          />
         )}
-      </section>
+      </Surface>
     </AppShell>
   );
 }

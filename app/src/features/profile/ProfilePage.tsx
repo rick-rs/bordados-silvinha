@@ -3,6 +3,9 @@ import { Navigate } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
+import { AlertMessage } from '../../components/ui/Feedback';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { Surface, SurfaceHeader } from '../../components/ui/Surface';
 import { TextField } from '../../components/ui/TextField';
 import {
   changePassword,
@@ -104,19 +107,16 @@ export function ProfilePage() {
 
   return (
     <AppShell activePage="Perfil">
-      <header className="mb-6">
-        <p className="text-xs font-semibold text-mauve">Conta e configurações</p>
-        <h1 className="text-2xl font-extrabold text-ink sm:text-3xl">Perfil</h1>
-      </header>
+      <PageHeader breadcrumb="Conta e configurações" title="Perfil" />
 
       <section className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
-        <article className="rounded-lg border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-100 px-5 py-4">
+        <Surface as="article">
+          <SurfaceHeader className="px-5 py-4">
             <h2 className="text-sm font-extrabold text-ink">Dados da Conta</h2>
             <p className="mt-1 text-xs font-medium text-slate-500">
               Edite as informações usadas para identificar seu acesso.
             </p>
-          </div>
+          </SurfaceHeader>
 
           <form className="grid gap-5 p-5" onSubmit={handleProfileSubmit}>
             <TextField
@@ -140,17 +140,11 @@ export function ProfilePage() {
               value={profileForm.email}
             />
 
-            {profileMessage ? (
-              <p className="rounded-lg border border-wewak/50 bg-illusion/30 px-4 py-3 text-sm leading-relaxed text-mauve">
-                {profileMessage}
-              </p>
-            ) : null}
+            <AlertMessage className="mb-0 border-wewak/50 bg-illusion/30 text-mauve">
+              {profileMessage}
+            </AlertMessage>
 
-            {profileError ? (
-              <p className="rounded-lg border border-frenchRose/30 bg-chantilly/40 px-4 py-3 text-sm leading-relaxed text-rose-900">
-                {profileError}
-              </p>
-            ) : null}
+            <AlertMessage className="mb-0">{profileError}</AlertMessage>
 
             <Button
               className="min-h-11 w-full px-5 text-sm sm:w-auto sm:justify-self-start"
@@ -161,15 +155,15 @@ export function ProfilePage() {
               Salvar alterações
             </Button>
           </form>
-        </article>
+        </Surface>
 
-        <article className="rounded-lg border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-100 px-5 py-4">
+        <Surface as="article">
+          <SurfaceHeader className="px-5 py-4">
             <h2 className="text-sm font-extrabold text-ink">Trocar Senha</h2>
             <p className="mt-1 text-xs font-medium text-slate-500">
               Defina uma nova senha para acessar sua conta.
             </p>
-          </div>
+          </SurfaceHeader>
 
           <form className="grid gap-5 p-5" onSubmit={handlePasswordSubmit}>
             <TextField
@@ -210,11 +204,9 @@ export function ProfilePage() {
               value={passwordForm.confirmarSenha}
             />
 
-            {passwordMessage ? (
-              <p className="rounded-lg border border-wewak/50 bg-illusion/30 px-4 py-3 text-sm leading-relaxed text-mauve">
-                {passwordMessage}
-              </p>
-            ) : null}
+            <AlertMessage className="mb-0 border-wewak/50 bg-illusion/30 text-mauve">
+              {passwordMessage}
+            </AlertMessage>
 
             <Button
               className="min-h-11 w-full px-5 text-sm sm:w-auto sm:justify-self-start"
@@ -225,7 +217,7 @@ export function ProfilePage() {
               Atualizar senha
             </Button>
           </form>
-        </article>
+        </Surface>
       </section>
     </AppShell>
   );

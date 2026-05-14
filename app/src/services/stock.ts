@@ -89,7 +89,7 @@ export function deleteMaterial(id: number) {
   });
 }
 
-export function listStockMovements(materialId: number) {
+export function listStockMovements(materialId?: number) {
   return apiRequest<StockMovement[] | PaginatedResponse<StockMovement>>(
     `/api/movimentacoes-estoque/${buildQuery({
       material: materialId,

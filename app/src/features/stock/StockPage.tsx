@@ -11,8 +11,12 @@ import {
 import { Navigate, useNavigate } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
+import { AlertMessage, EmptyState, LoadingRows } from '../../components/ui/Feedback';
 import { FilterToolbar } from '../../components/ui/FilterToolbar';
+import { IconButton } from '../../components/ui/IconButton';
+import { PageHeader } from '../../components/ui/PageHeader';
 import { PaginationControls } from '../../components/ui/PaginationControls';
+import { Surface } from '../../components/ui/Surface';
 import { getSession } from '../../services/auth';
 import { deleteMaterial, listMaterialsPage, Material } from '../../services/stock';
 
@@ -127,28 +131,24 @@ export function StockPage() {
 
   return (
     <AppShell activePage="Estoque">
-      <header className="mb-5 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs font-semibold text-mauve">Dashboard / Estoque</p>
-          <h1 className="text-2xl font-extrabold text-ink sm:text-3xl">Estoque</h1>
-        </div>
-        <button
-          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-frenchRose px-4 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-froly hover:shadow-lg sm:min-h-9 sm:w-auto sm:text-xs"
-          onClick={() => navigate('/estoque/novo')}
-          type="button"
-        >
-          <Plus aria-hidden className="h-4 w-4" />
-          Novo Material
-        </button>
-      </header>
+      <PageHeader
+        actions={
+          <button
+            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-frenchRose px-4 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-froly hover:shadow-lg sm:min-h-9 sm:w-auto sm:text-xs"
+            onClick={() => navigate('/estoque/novo')}
+            type="button"
+          >
+            <Plus aria-hidden className="h-4 w-4" />
+            Novo Material
+          </button>
+        }
+        breadcrumb="Dashboard / Estoque"
+        title="Estoque"
+      />
 
-      {error ? (
-        <p className="mb-5 rounded-lg border border-frenchRose/30 bg-chantilly/40 px-4 py-3 text-sm leading-relaxed text-rose-900">
-          {error}
-        </p>
-      ) : null}
+      <AlertMessage>{error}</AlertMessage>
 
-      <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
+      <Surface>
         <FilterToolbar
           filters={
             <>
@@ -233,11 +233,7 @@ export function StockPage() {
         ) : null}
 
         {isLoading ? (
-          <div className="grid gap-3 p-4">
-            {[0, 1, 2].map((item) => (
-              <div className="h-16 animate-pulse rounded-lg bg-slate-100" key={item} />
-            ))}
-          </div>
+          <LoadingRows />
         ) : materials.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px] border-collapse text-left text-sm">
@@ -291,43 +287,40 @@ export function StockPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <button
+                        <IconButton
                           aria-label={`Movimentar ${material.nome}`}
-                          className="mr-1 inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-ink"
+                          className="mr-1"
                           onClick={(event) => {
                             event.stopPropagation();
                             navigate(`/estoque/${material.id}`);
                           }}
                           title="Movimentar estoque"
-                          type="button"
                         >
                           <ArrowUpDown aria-hidden className="h-4 w-4" />
-                        </button>
-                        <button
+                        </IconButton>
+                        <IconButton
                           aria-label={`Editar ${material.nome}`}
-                          className="mr-1 inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-ink"
+                          className="mr-1"
                           onClick={(event) => {
                             event.stopPropagation();
                             navigate(`/estoque/${material.id}/editar`);
                           }}
                           title="Editar material"
-                          type="button"
                         >
                           <Pencil aria-hidden className="h-4 w-4" />
-                        </button>
-                        <button
+                        </IconButton>
+                        <IconButton
                           aria-label={`Excluir ${material.nome}`}
-                          className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-frenchRose transition hover:bg-chantilly/45 disabled:cursor-not-allowed disabled:opacity-60"
                           disabled={deletingId === material.id}
                           onClick={(event) => {
                             event.stopPropagation();
                             handleDelete(material);
                           }}
                           title="Excluir material"
-                          type="button"
+                          tone="danger"
                         >
                           <Trash2 aria-hidden className="h-4 w-4" />
-                        </button>
+                        </IconButton>
                       </td>
                     </tr>
                   );
@@ -336,16 +329,10 @@ export function StockPage() {
             </table>
           </div>
         ) : (
-          <div className="grid min-h-56 place-items-center px-6 py-10 text-center">
-            <div>
-              <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-chantilly/50 text-frenchRose">
-                <Inbox aria-hidden className="h-5 w-5" />
-              </div>
-              <p className="mt-3 text-sm font-bold text-slate-600">
-                Nenhum material cadastrado.
-              </p>
-            </div>
-          </div>
+          <EmptyState
+            icon={<Inbox aria-hidden className="h-5 w-5" />}
+            title="Nenhum material cadastrado."
+          />
         )}
         {count > pageSize ? (
           <PaginationControls
@@ -356,7 +343,7 @@ export function StockPage() {
             pageSize={pageSize}
           />
         ) : null}
-      </section>
+      </Surface>
     </AppShell>
   );
 }

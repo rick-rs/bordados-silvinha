@@ -3,6 +3,10 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
+import { AlertMessage, LoadingRows } from '../../components/ui/Feedback';
+import { SelectField, TextAreaField } from '../../components/ui/FormFields';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { Surface } from '../../components/ui/Surface';
 import { TextField } from '../../components/ui/TextField';
 import { getSession } from '../../services/auth';
 import {
@@ -134,22 +138,16 @@ function CatalogFormPage({ mode }: CatalogFormPageProps) {
 
   return (
     <AppShell activePage="Catálogo">
-      <header className="mb-5 sm:mb-6">
-        <p className="text-xs font-semibold text-mauve">
-          Dashboard / Catálogo / {mode === 'create' ? 'Novo Item' : 'Editar Item'}
-        </p>
-        <h1 className="text-2xl font-extrabold text-ink sm:text-3xl">
-          {mode === 'create' ? 'Novo Item' : 'Editar Item'}
-        </h1>
-      </header>
+      <PageHeader
+        breadcrumb={`Dashboard / Catálogo / ${
+          mode === 'create' ? 'Novo Item' : 'Editar Item'
+        }`}
+        title={mode === 'create' ? 'Novo Item' : 'Editar Item'}
+      />
 
-      <section className="mx-auto max-w-3xl rounded-lg border border-slate-200 bg-white shadow-sm">
+      <Surface className="mx-auto max-w-3xl">
         {isLoading ? (
-          <div className="grid gap-3 p-5 sm:p-6">
-            {[0, 1, 2, 3].map((item) => (
-              <div className="h-14 animate-pulse rounded-lg bg-slate-100" key={item} />
-            ))}
-          </div>
+          <LoadingRows count={4} rowClassName="h-14" />
         ) : (
           <form className="grid gap-5 p-5 sm:p-6" onSubmit={handleSubmit}>
             <TextField
@@ -185,18 +183,15 @@ function CatalogFormPage({ mode }: CatalogFormPageProps) {
             </div>
 
             <div className="grid gap-5 sm:grid-cols-3">
-              <label className="grid gap-2" htmlFor="tipo">
-                <span className="text-sm font-bold text-mauve">Tipo</span>
-                <select
-                  className="min-h-12 rounded-lg border border-frenchRose/20 bg-white px-4 text-ink outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
-                  id="tipo"
-                  onChange={(event) => updateField('tipo', event.target.value)}
-                  value={form.tipo}
-                >
-                  <option value="peca">Peça</option>
-                  <option value="bordado">Bordado</option>
-                </select>
-              </label>
+              <SelectField
+                label="Tipo"
+                name="tipo"
+                onChange={(event) => updateField('tipo', event.target.value)}
+                value={form.tipo}
+              >
+                <option value="peca">Peça</option>
+                <option value="bordado">Bordado</option>
+              </SelectField>
               <TextField
                 label="Preço Base *"
                 min="0"
@@ -230,21 +225,14 @@ function CatalogFormPage({ mode }: CatalogFormPageProps) {
               </label>
             </div>
 
-            <label className="grid gap-2" htmlFor="descricao">
-              <span className="text-sm font-bold text-mauve">Descrição</span>
-              <textarea
-                className="min-h-28 rounded-lg border border-frenchRose/20 bg-white px-4 py-3 text-ink outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
-                id="descricao"
-                onChange={(event) => updateField('descricao', event.target.value)}
-                value={form.descricao}
-              />
-            </label>
+            <TextAreaField
+              label="Descrição"
+              name="descricao"
+              onChange={(event) => updateField('descricao', event.target.value)}
+              value={form.descricao}
+            />
 
-            {error ? (
-              <p className="rounded-lg border border-frenchRose/30 bg-chantilly/40 px-4 py-3 text-sm leading-relaxed text-rose-900">
-                {error}
-              </p>
-            ) : null}
+            <AlertMessage className="mb-0">{error}</AlertMessage>
 
             <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
               <button
@@ -265,7 +253,7 @@ function CatalogFormPage({ mode }: CatalogFormPageProps) {
             </div>
           </form>
         )}
-      </section>
+      </Surface>
     </AppShell>
   );
 }

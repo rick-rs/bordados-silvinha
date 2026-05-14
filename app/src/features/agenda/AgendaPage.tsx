@@ -3,6 +3,9 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
+import { AlertMessage, EmptyState } from '../../components/ui/Feedback';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { Surface, SurfaceHeader } from '../../components/ui/Surface';
 import { getSession } from '../../services/auth';
 import { listOrders, Order } from '../../services/orders';
 
@@ -37,6 +40,14 @@ function formatShortDate(date: Date) {
   return new Intl.DateTimeFormat('pt-BR', {
     day: '2-digit',
     month: '2-digit',
+  }).format(date);
+}
+
+function formatLongDate(date: Date) {
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: 'long',
+    weekday: 'long',
   }).format(date);
 }
 
@@ -143,6 +154,7 @@ export function AgendaPage() {
   }
 
   const selectedDateKey = dateKey(selectedDate);
+  const selectedOrders = ordersByDate.get(selectedDateKey) ?? [];
   const currentWeekDays = buildWeekDays(selectedDate);
   const calendarDays =
     calendarView === 'month' ? buildCalendarDays(visibleMonth) : currentWeekDays;
@@ -179,21 +191,12 @@ export function AgendaPage() {
 
   return (
     <AppShell activePage="Agenda">
-      <header className="mb-5 sm:mb-6">
-        <p className="text-xs font-semibold text-mauve">Dashboard / Agenda</p>
-        <h1 className="text-2xl font-extrabold text-ink sm:text-3xl">
-          Agenda de Pedidos
-        </h1>
-      </header>
+      <PageHeader breadcrumb="Dashboard / Agenda" title="Agenda de Pedidos" />
 
-      {error ? (
-        <p className="mb-5 rounded-lg border border-frenchRose/30 bg-chantilly/40 px-4 py-3 text-sm leading-relaxed text-rose-900">
-          {error}
-        </p>
-      ) : null}
+      <AlertMessage>{error}</AlertMessage>
 
-      <section>
-        <article className="rounded-lg border border-slate-200 bg-white shadow-sm">
+      <section className="grid gap-5 xl:grid-cols-[1fr_320px]">
+        <Surface as="article">
           <div className="flex flex-col gap-3 border-b border-slate-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="inline-grid min-h-10 grid-cols-2 rounded-lg bg-slate-100 p-1 text-xs font-extrabold text-slate-500">
               <button
@@ -257,7 +260,7 @@ export function AgendaPage() {
             </button>
           </div>
 
-          <div className="grid grid-cols-7 border-b border-slate-100 px-2 py-2 text-center text-[11px] font-extrabold text-slate-400 sm:px-4">
+          <div className="grid grid-cols-7 border-b border-slate-100 px-2 py-2 text-center text-[10px] font-extrabold text-slate-400 sm:px-4">
             {weekDays.map((day) => (
               <span key={day}>{day}</span>
             ))}
@@ -271,7 +274,7 @@ export function AgendaPage() {
                 <div
                   className={[
                     'animate-pulse rounded-lg bg-slate-100',
-                    calendarView === 'week' ? 'h-24 sm:h-28' : 'aspect-square',
+                    calendarView === 'week' ? 'h-20 sm:h-24' : 'min-h-14 sm:min-h-16',
                   ].join(' ')}
                   key={index}
                 />
@@ -284,7 +287,7 @@ export function AgendaPage() {
                 if (!day) {
                   return (
                     <div
-                      className="aspect-square rounded-lg border border-slate-100 bg-white/60"
+                      className="min-h-14 rounded-lg border border-slate-100 bg-white/60 sm:min-h-16"
                       key={`empty-${index}`}
                     />
                   );
@@ -301,8 +304,8 @@ export function AgendaPage() {
                     className={[
                       'relative rounded-lg border text-sm font-bold transition',
                       calendarView === 'week'
-                        ? 'flex h-24 flex-col items-center justify-center gap-2 sm:h-28'
-                        : 'aspect-square',
+                        ? 'flex h-20 flex-col items-center justify-center gap-2 sm:h-24'
+                        : 'min-h-14 py-2 sm:min-h-16',
                       isSelected
                         ? 'border-frenchRose bg-chantilly/50 text-frenchRose shadow-sm'
                         : 'border-slate-100 text-slate-600 hover:bg-slate-100',
@@ -355,7 +358,48 @@ export function AgendaPage() {
               })}
             </div>
           )}
-        </article>
+        </Surface>
+
+        <Surface as="aside" className="self-start">
+          <SurfaceHeader>
+            <p className="text-xs font-semibold text-mauve">Resumo do dia</p>
+            <h2 className="mt-1 text-sm font-extrabold capitalize text-ink">
+              {formatLongDate(selectedDate)}
+            </h2>
+          </SurfaceHeader>
+
+          <div className="grid gap-3 p-4">
+            <div className="rounded-lg bg-slate-50 px-3 py-3">
+              <p className="text-xs font-bold text-slate-500">Pedidos no dia</p>
+              <p className="mt-1 text-2xl font-extrabold text-frenchRose">
+                {selectedOrders.length}
+              </p>
+            </div>
+
+            {selectedOrders.length > 0 ? (
+              <div className="divide-y divide-slate-100 rounded-lg border border-slate-100">
+                {selectedOrders.map((order) => (
+                  <div className="grid gap-1 px-3 py-3" key={order.id}>
+                    <p className="text-sm font-extrabold text-ink">
+                      Pedido #{String(order.id).padStart(3, '0')}
+                    </p>
+                    <p className="text-xs font-semibold text-slate-500">
+                      Cliente #{order.cliente}
+                    </p>
+                    <span className="w-fit rounded-full bg-chantilly/50 px-2 py-1 text-[11px] font-bold text-frenchRose">
+                      {order.status || 'Recebido'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                minHeightClassName="min-h-32"
+                title="Nenhum pedido para esta data."
+              />
+            )}
+          </div>
+        </Surface>
       </section>
     </AppShell>
   );

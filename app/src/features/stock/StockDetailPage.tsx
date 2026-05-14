@@ -4,6 +4,11 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
+import { DescriptionItem, DescriptionList } from '../../components/ui/DescriptionList';
+import { AlertMessage } from '../../components/ui/Feedback';
+import { SelectField, TextAreaField } from '../../components/ui/FormFields';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { Surface, SurfaceHeader } from '../../components/ui/Surface';
 import { TextField } from '../../components/ui/TextField';
 import { getSession } from '../../services/auth';
 import {
@@ -20,21 +25,6 @@ const initialMovementForm: Omit<StockMovementPayload, 'material'> = {
   quantidade: '',
   observacao: '',
 };
-
-function DetailItem({
-  label,
-  value,
-}: {
-  label: string;
-  value: string | null | undefined;
-}) {
-  return (
-    <div>
-      <dt className="text-xs font-bold text-slate-500">{label}</dt>
-      <dd className="mt-1 font-extrabold text-ink">{value || '-'}</dd>
-    </div>
-  );
-}
 
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat('pt-BR', {
@@ -140,48 +130,42 @@ export function StockDetailPage() {
 
   return (
     <AppShell activePage="Estoque">
-      <header className="mb-5 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs font-semibold text-mauve">Dashboard / Estoque</p>
-          <h1 className="text-2xl font-extrabold text-ink sm:text-3xl">
-            {material?.nome ?? 'Detalhes do Material'}
-          </h1>
-        </div>
-        <Button
-          className="min-h-11 gap-2 px-4 text-sm sm:min-h-9 sm:text-xs"
-          onClick={() => navigate(`/estoque/${id}/editar`)}
-          title="Editar material"
-          type="button"
-        >
-          <Pencil aria-hidden className="h-4 w-4" />
-          Editar
-        </Button>
-      </header>
+      <PageHeader
+        actions={
+          <Button
+            className="min-h-11 gap-2 px-4 text-sm sm:min-h-9 sm:text-xs"
+            onClick={() => navigate(`/estoque/${id}/editar`)}
+            title="Editar material"
+            type="button"
+          >
+            <Pencil aria-hidden className="h-4 w-4" />
+            Editar
+          </Button>
+        }
+        breadcrumb="Dashboard / Estoque"
+        title={material?.nome ?? 'Detalhes do Material'}
+      />
 
-      {error ? (
-        <p className="mb-5 rounded-lg border border-frenchRose/30 bg-chantilly/40 px-4 py-3 text-sm leading-relaxed text-rose-900">
-          {error}
-        </p>
-      ) : null}
+      <AlertMessage>{error}</AlertMessage>
 
       {isLoading ? (
         <div className="h-56 animate-pulse rounded-lg bg-white shadow-sm" />
       ) : material ? (
         <div className="grid gap-5">
-          <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-100 px-4 py-3">
+          <Surface>
+            <SurfaceHeader>
               <h2 className="text-sm font-extrabold text-ink">
                 Informações do Material
               </h2>
-            </div>
-            <dl className="grid gap-5 p-5 text-sm sm:grid-cols-2 lg:grid-cols-3">
-              <DetailItem label="Nome" value={material.nome} />
-              <DetailItem label="Unidade" value={material.unidade_medida} />
-              <DetailItem label="Quantidade atual" value={material.quantidade_atual} />
-              <DetailItem label="Estoque mínimo" value={material.estoque_minimo} />
-              <DetailItem label="Situação" value={isLow ? 'Reposição' : 'Ok'} />
-              <DetailItem label="Descrição" value={material.descricao} />
-            </dl>
+            </SurfaceHeader>
+            <DescriptionList>
+              <DescriptionItem label="Nome" value={material.nome} />
+              <DescriptionItem label="Unidade" value={material.unidade_medida} />
+              <DescriptionItem label="Quantidade atual" value={material.quantidade_atual} />
+              <DescriptionItem label="Estoque mínimo" value={material.estoque_minimo} />
+              <DescriptionItem label="Situação" value={isLow ? 'Reposição' : 'Ok'} />
+              <DescriptionItem label="Descrição" value={material.descricao} />
+            </DescriptionList>
             {isLow ? (
               <div className="px-5 pb-5">
                 <div className="relative inline-flex max-w-full items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm shadow-sm after:absolute after:-bottom-2 after:left-7 after:h-4 after:w-4 after:rotate-45 after:border-b after:border-r after:border-amber-200 after:bg-amber-50">
@@ -196,7 +180,7 @@ export function StockDetailPage() {
                 </div>
               </div>
             ) : null}
-          </section>
+          </Surface>
 
           <section className="grid gap-5 lg:grid-cols-[360px_1fr]">
             <form
@@ -211,23 +195,20 @@ export function StockDetailPage() {
               </div>
 
               <div className="grid gap-4">
-                <label className="grid gap-2" htmlFor="tipo_movimentacao">
-                  <span className="text-sm font-bold text-mauve">Tipo</span>
-                  <select
-                    className="min-h-12 rounded-lg border border-frenchRose/20 bg-white px-4 text-ink outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
-                    id="tipo_movimentacao"
-                    onChange={(event) =>
-                      updateMovementField(
-                        'tipo',
-                        event.target.value as StockMovementPayload['tipo'],
-                      )
-                    }
-                    value={movementForm.tipo}
-                  >
-                    <option value="entrada">Entrada</option>
-                    <option value="saida">Saída</option>
-                  </select>
-                </label>
+                <SelectField
+                  label="Tipo"
+                  name="tipo_movimentacao"
+                  onChange={(event) =>
+                    updateMovementField(
+                      'tipo',
+                      event.target.value as StockMovementPayload['tipo'],
+                    )
+                  }
+                  value={movementForm.tipo}
+                >
+                  <option value="entrada">Entrada</option>
+                  <option value="saida">Saída</option>
+                </SelectField>
 
                 <TextField
                   label="Quantidade *"
@@ -242,17 +223,14 @@ export function StockDetailPage() {
                   value={movementForm.quantidade}
                 />
 
-                <label className="grid gap-2" htmlFor="observacao_movimentacao">
-                  <span className="text-sm font-bold text-mauve">Observação</span>
-                  <textarea
-                    className="min-h-24 rounded-lg border border-frenchRose/20 bg-white px-4 py-3 text-ink outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
-                    id="observacao_movimentacao"
-                    onChange={(event) =>
-                      updateMovementField('observacao', event.target.value)
-                    }
-                    value={movementForm.observacao}
-                  />
-                </label>
+                <TextAreaField
+                  label="Observação"
+                  name="observacao_movimentacao"
+                  onChange={(event) =>
+                    updateMovementField('observacao', event.target.value)
+                  }
+                  value={movementForm.observacao}
+                />
 
                 <Button
                   className="min-h-11 px-4 text-sm"
@@ -265,13 +243,13 @@ export function StockDetailPage() {
               </div>
             </form>
 
-            <article className="rounded-lg border border-slate-200 bg-white shadow-sm">
-              <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3">
+            <Surface as="article">
+              <SurfaceHeader className="flex items-center gap-2">
                 <History aria-hidden className="h-4 w-4 text-frenchRose" />
                 <h2 className="text-sm font-extrabold text-ink">
                   Histórico de Movimentações
                 </h2>
-              </div>
+              </SurfaceHeader>
               {movements.length > 0 ? (
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[680px] border-collapse text-left text-sm">
@@ -323,7 +301,7 @@ export function StockDetailPage() {
                   </p>
                 </div>
               )}
-            </article>
+            </Surface>
           </section>
         </div>
       ) : null}

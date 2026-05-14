@@ -4,23 +4,12 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
+import { DescriptionItem, DescriptionList } from '../../components/ui/DescriptionList';
+import { AlertMessage } from '../../components/ui/Feedback';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { Surface, SurfaceHeader } from '../../components/ui/Surface';
 import { getSession } from '../../services/auth';
 import { Client, getClient } from '../../services/clients';
-
-function DetailItem({
-  label,
-  value,
-}: {
-  label: string;
-  value: string | null | undefined;
-}) {
-  return (
-    <div>
-      <dt className="text-xs font-bold text-slate-500">{label}</dt>
-      <dd className="mt-1 font-extrabold text-ink">{value || '-'}</dd>
-    </div>
-  );
-}
 
 export function ClientDetailPage() {
   const user = getSession();
@@ -72,55 +61,47 @@ export function ClientDetailPage() {
 
   return (
     <AppShell activePage="Clientes">
-      <header className="mb-5 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs font-semibold text-mauve">
-            Dashboard / Clientes
-          </p>
-          <h1 className="text-2xl font-extrabold text-ink sm:text-3xl">
-            {client?.nome ?? 'Detalhes do Cliente'}
-          </h1>
-        </div>
-        <Button
-          className="min-h-11 gap-2 px-4 text-sm sm:min-h-9 sm:text-xs"
-          onClick={() => navigate(`/clientes/${id}/editar`)}
-          title="Editar cliente"
-          type="button"
-        >
-          <Pencil aria-hidden className="h-4 w-4" />
-          Editar
-        </Button>
-      </header>
+      <PageHeader
+        actions={
+          <Button
+            className="min-h-11 gap-2 px-4 text-sm sm:min-h-9 sm:text-xs"
+            onClick={() => navigate(`/clientes/${id}/editar`)}
+            title="Editar cliente"
+            type="button"
+          >
+            <Pencil aria-hidden className="h-4 w-4" />
+            Editar
+          </Button>
+        }
+        breadcrumb="Dashboard / Clientes"
+        title={client?.nome ?? 'Detalhes do Cliente'}
+      />
 
-      {error ? (
-        <p className="mb-5 rounded-lg border border-frenchRose/30 bg-chantilly/40 px-4 py-3 text-sm leading-relaxed text-rose-900">
-          {error}
-        </p>
-      ) : null}
+      <AlertMessage>{error}</AlertMessage>
 
       {isLoading ? (
         <div className="h-56 animate-pulse rounded-lg bg-white shadow-sm" />
       ) : client ? (
-        <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-100 px-4 py-3">
+        <Surface>
+          <SurfaceHeader>
             <h2 className="text-sm font-extrabold text-ink">
               Informações do Cliente
             </h2>
-          </div>
-          <dl className="grid gap-5 p-5 text-sm sm:grid-cols-2 lg:grid-cols-3">
-            <DetailItem label="Nome completo" value={client.nome} />
-            <DetailItem label="Telefone/Whatsapp" value={client.telefone} />
-            <DetailItem label="E-mail" value={client.email} />
-            <DetailItem label="Rede social" value={client.rede_social} />
-            <DetailItem label="CEP" value={client.cep} />
-            <DetailItem label="Endereço" value={client.endereco} />
-            <DetailItem label="Número" value={client.numero} />
-            <DetailItem label="Complemento" value={client.complemento} />
-            <DetailItem label="Bairro" value={client.bairro} />
-            <DetailItem label="Cidade" value={client.cidade} />
-            <DetailItem label="Estado" value={client.estado} />
-          </dl>
-        </section>
+          </SurfaceHeader>
+          <DescriptionList>
+            <DescriptionItem label="Nome completo" value={client.nome} />
+            <DescriptionItem label="Telefone/Whatsapp" value={client.telefone} />
+            <DescriptionItem label="E-mail" value={client.email} />
+            <DescriptionItem label="Rede social" value={client.rede_social} />
+            <DescriptionItem label="CEP" value={client.cep} />
+            <DescriptionItem label="Endereço" value={client.endereco} />
+            <DescriptionItem label="Número" value={client.numero} />
+            <DescriptionItem label="Complemento" value={client.complemento} />
+            <DescriptionItem label="Bairro" value={client.bairro} />
+            <DescriptionItem label="Cidade" value={client.cidade} />
+            <DescriptionItem label="Estado" value={client.estado} />
+          </DescriptionList>
+        </Surface>
       ) : null}
     </AppShell>
   );
