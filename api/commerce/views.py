@@ -3,6 +3,7 @@
 from decimal import Decimal
 
 from django.contrib.auth.hashers import check_password
+from django.db import transaction
 from django.db.models import F, Q
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare
@@ -255,6 +256,42 @@ class PedidoViewSet(viewsets.ModelViewSet):
     def dashboard(self, request):
         """Return dashboard summary data."""
         return Response(dashboard.get_dashboard_summary())
+
+    @action(detail=False, methods=["post"], url_path="criar-completo")
+    def criar_completo(self, request):
+        """Create an order and its items atomically."""
+        pedido_data = request.data.get("pedido", {})
+        itens_data = request.data.get("itens", [])
+
+        if not itens_data:
+            return Response(
+                {"itens": "Informe ao menos um item para a encomenda."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        pedido_serializer = self.get_serializer(data=pedido_data)
+        pedido_serializer.is_valid(raise_exception=True)
+
+        with transaction.atomic():
+            pedido = pedido_serializer.save()
+            itens_serializers = []
+
+            for item_data in itens_data:
+                serializer = serializers.ItemPedidoSerializer(
+                    data={**item_data, "pedido": pedido.id}
+                )
+                serializer.is_valid(raise_exception=True)
+                itens_serializers.append(serializer)
+
+            itens = [serializer.save() for serializer in itens_serializers]
+
+        return Response(
+            {
+                "pedido": self.get_serializer(pedido).data,
+                "itens": serializers.ItemPedidoSerializer(itens, many=True).data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class ItemPedidoViewSet(viewsets.ModelViewSet):

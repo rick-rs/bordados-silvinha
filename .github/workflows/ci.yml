@@ -27,6 +27,11 @@ jobs:
           --health-retries 5
     env:
       DATABASE_URL: postgres://bordados:bordados@localhost:5432/bordados_ci
+      DJANGO_SECRET_KEY: bordados-ci-secret-key
+      DJANGO_DEBUG: 'False'
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
+      DJANGO_CORS_ALLOWED_ORIGINS: http://localhost:5173
+      VITE_API_URL: http://localhost:8000
     steps:
       - uses: actions/checkout@v4
 

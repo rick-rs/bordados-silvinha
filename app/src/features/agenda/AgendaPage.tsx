@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Inbox, Pencil } from 'lucide-react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Navigate } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
 import { getSession } from '../../services/auth';
-import { Client, listClients } from '../../services/clients';
 import { listOrders, Order } from '../../services/orders';
 
 const weekDays = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
@@ -34,43 +33,11 @@ function dateKey(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
-function formatLongDate(date: Date) {
-  return new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit',
-    month: 'long',
-    weekday: 'long',
-  }).format(date);
-}
-
 function formatShortDate(date: Date) {
   return new Intl.DateTimeFormat('pt-BR', {
     day: '2-digit',
     month: '2-digit',
   }).format(date);
-}
-
-function statusLabel(status: string) {
-  if (status === 'Em Producao') {
-    return 'Em Produção';
-  }
-
-  return status;
-}
-
-function statusClassName(status: string) {
-  if (status === 'Cancelado') {
-    return 'bg-rose-50 text-rose-700';
-  }
-
-  if (status === 'Entregue') {
-    return 'bg-emerald-50 text-emerald-700';
-  }
-
-  if (status === 'Em Producao') {
-    return 'bg-blue-50 text-blue-700';
-  }
-
-  return 'bg-chantilly/45 text-frenchRose';
 }
 
 function buildCalendarDays(monthDate: Date) {
@@ -115,9 +82,7 @@ function getInitialCalendarView(): CalendarView {
 
 export function AgendaPage() {
   const user = getSession();
-  const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
   const [visibleMonth, setVisibleMonth] = useState(() => new Date());
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [calendarView, setCalendarView] =
@@ -130,14 +95,10 @@ export function AgendaPage() {
 
     async function loadAgenda() {
       try {
-        const [ordersResponse, clientsResponse] = await Promise.all([
-          listOrders(),
-          listClients(),
-        ]);
+        const ordersResponse = await listOrders();
 
         if (isMounted) {
           setOrders(ordersResponse);
-          setClients(clientsResponse);
           setError('');
         }
       } catch {
@@ -162,10 +123,6 @@ export function AgendaPage() {
     window.localStorage.setItem(calendarViewStorageKey, calendarView);
   }, [calendarView]);
 
-  const clientsById = useMemo(() => {
-    return new Map(clients.map((client) => [client.id, client]));
-  }, [clients]);
-
   const ordersByDate = useMemo(() => {
     const groupedOrders = new Map<string, Order[]>();
 
@@ -186,10 +143,7 @@ export function AgendaPage() {
   }
 
   const selectedDateKey = dateKey(selectedDate);
-  const selectedOrders = ordersByDate.get(selectedDateKey) ?? [];
   const currentWeekDays = buildWeekDays(selectedDate);
-  const currentWeekKeys = currentWeekDays.map((day) => dateKey(day));
-  const weeklyOrders = currentWeekKeys.flatMap((key) => ordersByDate.get(key) ?? []);
   const calendarDays =
     calendarView === 'month' ? buildCalendarDays(visibleMonth) : currentWeekDays;
   const todayKey = dateKey(new Date());
@@ -223,10 +177,6 @@ export function AgendaPage() {
     setVisibleMonth(new Date(day.getFullYear(), day.getMonth(), 1));
   }
 
-  function showEditPlaceholder() {
-    window.alert('A edição será implementada em uma próxima etapa.');
-  }
-
   return (
     <AppShell activePage="Agenda">
       <header className="mb-5 sm:mb-6">
@@ -242,7 +192,7 @@ export function AgendaPage() {
         </p>
       ) : null}
 
-      <section className="grid gap-5 lg:grid-cols-[1fr_320px]">
+      <section>
         <article className="rounded-lg border border-slate-200 bg-white shadow-sm">
           <div className="flex flex-col gap-3 border-b border-slate-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="inline-grid min-h-10 grid-cols-2 rounded-lg bg-slate-100 p-1 text-xs font-extrabold text-slate-500">
@@ -406,135 +356,6 @@ export function AgendaPage() {
             </div>
           )}
         </article>
-
-        <aside className="rounded-lg border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-100 px-4 py-3">
-            <p className="text-xs font-semibold text-mauve">
-              Semana {formatShortDate(currentWeekDays[0])} - {formatShortDate(currentWeekDays[6])}
-            </p>
-            <h2 className="text-sm font-extrabold text-ink">
-              Resumo da Semana
-            </h2>
-          </div>
-
-          <div className="grid gap-2 border-b border-slate-100 p-4">
-            <div className="flex items-center justify-between rounded-lg bg-chantilly/25 px-3 py-2">
-              <span className="text-xs font-bold text-slate-600">Pedidos na semana</span>
-              <span className="text-sm font-extrabold text-frenchRose">
-                {weeklyOrders.length}
-              </span>
-            </div>
-            <div className="grid grid-cols-7 gap-1">
-              {currentWeekDays.map((day) => {
-                const key = dateKey(day);
-                const dayOrders = ordersByDate.get(key) ?? [];
-                const isSelected = key === selectedDateKey;
-                const isToday = key === todayKey;
-
-                return (
-                  <button
-                    className={[
-                      'rounded-lg border px-1 py-2 text-center transition',
-                      isSelected
-                        ? 'border-frenchRose bg-chantilly/50 text-frenchRose'
-                        : 'border-slate-100 hover:bg-slate-50',
-                      isToday && !isSelected ? 'border-froly text-frenchRose' : '',
-                    ].join(' ')}
-                    key={key}
-                    onClick={() => selectDate(day)}
-                    type="button"
-                  >
-                    <span className="block text-[10px] font-extrabold text-slate-400">
-                      {weekDays[day.getDay()]}
-                    </span>
-                    <span className="mt-1 block text-xs font-extrabold">
-                      {day.getDate()}
-                    </span>
-                    <span className="mt-1 block text-[10px] font-bold text-frenchRose">
-                      {dayOrders.length}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="border-b border-slate-100 px-4 py-3">
-            <p className="text-xs font-semibold text-mauve">
-              {formatLongDate(selectedDate)}
-            </p>
-            <h2 className="text-sm font-extrabold text-ink">
-              Detalhes do Dia
-            </h2>
-          </div>
-
-          {selectedOrders.length > 0 ? (
-            <div className="divide-y divide-slate-100">
-              {selectedOrders.map((order) => {
-                const client = clientsById.get(order.cliente);
-
-                return (
-                  <div
-                    className="grid cursor-pointer gap-2 px-4 py-4 transition hover:bg-chantilly/20"
-                    key={order.id}
-                    onClick={() => navigate(`/pedidos/${order.id}`)}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-extrabold text-ink">
-                          {client?.nome ?? 'Cliente não identificado'}
-                        </p>
-                      </div>
-                      <span
-                        className={`rounded-full px-2 py-1 text-[11px] font-bold ${statusClassName(
-                          order.status,
-                        )}`}
-                      >
-                        {statusLabel(order.status)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                      {order.observacoes ? (
-                        <p className="text-xs leading-relaxed text-slate-600">
-                          {order.observacoes}
-                        </p>
-                      ) : (
-                        <span className="text-xs text-slate-400">Sem observações</span>
-                      )}
-                      <button
-                        aria-label={`Editar pedido de ${
-                          client?.nome ?? 'cliente não identificado'
-                        }`}
-                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-ink"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          showEditPlaceholder();
-                        }}
-                        type="button"
-                      >
-                        <Pencil aria-hidden className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="grid min-h-56 place-items-center px-6 py-10 text-center">
-              <div>
-                <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-chantilly/50 text-frenchRose">
-                  <Inbox aria-hidden className="h-5 w-5" />
-                </div>
-                <p className="mt-3 text-sm font-bold text-slate-600">
-                  Nenhum pedido neste dia.
-                </p>
-                <p className="mt-1 text-xs text-slate-500">
-                  Selecione outro dia para ver os prazos agendados.
-                </p>
-              </div>
-            </div>
-          )}
-        </aside>
       </section>
     </AppShell>
   );

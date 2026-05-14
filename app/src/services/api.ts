@@ -18,6 +18,34 @@ type RequestOptions = Omit<RequestInit, 'body'> & {
   body?: unknown;
 };
 
+function extractApiErrorMessage(data: unknown) {
+  if (!data || typeof data !== 'object') {
+    return null;
+  }
+
+  const maybeDetailedData = data as { detail?: unknown };
+
+  if (typeof maybeDetailedData.detail === 'string') {
+    return maybeDetailedData.detail;
+  }
+
+  const fieldMessages = Object.entries(data)
+    .flatMap(([field, value]) => {
+      if (Array.isArray(value)) {
+        return value.map((message) => `${field}: ${message}`);
+      }
+
+      if (typeof value === 'string') {
+        return [`${field}: ${value}`];
+      }
+
+      return [];
+    })
+    .filter(Boolean);
+
+  return fieldMessages.length > 0 ? fieldMessages.join(' ') : null;
+}
+
 export async function apiRequest<T>(
   path: string,
   options: RequestOptions = {},
@@ -38,9 +66,7 @@ export async function apiRequest<T>(
 
   if (!response.ok) {
     const message =
-      typeof data?.detail === 'string'
-        ? data.detail
-        : 'Nao foi possivel completar a solicitacao.';
+      extractApiErrorMessage(data) ?? 'Nao foi possivel completar a solicitacao.';
 
     throw new ApiError(message, response.status);
   }

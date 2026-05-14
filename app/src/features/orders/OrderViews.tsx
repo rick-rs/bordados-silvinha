@@ -13,6 +13,7 @@ import {
   getNextStatus,
   paymentClassName,
   paymentLabel,
+  paymentMethodLabel,
   statusClassName,
   statusLabel,
   statusOptions,
@@ -65,6 +66,7 @@ export function OrdersTable({
             const itemSummary = buildItemSummary(order.id, itemsByOrder, productsById);
             const total = formatCurrency(order.valor_total) ?? 'R$ 0,00';
             const payment = paymentLabel(order.status_pagamento);
+            const paymentMethod = paymentMethodLabel(order.forma_pagamento ?? '');
             const nextStatus = getNextStatus(order.status);
             const deadline = getDeadlineState(order);
 
@@ -125,7 +127,7 @@ export function OrdersTable({
                 <td className="px-4 py-3">
                   <p className="font-extrabold text-ink">{total}</p>
                   <p className={`mt-1 text-xs font-bold ${paymentClassName(payment)}`}>
-                    {payment}
+                    {paymentMethod ? `${paymentMethod} · ${payment}` : payment}
                   </p>
                 </td>
                 <td className="px-4 py-3 text-right">
@@ -349,6 +351,7 @@ export function OrdersBoard({
                       productsById,
                     );
                     const payment = paymentLabel(order.status_pagamento);
+                    const paymentMethod = paymentMethodLabel(order.forma_pagamento ?? '');
                     const isUpdating = updatingStatusId === order.id;
                     const deadline = getDeadlineState(order);
 
@@ -406,7 +409,7 @@ export function OrdersBoard({
                               payment,
                             )}`}
                           >
-                            {payment}
+                            {paymentMethod ? `${paymentMethod} · ${payment}` : payment}
                           </span>
                         </div>
 

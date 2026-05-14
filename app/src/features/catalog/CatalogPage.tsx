@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
+  Download,
   Grid2X2,
   Image,
   Inbox,
@@ -39,6 +40,43 @@ function getInitialCatalogView(): CatalogView {
   return storedView === 'cards' || storedView === 'list' ? storedView : 'list';
 }
 
+function csvEscape(value: string | number | boolean | null | undefined) {
+  const normalizedValue = value === null || value === undefined ? '' : String(value);
+
+  return `"${normalizedValue.replace(/"/g, '""')}"`;
+}
+
+function buildCatalogCsv(products: Product[]) {
+  const headers = [
+    'ID',
+    'Nome',
+    'Categoria',
+    'Subcategoria',
+    'Tipo',
+    'Preco Base',
+    'Tempo Estimado',
+    'Status',
+    'Descricao',
+    'Imagem URL',
+  ];
+  const rows = products.map((product) => [
+    product.id,
+    product.nome,
+    product.categoria,
+    product.subcategoria,
+    product.tipo,
+    product.preco_base,
+    product.tempo_estimado,
+    product.ativo ? 'Ativo' : 'Inativo',
+    product.descricao,
+    product.imagem_url,
+  ]);
+
+  return [headers, ...rows]
+    .map((row) => row.map((value) => csvEscape(value)).join(';'))
+    .join('\n');
+}
+
 export function CatalogPage() {
   const user = getSession();
   const navigate = useNavigate();
@@ -51,6 +89,7 @@ export function CatalogPage() {
   const [pageSize, setPageSize] = useState(10);
   const [count, setCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [error, setError] = useState('');
 
@@ -146,6 +185,51 @@ export function CatalogPage() {
     }
   }
 
+  async function handleExportCatalog() {
+    setIsExporting(true);
+    setError('');
+
+    try {
+      const pageSizeForExport = 100;
+      let currentPage = 1;
+      let exportedProducts: Product[] = [];
+      let totalCount = 0;
+
+      do {
+        const response = await listProductsPage({
+          ativo: activeFilter,
+          page: currentPage,
+          pageSize: pageSizeForExport,
+          q: search,
+          tipo: typeFilter,
+        });
+
+        exportedProducts = [...exportedProducts, ...response.results];
+        totalCount = response.count;
+        currentPage += 1;
+      } while (exportedProducts.length < totalCount);
+
+      const csv = buildCatalogCsv(exportedProducts);
+      const blob = new Blob([`\uFEFF${csv}`], {
+        type: 'text/csv;charset=utf-8;',
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const date = new Date().toISOString().slice(0, 10);
+
+      link.href = url;
+      link.download = `catalogo-${date}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setError('Não foi possível exportar o catálogo.');
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
   return (
     <AppShell activePage="Catálogo">
       <header className="mb-5 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
@@ -155,19 +239,35 @@ export function CatalogPage() {
             Catálogo
           </h1>
         </div>
-        <button
-          className={[
-            'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-frenchRose px-4 text-sm font-bold text-white shadow-sm transition',
-            'hover:-translate-y-0.5 hover:bg-froly hover:shadow-lg',
-            'focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-froly/30',
-            'sm:min-h-9 sm:w-auto sm:text-xs',
-          ].join(' ')}
-          onClick={() => navigate('/catalogo/novo')}
-          type="button"
-        >
-          <Plus aria-hidden className="h-4 w-4" />
-          Novo Item
-        </button>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <button
+            className={[
+              'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm transition',
+              'hover:-translate-y-0.5 hover:bg-slate-50 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60',
+              'focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-froly/30',
+              'sm:min-h-9 sm:w-auto sm:text-xs',
+            ].join(' ')}
+            disabled={isExporting}
+            onClick={handleExportCatalog}
+            type="button"
+          >
+            <Download aria-hidden className="h-4 w-4" />
+            {isExporting ? 'Exportando...' : 'Exportar'}
+          </button>
+          <button
+            className={[
+              'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-frenchRose px-4 text-sm font-bold text-white shadow-sm transition',
+              'hover:-translate-y-0.5 hover:bg-froly hover:shadow-lg',
+              'focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-froly/30',
+              'sm:min-h-9 sm:w-auto sm:text-xs',
+            ].join(' ')}
+            onClick={() => navigate('/catalogo/novo')}
+            type="button"
+          >
+            <Plus aria-hidden className="h-4 w-4" />
+            Novo Item
+          </button>
+        </div>
       </header>
 
       {error ? (

@@ -65,6 +65,13 @@ export type OrderItemPayload = {
   valor_unitario: string;
 };
 
+export type CompleteOrderItemPayload = Omit<OrderItemPayload, 'pedido'>;
+
+export type CompleteOrderPayload = {
+  pedido: OrderPayload;
+  itens: CompleteOrderItemPayload[];
+};
+
 export type Product = {
   id: number;
   nome: string;
@@ -137,6 +144,16 @@ export function createOrder(payload: OrderPayload) {
     method: 'POST',
     body: payload,
   });
+}
+
+export function createCompleteOrder(payload: CompleteOrderPayload) {
+  return apiRequest<{ pedido: Order; itens: OrderItem[] }>(
+    '/api/pedidos/criar-completo/',
+    {
+      method: 'POST',
+      body: payload,
+    },
+  );
 }
 
 export function updateOrder(id: number, payload: OrderPatchPayload) {

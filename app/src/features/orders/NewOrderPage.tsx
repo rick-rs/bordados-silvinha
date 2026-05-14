@@ -6,12 +6,17 @@ import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
 import { TextField } from '../../components/ui/TextField';
 import { getSession } from '../../services/auth';
-import { Client, ClientPayload, createClient, listClients } from '../../services/clients';
 import {
-  createOrder,
-  createOrderItem,
+  Client,
+  ClientPayload,
+  createClient,
+  listClients,
+  searchCep,
+} from '../../services/clients';
+import {
+  CompleteOrderItemPayload,
+  createCompleteOrder,
   listProducts,
-  OrderItemPayload,
   OrderPayload,
   Product,
 } from '../../services/orders';
@@ -31,8 +36,6 @@ type OrderItemForm = {
   id: string;
   peca: string;
   produto: string;
-  local_bordado: string;
-  descricao_bordado: string;
   quantidade: string;
   valor_unitario: string;
 };
@@ -76,8 +79,6 @@ function createEmptyItem(): OrderItemForm {
     id: String(Date.now() + Math.random()),
     peca: '',
     produto: '',
-    local_bordado: '',
-    descricao_bordado: '',
     quantidade: '1',
     valor_unitario: '',
   };
@@ -102,6 +103,8 @@ export function NewOrderPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoadingOptions, setIsLoadingOptions] = useState(true);
   const [isCreatingClient, setIsCreatingClient] = useState(false);
+  const [isSearchingCep, setIsSearchingCep] = useState(false);
+  const [lastSearchedCep, setLastSearchedCep] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -138,12 +141,7 @@ export function NewOrderPage() {
     };
   }, []);
 
-  const embroideryProducts = products.filter(
-    (product) => product.ativo && product.tipo === 'bordado',
-  );
-  const productOptions = embroideryProducts.length > 0
-    ? embroideryProducts
-    : products.filter((product) => product.ativo);
+  const activeProducts = products.filter((product) => product.ativo);
   const total = items.reduce((currentTotal, item) => currentTotal + itemSubtotal(item), 0);
   const selectedClient = clients.find((client) => String(client.id) === form.cliente);
   const filteredClients = useMemo(() => {
@@ -165,6 +163,45 @@ export function NewOrderPage() {
     );
   }, [clientSearch, clients]);
 
+  useEffect(() => {
+    let isMounted = true;
+    const normalizedCep = quickClientForm.cep.replace(/\D/g, '');
+
+    if (normalizedCep.length !== 8 || normalizedCep === lastSearchedCep) {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(async () => {
+      setIsSearchingCep(true);
+
+      try {
+        const address = await searchCep(normalizedCep);
+
+        if (address && isMounted) {
+          setQuickClientForm((currentForm) => ({
+            ...currentForm,
+            cep: address.cep,
+            endereco: address.endereco || currentForm.endereco,
+            complemento: address.complemento || currentForm.complemento,
+            bairro: address.bairro || currentForm.bairro,
+            cidade: address.cidade || currentForm.cidade,
+            estado: address.estado || currentForm.estado,
+          }));
+        }
+      } finally {
+        if (isMounted) {
+          setLastSearchedCep(normalizedCep);
+          setIsSearchingCep(false);
+        }
+      }
+    }, 350);
+
+    return () => {
+      isMounted = false;
+      window.clearTimeout(timeoutId);
+    };
+  }, [quickClientForm.cep, lastSearchedCep]);
+
   if (!user) {
     return <Navigate replace to="/login" />;
   }
@@ -182,6 +219,29 @@ export function NewOrderPage() {
       currentItems.map((item) =>
         item.id === id ? { ...item, [field]: value } : item,
       ),
+    );
+  }
+
+  function updateCatalogItem(id: string, value: string) {
+    setItems((currentItems) =>
+      currentItems.map((item) => {
+        if (item.id !== id) {
+          return item;
+        }
+
+        const product = products.find(
+          (currentProduct) => String(currentProduct.id) === value,
+        );
+        const suggestedUnitValue = parseMoney(product?.preco_base ?? '');
+
+        return {
+          ...item,
+          produto: value,
+          peca: product?.nome ?? '',
+          valor_unitario:
+            suggestedUnitValue > 0 ? toDecimalString(suggestedUnitValue) : '',
+        };
+      }),
     );
   }
 
@@ -203,17 +263,19 @@ export function NewOrderPage() {
       return false;
     }
 
-    const hasInvalidItem = items.some(
-      (item) =>
-        !item.peca ||
+    const hasInvalidItem = items.some((item) => {
+      const quantity = Number.parseInt(item.quantidade, 10);
+
+      return (
         !item.produto ||
-        !item.local_bordado ||
-        Number.parseInt(item.quantidade, 10) <= 0 ||
-        parseMoney(item.valor_unitario) <= 0,
-    );
+        Number.isNaN(quantity) ||
+        quantity <= 0 ||
+        parseMoney(item.valor_unitario) <= 0
+      );
+    });
 
     if (hasInvalidItem) {
-      setError('Preencha peça, bordado, local, quantidade e valor de todos os itens.');
+      setError('Selecione o item, quantidade e valor de todos os itens.');
       return false;
     }
 
@@ -249,8 +311,12 @@ export function NewOrderPage() {
       setQuickClientForm(initialQuickClientForm);
       setClientMode('existing');
       setStep(2);
-    } catch {
-      setError('Não foi possível cadastrar o cliente rápido.');
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Não foi possível cadastrar o cliente rápido.',
+      );
     } finally {
       setIsCreatingClient(false);
     }
@@ -285,21 +351,26 @@ export function NewOrderPage() {
     };
 
     try {
-      const order = await createOrder(orderPayload);
-      const itemPayloads: OrderItemPayload[] = items.map((item) => ({
-        pedido: order.id,
+      const itemPayloads: CompleteOrderItemPayload[] = items.map((item) => ({
         produto: Number(item.produto),
         peca: item.peca,
-        local_bordado: item.local_bordado,
-        descricao_bordado: item.descricao_bordado,
+        local_bordado: '',
+        descricao_bordado: '',
         quantidade: Number.parseInt(item.quantidade, 10),
         valor_unitario: toDecimalString(parseMoney(item.valor_unitario)),
       }));
 
-      await Promise.all(itemPayloads.map((itemPayload) => createOrderItem(itemPayload)));
+      await createCompleteOrder({
+        pedido: orderPayload,
+        itens: itemPayloads,
+      });
       navigate('/pedidos', { replace: true });
-    } catch {
-      setError('Não foi possível salvar a encomenda.');
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Não foi possível salvar a encomenda.',
+      );
     } finally {
       setIsSaving(false);
     }
@@ -444,7 +515,7 @@ export function NewOrderPage() {
                 />
                 <div className="grid gap-4 sm:grid-cols-2">
                   <TextField
-                    label="CEP"
+                    label={isSearchingCep ? 'CEP (buscando...)' : 'CEP'}
                     name="quick_cep"
                     onChange={(event) =>
                       updateQuickClientField('cep', event.target.value)
@@ -628,8 +699,9 @@ export function NewOrderPage() {
             addItem={addItem}
             isLoadingOptions={isLoadingOptions}
             items={items}
-            productOptions={productOptions}
+            productOptions={activeProducts}
             removeItem={removeItem}
+            updateCatalogItem={updateCatalogItem}
             updateItem={updateItem}
           />
         </section>
@@ -696,6 +768,7 @@ function OrderItemsForm({
   items,
   productOptions,
   removeItem,
+  updateCatalogItem,
   updateItem,
 }: {
   addItem: () => void;
@@ -703,6 +776,7 @@ function OrderItemsForm({
   items: OrderItemForm[];
   productOptions: Product[];
   removeItem: (id: string) => void;
+  updateCatalogItem: (id: string, value: string) => void;
   updateItem: (id: string, field: keyof OrderItemForm, value: string) => void;
 }) {
   return (
@@ -739,52 +813,25 @@ function OrderItemsForm({
               </button>
             </div>
 
-            <div className="grid gap-4 lg:grid-cols-[1.1fr_1.2fr_1.2fr_1.4fr_110px_140px_140px]">
-              <TextField
-                label="Peça *"
-                name={`peca-${item.id}`}
-                onChange={(event) => updateItem(item.id, 'peca', event.target.value)}
-                required
-                value={item.peca}
-              />
-
+            <div className="grid gap-4 lg:grid-cols-[minmax(260px,1.4fr)_110px_140px_140px]">
               <label className="grid gap-2" htmlFor={`produto-${item.id}`}>
-                <span className="text-sm font-bold text-mauve">Bordado *</span>
+                <span className="text-sm font-bold text-mauve">Peça ou Bordado *</span>
                 <select
                   className="min-h-12 w-full rounded-lg border border-frenchRose/20 bg-white px-4 text-ink outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
                   disabled={isLoadingOptions}
                   id={`produto-${item.id}`}
-                  onChange={(event) => updateItem(item.id, 'produto', event.target.value)}
+                  onChange={(event) => updateCatalogItem(item.id, event.target.value)}
                   required
                   value={item.produto}
                 >
                   <option value="">Selecione</option>
                   {productOptions.map((product) => (
                     <option key={product.id} value={product.id}>
-                      {product.nome}
+                      {product.nome} - {formatCurrency(product.preco_base) ?? 'R$ 0,00'}
                     </option>
                   ))}
                 </select>
               </label>
-
-              <TextField
-                label="Local do bordado *"
-                name={`local-${item.id}`}
-                onChange={(event) =>
-                  updateItem(item.id, 'local_bordado', event.target.value)
-                }
-                required
-                value={item.local_bordado}
-              />
-
-              <TextField
-                label="Descrição do Bordado"
-                name={`descricao-${item.id}`}
-                onChange={(event) =>
-                  updateItem(item.id, 'descricao_bordado', event.target.value)
-                }
-                value={item.descricao_bordado}
-              />
 
               <TextField
                 label="Quantidade"
@@ -884,12 +931,11 @@ function OrderSummary({
               >
                 <div>
                   <p className="text-sm font-extrabold text-ink">
-                    {item.quantidade}x {item.peca}
+                    {item.quantidade}x {product?.nome ?? item.peca}
                   </p>
                   <p className="mt-1 text-xs text-slate-600">
-                    {product?.nome ?? 'Bordado não selecionado'} ·{' '}
-                    {item.local_bordado || 'Local não informado'} ·{' '}
-                    {item.descricao_bordado || 'Sem descrição'}
+                    {product?.tipo === 'bordado' ? 'Bordado' : 'Peça'} · Valor unit.{' '}
+                    {formatCurrency(parseMoney(item.valor_unitario)) ?? 'R$ 0,00'}
                   </p>
                 </div>
                 <p className="text-sm font-extrabold text-frenchRose">

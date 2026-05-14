@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { History, Pencil, Plus, TrendingDown, TrendingUp } from 'lucide-react';
+import { AlertTriangle, History, Pencil, Plus } from 'lucide-react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
@@ -182,6 +182,20 @@ export function StockDetailPage() {
               <DetailItem label="Situação" value={isLow ? 'Reposição' : 'Ok'} />
               <DetailItem label="Descrição" value={material.descricao} />
             </dl>
+            {isLow ? (
+              <div className="px-5 pb-5">
+                <div className="relative inline-flex max-w-full items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm shadow-sm after:absolute after:-bottom-2 after:left-7 after:h-4 after:w-4 after:rotate-45 after:border-b after:border-r after:border-amber-200 after:bg-amber-50">
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white text-amber-600">
+                    <AlertTriangle aria-hidden className="h-4 w-4" />
+                  </span>
+                  <p className="font-bold text-amber-900">
+                    Estoque abaixo do mínimo: {material.quantidade_atual}{' '}
+                    {material.unidade_medida} disponíveis para mínimo de{' '}
+                    {material.estoque_minimo}.
+                  </p>
+                </div>
+              </div>
+            ) : null}
           </section>
 
           <section className="grid gap-5 lg:grid-cols-[360px_1fr]">
@@ -259,43 +273,48 @@ export function StockDetailPage() {
                 </h2>
               </div>
               {movements.length > 0 ? (
-                <div className="divide-y divide-slate-100">
-                  {movements.map((movement) => {
-                    const isEntry = movement.tipo === 'entrada';
-                    const Icon = isEntry ? TrendingUp : TrendingDown;
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[680px] border-collapse text-left text-sm">
+                    <thead className="bg-slate-50 text-xs font-bold text-slate-500">
+                      <tr>
+                        <th className="px-4 py-3">Data</th>
+                        <th className="px-4 py-3">Tipo</th>
+                        <th className="px-4 py-3">Quantidade</th>
+                        <th className="px-4 py-3">Observação</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {movements.map((movement) => {
+                        const isEntry = movement.tipo === 'entrada';
 
-                    return (
-                      <div
-                        className="grid gap-3 px-4 py-3 sm:grid-cols-[1fr_auto]"
-                        key={movement.id}
-                      >
-                        <div className="flex items-start gap-3">
-                          <span
-                            className={[
-                              'mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full',
-                              isEntry
-                                ? 'bg-emerald-50 text-emerald-600'
-                                : 'bg-rose-50 text-rose-600',
-                            ].join(' ')}
-                          >
-                            <Icon aria-hidden className="h-4 w-4" />
-                          </span>
-                          <div>
-                            <p className="text-sm font-extrabold text-ink">
-                              {isEntry ? 'Entrada' : 'Saída'} de {movement.quantidade}{' '}
-                              {material.unidade_medida}
-                            </p>
-                            <p className="mt-1 text-xs text-slate-500">
-                              {movement.observacao || 'Sem observação'}
-                            </p>
-                          </div>
-                        </div>
-                        <p className="text-xs font-bold text-slate-500 sm:text-right">
-                          {formatDateTime(movement.registrado_em)}
-                        </p>
-                      </div>
-                    );
-                  })}
+                        return (
+                          <tr className="bg-white" key={movement.id}>
+                            <td className="px-4 py-3 text-xs font-bold text-slate-500">
+                              {formatDateTime(movement.registrado_em)}
+                            </td>
+                            <td className="px-4 py-3">
+                              <span
+                                className={[
+                                  'rounded-full px-2 py-1 text-xs font-bold',
+                                  isEntry
+                                    ? 'bg-emerald-50 text-emerald-700'
+                                    : 'bg-rose-50 text-rose-700',
+                                ].join(' ')}
+                              >
+                                {isEntry ? 'Entrada' : 'Saída'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 font-extrabold text-ink">
+                              {movement.quantidade} {material.unidade_medida}
+                            </td>
+                            <td className="px-4 py-3 text-slate-600">
+                              {movement.observacao || '-'}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               ) : (
                 <div className="grid min-h-40 place-items-center px-6 py-8 text-center">
