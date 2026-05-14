@@ -9,6 +9,7 @@ import { PageHeader } from '../../components/ui/PageHeader';
 import { Surface } from '../../components/ui/Surface';
 import { TextField } from '../../components/ui/TextField';
 import { getSession } from '../../services/auth';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import {
   createMaterial,
   getMaterial,
@@ -32,6 +33,8 @@ function StockFormPage({ mode }: { mode: 'create' | 'edit' }) {
   const [isLoading, setIsLoading] = useState(mode === 'edit');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   const isEditing = mode === 'edit';
 
   useEffect(() => {
@@ -90,25 +93,34 @@ function StockFormPage({ mode }: { mode: 'create' | 'edit' }) {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const materialId = Number(id);
-
-    if (isEditing && !materialId) {
-      setError('Material inválido.');
+    if (isEditing) {
+      setShowConfirm(true);
       return;
     }
+    await handleConfirmSave();
+  }
 
+  async function handleConfirmSave() {
+    const materialId = Number(id);
+    if (isEditing && !materialId) {
+      setError('Material inválido.');
+      setShowConfirm(false);
+      return;
+    }
     setIsSaving(true);
     setError('');
-
     try {
       const material = isEditing
         ? await updateMaterial(materialId, form)
         : await createMaterial(form);
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
       navigate(`/estoque/${material.id}`, { replace: true });
     } catch {
       setError('Não foi possível salvar o material.');
     } finally {
       setIsSaving(false);
+      setShowConfirm(false);
     }
   }
 
@@ -178,6 +190,11 @@ function StockFormPage({ mode }: { mode: 'create' | 'edit' }) {
             />
 
             <AlertMessage className="mb-0">{error}</AlertMessage>
+            {showSuccess && (
+              <AlertMessage className="mb-0 bg-green-100 border-green-400 text-green-700">
+                Item de estoque salvo com sucesso!
+              </AlertMessage>
+            )}
 
             <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
               <button
@@ -199,6 +216,17 @@ function StockFormPage({ mode }: { mode: 'create' | 'edit' }) {
           </form>
         )}
       </Surface>
+      <ConfirmDialog
+        isOpen={showConfirm}
+        onCancel={() => setShowConfirm(false)}
+        onConfirm={handleConfirmSave}
+        isLoading={isSaving}
+        title="Confirmar alteração"
+        description="Você tem certeza que deseja salvar as alterações? Esta ação não pode ser desfeita."
+        tone="warning"
+        confirmLabel="Salvar"
+        cancelLabel="Cancelar"
+      />
     </AppShell>
   );
 }

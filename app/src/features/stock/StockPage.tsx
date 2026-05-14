@@ -12,6 +12,7 @@ import {
 import { Navigate, useNavigate } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { AlertMessage, EmptyState, LoadingRows } from '../../components/ui/Feedback';
 import { FilterToolbar } from '../../components/ui/FilterToolbar';
 import { SelectField, TextAreaField } from '../../components/ui/FormFields';
@@ -63,7 +64,9 @@ export function StockPage() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [error, setError] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
-
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<Material | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
   useEffect(() => {
     let isMounted = true;
 
@@ -153,28 +156,29 @@ export function StockPage() {
   }
 
   async function handleDelete(material: Material) {
-    const confirmed = window.confirm(
-      `Excluir "${material.nome}" do estoque? Esta ação não pode ser desfeita.`,
-    );
+    setPendingDelete(material);
+    setShowConfirm(true);
+  }
 
-    if (!confirmed) {
-      return;
-    }
-
-    setDeletingId(material.id);
+  async function handleConfirmDelete() {
+    if (!pendingDelete) return;
+    setDeletingId(pendingDelete.id);
     setError('');
-
+    setShowConfirm(false);
     try {
-      await deleteMaterial(material.id);
+      await deleteMaterial(pendingDelete.id);
       setMaterials((currentMaterials) =>
         currentMaterials.filter(
-          (currentMaterial) => currentMaterial.id !== material.id,
+          (currentMaterial) => currentMaterial.id !== pendingDelete.id,
         ),
       );
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
     } catch {
       setError('Não foi possível excluir o item de estoque.');
     } finally {
       setDeletingId(null);
+      setPendingDelete(null);
     }
   }
 
@@ -262,6 +266,11 @@ export function StockPage() {
       />
 
       <AlertMessage>{error}</AlertMessage>
+      {showSuccess && (
+        <AlertMessage className="mb-0 bg-green-100 border-green-400 text-green-700">
+          Item excluído com sucesso!
+        </AlertMessage>
+      )}
 
       {isBulkMovementOpen ? (
         <Surface as="section" className="mb-5">
@@ -558,6 +567,17 @@ export function StockPage() {
           />
         ) : null}
       </Surface>
+      <ConfirmDialog
+        isOpen={showConfirm}
+        onCancel={() => setShowConfirm(false)}
+        onConfirm={handleConfirmDelete}
+        isLoading={deletingId !== null}
+        title="Confirmar exclusão"
+        description="Você tem certeza que deseja excluir este item? Esta ação não pode ser desfeita."
+        tone="danger"
+        confirmLabel="Excluir"
+        cancelLabel="Cancelar"
+      />
 
       <Surface className="mt-5">
         <SurfaceHeader className="flex items-center gap-2">

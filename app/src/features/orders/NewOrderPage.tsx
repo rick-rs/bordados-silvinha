@@ -5,6 +5,8 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
 import { TextField } from '../../components/ui/TextField';
+import { AlertMessage } from '../../components/ui/Feedback';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { getSession } from '../../services/auth';
 import {
   Client,
@@ -107,6 +109,7 @@ export function NewOrderPage() {
   const [lastSearchedCep, setLastSearchedCep] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+  const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -364,6 +367,8 @@ export function NewOrderPage() {
         pedido: orderPayload,
         itens: itemPayloads,
       });
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
       navigate('/pedidos', { replace: true });
     } catch (requestError) {
       setError(
@@ -387,11 +392,12 @@ export function NewOrderPage() {
         </h1>
       </header>
 
-      {error ? (
-        <p className="mb-5 rounded-lg border border-frenchRose/30 bg-chantilly/40 px-4 py-3 text-sm leading-relaxed text-rose-900">
-          {error}
-        </p>
-      ) : null}
+      <AlertMessage className="mb-0">{error}</AlertMessage>
+      {showSuccess && (
+        <AlertMessage className="mb-0 bg-green-100 border-green-400 text-green-700">
+          Pedido salvo com sucesso!
+        </AlertMessage>
+      )}
 
       <OrderStepIndicator currentStep={step} />
 

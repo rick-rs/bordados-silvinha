@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
@@ -47,7 +48,9 @@ function CatalogFormPage({ mode }: CatalogFormPageProps) {
   const [form, setForm] = useState<ProductPayload>(initialForm);
   const [isLoading, setIsLoading] = useState(mode === 'edit');
   const [isSaving, setIsSaving] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState('');
+  const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     if (mode === 'create') {
@@ -109,10 +112,15 @@ function CatalogFormPage({ mode }: CatalogFormPageProps) {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setShowConfirm(true);
+  }
+
+  async function handleConfirmSave() {
     const productId = Number(id);
 
     if (mode === 'edit' && !productId) {
       setError('Item inválido.');
+      setShowConfirm(false);
       return;
     }
 
@@ -133,6 +141,11 @@ function CatalogFormPage({ mode }: CatalogFormPageProps) {
       );
     } finally {
       setIsSaving(false);
+      setShowConfirm(false);
+      if (!error && mode === 'edit') {
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 3000);
+      }
     }
   }
 
@@ -233,6 +246,11 @@ function CatalogFormPage({ mode }: CatalogFormPageProps) {
             />
 
             <AlertMessage className="mb-0">{error}</AlertMessage>
+            {showSuccess && (
+              <AlertMessage className="mb-0 bg-green-100 border-green-400 text-green-700">
+                Produto salvo com sucesso!
+              </AlertMessage>
+            )}
 
             <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
               <button
@@ -253,6 +271,17 @@ function CatalogFormPage({ mode }: CatalogFormPageProps) {
             </div>
           </form>
         )}
+        <ConfirmDialog
+          isOpen={showConfirm}
+          onCancel={() => setShowConfirm(false)}
+          onConfirm={handleConfirmSave}
+          isLoading={isSaving}
+          title="Confirmar alteração"
+          description="Você tem certeza que deseja salvar as alterações? Esta ação não pode ser desfeita."
+          tone="warning"
+          confirmLabel="Salvar"
+          cancelLabel="Cancelar"
+        />
       </Surface>
     </AppShell>
   );

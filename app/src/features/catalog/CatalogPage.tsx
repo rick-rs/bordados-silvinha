@@ -14,6 +14,7 @@ import { Navigate, useNavigate } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
 import { AlertMessage, EmptyState, LoadingRows } from '../../components/ui/Feedback';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { FilterToolbar } from '../../components/ui/FilterToolbar';
 import { IconButton } from '../../components/ui/IconButton';
 import { PageHeader } from '../../components/ui/PageHeader';
@@ -163,29 +164,34 @@ export function CatalogPage() {
     return <Navigate replace to="/login" />;
   }
 
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<Product | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
+
   async function handleDelete(product: Product) {
-    const confirmed = window.confirm(
-      `Excluir "${product.nome}" do catálogo? Esta ação não pode ser desfeita.`,
-    );
+    setPendingDelete(product);
+    setShowConfirm(true);
+  }
 
-    if (!confirmed) {
-      return;
-    }
-
-    setDeletingId(product.id);
+  async function handleConfirmDelete() {
+    if (!pendingDelete) return;
+    setDeletingId(pendingDelete.id);
     setError('');
-
+    setShowConfirm(false);
     try {
-      await deleteProduct(product.id);
+      await deleteProduct(pendingDelete.id);
       setProducts((currentProducts) =>
-        currentProducts.filter((currentProduct) => currentProduct.id !== product.id),
+        currentProducts.filter((currentProduct) => currentProduct.id !== pendingDelete.id),
       );
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
     } catch {
       setError(
         'Não foi possível excluir o item. Verifique se ele possui pedidos vinculados.',
       );
     } finally {
       setDeletingId(null);
+      setPendingDelete(null);
     }
   }
 
@@ -273,6 +279,11 @@ export function CatalogPage() {
       />
 
       <AlertMessage>{error}</AlertMessage>
+      {showSuccess && (
+        <AlertMessage className="mb-0 bg-green-100 border-green-400 text-green-700">
+          Item excluído com sucesso!
+        </AlertMessage>
+      )}
 
       <Surface>
         <FilterToolbar
@@ -523,6 +534,17 @@ export function CatalogPage() {
           />
         ) : null}
       </Surface>
+      <ConfirmDialog
+        isOpen={showConfirm}
+        onCancel={() => setShowConfirm(false)}
+        onConfirm={handleConfirmDelete}
+        isLoading={deletingId !== null}
+        title="Confirmar exclusão"
+        description="Você tem certeza que deseja excluir este item? Esta ação não pode ser desfeita."
+        tone="danger"
+        confirmLabel="Excluir"
+        cancelLabel="Cancelar"
+      />
     </AppShell>
   );
 }

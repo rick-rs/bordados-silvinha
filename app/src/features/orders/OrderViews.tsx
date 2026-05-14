@@ -329,7 +329,7 @@ export function OrdersBoard({
 
   return (
     <div className="overflow-x-auto bg-slate-50/60 p-4">
-      <div className="grid min-w-[1180px] grid-cols-6 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3 min-w-full">
         {statusOptions.map((status) => {
           const columnOrders = ordersByStatus.get(status) ?? [];
           const isDraggingOver = dragOverStatus === status;
@@ -404,7 +404,7 @@ export function OrdersBoard({
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <div className="flex flex-wrap items-center gap-2">
-                              <p className="text-sm font-extrabold text-ink">
+                              <p className="text-sm font-extrabold text-ink truncate max-w-[140px]">
                                 {client?.nome ?? `Cliente #${order.cliente}`}
                               </p>
                               {order.urgente ? (
@@ -426,7 +426,7 @@ export function OrdersBoard({
                             ) : null}
                           </div>
                           <span
-                            className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-bold ${paymentClassName(
+                            className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-bold break-words ${paymentClassName(
                               payment,
                             )}`}
                           >
@@ -434,7 +434,7 @@ export function OrdersBoard({
                           </span>
                         </div>
 
-                        <p className="mt-3 line-clamp-2 text-xs leading-relaxed text-slate-600">
+                        <p className="mt-3 line-clamp-2 text-xs leading-relaxed text-slate-600 break-words">
                           {itemSummary}
                         </p>
 

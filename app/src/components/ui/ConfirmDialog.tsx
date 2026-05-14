@@ -13,7 +13,7 @@ type ConfirmDialogProps = {
   onCancel: () => void;
   onConfirm: () => void;
   title: string;
-  tone?: 'danger' | 'neutral';
+  tone?: 'danger' | 'neutral' | 'warning' | 'success' | 'info';
 };
 
 export function ConfirmDialog({
@@ -33,6 +33,34 @@ export function ConfirmDialog({
   }
 
   const isDanger = tone === 'danger';
+  const isWarning = tone === 'warning';
+  const isSuccess = tone === 'success';
+  const isInfo = tone === 'info';
+
+  // Color schemes for each tone
+  const toneStyles = {
+    danger: {
+      icon: 'bg-rose-50 text-rose-700',
+      button: 'bg-rose-600 hover:bg-rose-500 disabled:hover:bg-rose-600',
+    },
+    warning: {
+      icon: 'bg-yellow-50 text-yellow-700',
+      button: 'bg-yellow-500 hover:bg-yellow-400 disabled:hover:bg-yellow-500',
+    },
+    success: {
+      icon: 'bg-green-50 text-green-700',
+      button: 'bg-green-600 hover:bg-green-500 disabled:hover:bg-green-600',
+    },
+    info: {
+      icon: 'bg-blue-50 text-blue-700',
+      button: 'bg-blue-600 hover:bg-blue-500 disabled:hover:bg-blue-600',
+    },
+    neutral: {
+      icon: 'bg-slate-100 text-slate-600',
+      button: '',
+    },
+  };
+  const currentTone = toneStyles[tone] || toneStyles['danger'];
 
   return (
     <div
@@ -45,7 +73,7 @@ export function ConfirmDialog({
           <span
             className={[
               'grid h-10 w-10 shrink-0 place-items-center rounded-full',
-              isDanger ? 'bg-rose-50 text-rose-700' : 'bg-slate-100 text-slate-600',
+              currentTone.icon,
             ].join(' ')}
           >
             <AlertTriangle aria-hidden className="h-5 w-5" />
@@ -74,9 +102,7 @@ export function ConfirmDialog({
           <Button
             className={[
               'min-h-11 px-4 text-sm',
-              isDanger
-                ? 'bg-rose-600 hover:bg-rose-500 disabled:hover:bg-rose-600'
-                : '',
+              currentTone.button,
             ].join(' ')}
             isLoading={isLoading}
             loadingLabel="Processando..."

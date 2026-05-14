@@ -4,6 +4,8 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
 import { TextField } from '../../components/ui/TextField';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { AlertMessage } from '../../components/ui/Feedback';
 import { getSession } from '../../services/auth';
 import { Client, listClients } from '../../services/clients';
 import {
@@ -79,6 +81,8 @@ export function OrderEditPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -143,10 +147,15 @@ export function OrderEditPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setShowConfirm(true);
+  }
+
+  async function handleConfirmSave() {
     const orderId = Number(id);
 
     if (!orderId) {
       setError('Pedido inválido.');
+      setShowConfirm(false);
       return;
     }
 
@@ -176,11 +185,14 @@ export function OrderEditPage() {
 
     try {
       const order = await updateOrder(orderId, payload);
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
       navigate(`/pedidos/${order.id}`, { replace: true });
     } catch {
       setError('Não foi possível salvar as alterações do pedido.');
     } finally {
       setIsSaving(false);
+      setShowConfirm(false);
     }
   }
 
@@ -381,11 +393,12 @@ export function OrderEditPage() {
               />
             </label>
 
-            {error ? (
-              <p className="rounded-lg border border-frenchRose/30 bg-chantilly/40 px-4 py-3 text-sm leading-relaxed text-rose-900">
-                {error}
-              </p>
-            ) : null}
+            <AlertMessage className="mb-0">{error}</AlertMessage>
+            {showSuccess && (
+              <AlertMessage className="mb-0 bg-green-100 border-green-400 text-green-700">
+                Pedido salvo com sucesso!
+              </AlertMessage>
+            )}
 
             <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
               <button
@@ -407,6 +420,17 @@ export function OrderEditPage() {
           </form>
         )}
       </section>
+      <ConfirmDialog
+        isOpen={showConfirm}
+        onCancel={() => setShowConfirm(false)}
+        onConfirm={handleConfirmSave}
+        isLoading={isSaving}
+        title="Confirmar alteração"
+        description="Você tem certeza que deseja salvar as alterações? Esta ação não pode ser desfeita."
+        tone="warning"
+        confirmLabel="Salvar"
+        cancelLabel="Cancelar"
+      />
     </AppShell>
   );
 }

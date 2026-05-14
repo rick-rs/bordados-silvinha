@@ -4,6 +4,7 @@ import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
 import { AlertMessage, EmptyState, LoadingRows } from '../../components/ui/Feedback';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { FilterToolbar } from '../../components/ui/FilterToolbar';
 import { IconButton } from '../../components/ui/IconButton';
 import { PageHeader } from '../../components/ui/PageHeader';
@@ -49,6 +50,9 @@ export function ClientsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [error, setError] = useState('');
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<Client | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -107,28 +111,29 @@ export function ClientsPage() {
   }
 
   async function handleDelete(client: Client) {
-    const confirmed = window.confirm(
-      `Excluir o cliente "${client.nome}"? Esta ação não pode ser desfeita.`,
-    );
+    setPendingDelete(client);
+    setShowConfirm(true);
+  }
 
-    if (!confirmed) {
-      return;
-    }
-
-    setDeletingId(client.id);
+  async function handleConfirmDelete() {
+    if (!pendingDelete) return;
+    setDeletingId(pendingDelete.id);
     setError('');
-
+    setShowConfirm(false);
     try {
-      await deleteClient(client.id);
+      await deleteClient(pendingDelete.id);
       setClients((currentClients) =>
-        currentClients.filter((currentClient) => currentClient.id !== client.id),
+        currentClients.filter((currentClient) => currentClient.id !== pendingDelete.id),
       );
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
     } catch {
       setError(
         'Não foi possível excluir o cliente. Verifique se ele possui pedidos vinculados.',
       );
     } finally {
       setDeletingId(null);
+      setPendingDelete(null);
     }
   }
 
@@ -153,7 +158,16 @@ export function ClientsPage() {
         title="Clientes"
       />
 
-      <AlertMessage>{error}</AlertMessage>
+      {!!error && (
+        <AlertMessage className="mb-4 bg-rose-100 border-rose-400 text-rose-700">
+          {error}
+        </AlertMessage>
+      )}
+      {showSuccess && (
+        <AlertMessage className="mb-0 bg-green-100 border-green-400 text-green-700">
+          Item excluído com sucesso!
+        </AlertMessage>
+      )}
 
       <Surface>
         <FilterToolbar
@@ -275,6 +289,17 @@ export function ClientsPage() {
           />
         ) : null}
       </Surface>
+      <ConfirmDialog
+        isOpen={showConfirm}
+        onCancel={() => setShowConfirm(false)}
+        onConfirm={handleConfirmDelete}
+        isLoading={deletingId !== null}
+        title="Confirmar exclusão"
+        description="Você tem certeza que deseja excluir este item? Esta ação não pode ser desfeita."
+        tone="danger"
+        confirmLabel="Excluir"
+        cancelLabel="Cancelar"
+      />
     </AppShell>
   );
 }
@@ -287,6 +312,7 @@ export function NewClientPage() {
   const [isSearchingCep, setIsSearchingCep] = useState(false);
   const [lastSearchedCep, setLastSearchedCep] = useState('');
   const [error, setError] = useState('');
+  const [showSuccess, setShowSuccess] = useState(false);
 
   function updateField(field: keyof ClientPayload, value: string) {
     setForm((currentForm) => ({ ...currentForm, [field]: value }));
@@ -339,9 +365,10 @@ export function NewClientPage() {
     event.preventDefault();
     setError('');
     setIsSaving(true);
-
     try {
       await createClient(form);
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
       navigate('/clientes', { replace: true });
     } catch {
       setError('Não foi possível salvar o cliente.');
@@ -350,19 +377,28 @@ export function NewClientPage() {
     }
   }
 
+  // Removido bloco duplicado de verificação de login e handleSubmit
+
   return (
-    <ClientFormPage
-      breadcrumb="Dashboard / Clientes / Novo Cliente"
-      error={error}
-      form={form}
-      isSaving={isSaving}
-      isSearchingCep={isSearchingCep}
-      onCancel={() => navigate('/clientes')}
-      onChange={updateField}
-      onSubmit={handleSubmit}
-      submitLabel="Salvar"
-      title="Novo Cliente"
-    />
+    <>
+      <ClientFormPage
+        breadcrumb="Dashboard / Clientes / Novo Cliente"
+        error={error}
+        form={form}
+        isSaving={isSaving}
+        isSearchingCep={isSearchingCep}
+        onCancel={() => navigate('/clientes')}
+        onChange={updateField}
+        onSubmit={handleSubmit}
+        submitLabel="Salvar"
+        title="Novo Cliente"
+      />
+      {showSuccess && (
+        <AlertMessage className="mb-0 bg-green-100 border-green-400 text-green-700">
+          Cliente salvo com sucesso!
+        </AlertMessage>
+      )}
+    </>
   );
 }
 
@@ -376,6 +412,8 @@ export function EditClientPage() {
   const [isSearchingCep, setIsSearchingCep] = useState(false);
   const [lastSearchedCep, setLastSearchedCep] = useState('');
   const [error, setError] = useState('');
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -474,40 +512,63 @@ export function EditClientPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const clientId = Number(id);
+    setShowConfirm(true);
+  }
 
+  async function handleConfirmSave() {
+    const clientId = Number(id);
     if (!clientId) {
       setError('Cliente inválido.');
+      setShowConfirm(false);
       return;
     }
-
     setIsSaving(true);
     setError('');
-
     try {
       const client = await updateClient(clientId, form);
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
       navigate(`/clientes/${client.id}`, { replace: true });
     } catch {
       setError('Não foi possível salvar as alterações do cliente.');
     } finally {
       setIsSaving(false);
+      setShowConfirm(false);
     }
   }
 
   return (
-    <ClientFormPage
-      breadcrumb="Dashboard / Clientes / Editar Cliente"
-      error={error}
-      form={form}
-      isLoading={isLoading}
-      isSaving={isSaving}
-      isSearchingCep={isSearchingCep}
-      onCancel={() => navigate(`/clientes/${id}`)}
-      onChange={updateField}
-      onSubmit={handleSubmit}
-      submitLabel="Salvar Alterações"
-      title="Editar Cliente"
-    />
+    <>
+      <ClientFormPage
+        breadcrumb="Dashboard / Clientes / Editar Cliente"
+        error={error}
+        form={form}
+        isLoading={isLoading}
+        isSaving={isSaving}
+        isSearchingCep={isSearchingCep}
+        onCancel={() => navigate(`/clientes/${id}`)}
+        onChange={updateField}
+        onSubmit={handleSubmit}
+        submitLabel="Salvar Alterações"
+        title="Editar Cliente"
+      />
+      <ConfirmDialog
+        isOpen={showConfirm}
+        onCancel={() => setShowConfirm(false)}
+        onConfirm={handleConfirmSave}
+        isLoading={isSaving}
+        title="Confirmar alteração"
+        description="Você tem certeza que deseja salvar as alterações? Esta ação não pode ser desfeita."
+        tone="warning"
+        confirmLabel="Salvar"
+        cancelLabel="Cancelar"
+      />
+      {showSuccess && (
+        <AlertMessage className="mb-0 bg-green-100 border-green-400 text-green-700">
+          Cliente salvo com sucesso!
+        </AlertMessage>
+      )}
+    </>
   );
 }
 
