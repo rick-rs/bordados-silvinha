@@ -44,13 +44,13 @@ export function AppShell({ activePage, children }: AppShellProps) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-ink">
+    <div className="min-h-screen bg-ice text-graphite">
       <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur md:hidden">
-        <Link className="text-sm font-extrabold text-frenchRose" to="/dashboard">
+        <Link className="text-sm font-extrabold text-primary-dark" to="/dashboard">
           <AppBrand compact />
         </Link>
         <button
-          className="rounded-md px-3 py-2 text-xs font-bold text-frenchRose hover:bg-chantilly/35"
+          className="rounded-md px-3 py-2 text-xs font-bold text-primary-dark hover:bg-primary/10"
           onClick={handleLogout}
           type="button"
         >
@@ -59,10 +59,7 @@ export function AppShell({ activePage, children }: AppShellProps) {
       </header>
 
       <aside className="fixed inset-y-0 left-0 hidden w-40 border-r border-slate-200 bg-white md:flex md:flex-col">
-        <Link
-          className="flex h-14 items-center gap-2 px-4 text-sm font-extrabold text-frenchRose"
-          to="/dashboard"
-        >
+        <Link className="flex h-14 items-center gap-2 px-4 text-sm font-extrabold text-primary-dark" to="/dashboard">
           <AppBrand compact />
         </Link>
 
@@ -83,7 +80,7 @@ export function AppShell({ activePage, children }: AppShellProps) {
           />
 
           <button
-            className="mt-2 flex h-9 w-full items-center gap-2 rounded-md px-3 text-left text-xs font-semibold text-frenchRose hover:bg-chantilly/35"
+            className="mt-2 flex h-9 w-full items-center gap-2 rounded-md px-3 text-left text-xs font-semibold text-primary-dark hover:bg-primary/10"
             onClick={handleLogout}
             type="button"
           >
@@ -108,7 +105,7 @@ export function AppShell({ activePage, children }: AppShellProps) {
                   className={[
                     'flex min-w-20 flex-col items-center justify-center gap-1 rounded-md px-3 py-2 text-[11px] font-bold transition',
                     activePage === item.label
-                      ? 'bg-chantilly/55 text-frenchRose'
+                      ? 'bg-primary text-white'
                       : 'text-slate-600 hover:bg-slate-100 hover:text-ink',
                   ].join(' ')}
                   key={item.label}
@@ -134,7 +131,7 @@ function NavItemLink({ active, item }: { active: boolean; item: NavItem }) {
       className={[
         'flex h-9 items-center gap-2 rounded-md px-3 text-left text-xs font-semibold transition',
         active
-          ? 'bg-chantilly/45 text-frenchRose'
+          ? 'bg-primary/10 text-primary-dark'
           : 'text-slate-600 hover:bg-slate-100 hover:text-ink',
       ].join(' ')}
       to={item.path}

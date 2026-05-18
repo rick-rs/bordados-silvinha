@@ -76,7 +76,7 @@ export function OrdersTable({
             return (
               <tr
                 className={[
-                  'cursor-pointer align-top transition hover:bg-chantilly/20',
+                  'cursor-pointer align-top transition hover:bg-primary/5',
                   isCanceled ? 'bg-slate-50 opacity-75' : 'bg-white',
                   !isCanceled && deadline?.label.startsWith('Atrasado')
                     ? 'border-l-4 border-l-rose-400'
@@ -93,7 +93,7 @@ export function OrdersTable({
                       {formatOrderNumber(order.id)}
                     </p>
                     {order.urgente ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2 py-0.5 text-[11px] font-extrabold text-rose-700">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-danger/10 px-2 py-0.5 text-[11px] font-extrabold text-danger">
                         <Flag aria-hidden className="h-3 w-3" />
                         Urgente
                       </span>
@@ -105,7 +105,7 @@ export function OrdersTable({
                 </td>
                 <td className="max-w-80 px-4 py-3 text-slate-600">{itemSummary}</td>
                 <td className="px-4 py-3">
-                  <p className="font-extrabold text-frenchRose">
+                  <p className="font-extrabold text-primary-dark">
                     {formatDate(order.prazo)}
                   </p>
                   {deadline ? (
@@ -157,7 +157,7 @@ export function OrdersTable({
                   </button>
                   <button
                     aria-label={`Cancelar pedido ${formatOrderNumber(order.id)}`}
-                    className="mr-1 inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-rose-50 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="mr-1 inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-danger/10 hover:text-danger disabled:cursor-not-allowed disabled:opacity-40"
                     disabled={isCanceled || updatingStatusId === order.id}
                     onClick={(event) => {
                       event.stopPropagation();
@@ -182,7 +182,7 @@ export function OrdersTable({
                   </button>
                   <button
                     aria-label={`Excluir pedido ${formatOrderNumber(order.id)}`}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-frenchRose transition hover:bg-chantilly/45 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-danger transition hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-60"
                     disabled={deletingId === order.id}
                     onClick={(event) => {
                       event.stopPropagation();
@@ -339,7 +339,7 @@ export function OrdersBoard({
               className={[
                 'flex min-h-[520px] flex-col rounded-lg border bg-white shadow-sm transition',
                 isDraggingOver
-                  ? 'border-frenchRose bg-chantilly/20 ring-4 ring-frenchRose/10'
+                  ? 'border-primary bg-primary/10 ring-4 ring-primary/10'
                   : 'border-slate-200',
               ].join(' ')}
               key={status}
@@ -355,11 +355,7 @@ export function OrdersBoard({
                 <h3 className="text-xs font-extrabold text-ink">
                   {statusLabel(status)}
                 </h3>
-                <span className="rounded-full bg-chantilly/45 px-2 py-1 text-[11px] font-extrabold text-frenchRose">
-                  {columnOrders.length}
-                </span>
-              </header>
-
+                <span className="rounded-full bg-primary/20 px-2 py-1 text-[11px] font-extrabold text-primary-dark">
               <div className="grid flex-1 content-start gap-3 p-3">
                 {columnOrders.length > 0 ? (
                   columnOrders.map((order) => {
@@ -379,7 +375,7 @@ export function OrdersBoard({
                       <article
                         className={[
                           'cursor-grab rounded-lg border bg-white p-3 text-left shadow-sm transition',
-                          'hover:-translate-y-0.5 hover:border-frenchRose/30 hover:shadow-md',
+                          'hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md',
                           isCanceled ? 'bg-slate-50 opacity-75' : '',
                           !isCanceled && deadline?.label.startsWith('Atrasado')
                             ? 'border-rose-200'

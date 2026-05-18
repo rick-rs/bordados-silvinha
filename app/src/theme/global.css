@@ -4,13 +4,26 @@
 
 @layer base {
   :root {
-    --color-illusion: 247 177 199;
-    --color-chantilly: 249 195 209;
-    --color-wewak: 240 163 181;
-    --color-froly: 245 122 157;
-    --color-french-rose: 242 80 125;
-    --color-ink: 59 24 36;
-    --color-mauve: 123 75 90;
+    /* Project palette (main + support + status) */
+    --color-primary-dark: 0 32 96; /* #002060 */
+    --color-primary-light: 55 119 255; /* #3777FF */
+    --color-graphite: 42 42 42; /* #2A2A2A */
+    --color-white: 255 255 255; /* #FFFFFF */
+    --color-ice: 248 250 252; /* #F8FAFC */
+    --color-border: 226 232 240; /* #E2E8F0 */
+    --color-muted: 100 116 139; /* #64748B */
+    --color-success: 16 185 129; /* #10B981 */
+    --color-warning: 245 158 11; /* #F59E0B */
+    --color-danger: 239 68 68; /* #EF4444 */
+
+    /* Backwards-compatible variables (mapped to new palette) */
+    --color-illusion: 55 119 255; /* light blue */
+    --color-chantilly: 255 255 255; /* white */
+    --color-wewak: 55 119 255;
+    --color-froly: 55 119 255;
+    --color-french-rose: 0 32 96;
+    --color-ink: 42 42 42;
+    --color-mauve: 0 32 96;
     color-scheme: light;
     font-synthesis: none;
     text-rendering: optimizeLegibility;
@@ -18,7 +31,7 @@
   }
 
   body {
-    @apply min-h-screen min-w-80 bg-chantilly/30 text-ink;
+    @apply min-h-screen min-w-80 bg-ice text-graphite;
   }
 
   #root {

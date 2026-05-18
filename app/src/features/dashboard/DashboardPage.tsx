@@ -129,7 +129,7 @@ function buildMetrics(summary: DashboardSummary): Metric[] {
       label: 'Pedidos Urgentes',
       value: String(summary.metrics.urgent_orders),
       icon: Flag,
-      tone: 'bg-frenchRose/10 text-frenchRose ring-frenchRose/20',
+      tone: 'bg-primary/10 text-primary-dark ring-primary/20',
     },
     {
       label: 'Pagamentos Pendentes',
@@ -216,9 +216,9 @@ export function DashboardPage() {
         actions={
           <Link
             className={[
-              'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-frenchRose px-4 text-sm font-bold text-white shadow-sm transition',
-              'hover:-translate-y-0.5 hover:bg-froly hover:shadow-lg',
-              'focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-froly/30',
+                'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-white shadow-sm transition',
+                  'hover:-translate-y-0.5 hover:bg-primary-dark hover:shadow-lg',
+                  'focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-primary/30',
               'sm:min-h-9 sm:w-auto sm:self-auto sm:text-xs',
             ].join(' ')}
             to="/pedidos/novo"
@@ -250,7 +250,7 @@ export function DashboardPage() {
       <section className="mt-5 grid gap-4 lg:grid-cols-2">
         <Surface as="article">
           <SurfaceHeader className="flex items-center gap-2">
-            <ListChecks aria-hidden className="h-4 w-4 text-frenchRose" />
+            <ListChecks aria-hidden className="h-4 w-4 text-primary-dark" />
             <h2 className="text-sm font-extrabold text-ink">Pedidos por Status</h2>
           </SurfaceHeader>
           {summary && summary.orders_by_status.length > 0 ? (
@@ -281,14 +281,14 @@ export function DashboardPage() {
 
         <Surface as="article">
           <SurfaceHeader className="flex items-center gap-2">
-            <Flag aria-hidden className="h-4 w-4 text-frenchRose" />
+            <Flag aria-hidden className="h-4 w-4 text-primary-dark" />
             <h2 className="text-sm font-extrabold text-ink">Pedidos Urgentes</h2>
           </SurfaceHeader>
           {summary && summary.urgent_orders.length > 0 ? (
             <div className="divide-y divide-slate-100">
               {summary.urgent_orders.map((order) => (
                 <button
-                  className="grid w-full gap-2 px-4 py-3 text-left transition hover:bg-chantilly/20 sm:grid-cols-[1fr_auto]"
+                  className="grid w-full gap-2 px-4 py-3 text-left transition hover:bg-primary/5 sm:grid-cols-[1fr_auto]"
                   key={order.id}
                   onClick={() => navigate(`/pedidos/${order.id}`)}
                   type="button"
@@ -297,7 +297,7 @@ export function DashboardPage() {
                     <p className="text-sm font-extrabold text-ink">{order.client}</p>
                     <p className="mt-1 text-xs text-slate-500">{order.status}</p>
                   </div>
-                  <p className="text-xs font-extrabold text-frenchRose sm:text-right">
+                  <p className="text-xs font-extrabold text-primary-dark sm:text-right">
                     Prazo {order.due_date}
                   </p>
                 </button>

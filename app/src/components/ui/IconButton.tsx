@@ -8,9 +8,9 @@ type IconButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const toneClasses: Record<IconButtonTone, string> = {
-  danger: 'text-frenchRose hover:bg-chantilly/45',
-  neutral: 'text-slate-500 hover:bg-slate-100 hover:text-ink',
-  primary: 'text-frenchRose hover:bg-chantilly/45',
+  danger: 'text-danger hover:bg-danger/10',
+  neutral: 'text-slate-500 hover:bg-slate-100 hover:text-graphite',
+  primary: 'text-primary-dark hover:bg-primary/10',
 };
 
 export function IconButton({

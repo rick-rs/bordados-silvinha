@@ -227,10 +227,10 @@ function CatalogFormPage({ mode }: CatalogFormPageProps) {
             </div>
 
             <div className="grid gap-5 sm:grid-cols-3">
-              <label className="flex items-center gap-3 pt-8 text-sm font-bold text-mauve">
+              <label className="flex items-center gap-3 pt-8 text-sm font-bold text-graphite">
                 <input
                   checked={form.ativo}
-                  className="h-4 w-4 accent-frenchRose"
+                  className="h-4 w-4 accent-primary"
                   onChange={(event) => updateField('ativo', event.target.checked)}
                   type="checkbox"
                 />

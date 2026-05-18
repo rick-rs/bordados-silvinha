@@ -215,8 +215,8 @@ export function AgendaPage() {
                 className={[
                   'rounded-md px-4 transition',
                   calendarView === 'week'
-                    ? 'bg-white text-frenchRose shadow-sm'
-                    : 'hover:text-ink',
+                    ? 'bg-primary/10 text-primary-dark shadow-sm'
+                    : 'hover:text-graphite',
                 ].join(' ')}
                 onClick={() => setCalendarView('week')}
                 type="button"
@@ -227,8 +227,8 @@ export function AgendaPage() {
                 className={[
                   'rounded-md px-4 transition',
                   calendarView === 'month'
-                    ? 'bg-white text-frenchRose shadow-sm'
-                    : 'hover:text-ink',
+                    ? 'bg-primary/10 text-primary-dark shadow-sm'
+                    : 'hover:text-graphite',
                 ].join(' ')}
                 onClick={() => setCalendarView('month')}
                 type="button"
@@ -264,7 +264,7 @@ export function AgendaPage() {
 
           <div className="border-b border-slate-100 px-4 py-2">
             <button
-              className="text-xs font-bold text-frenchRose transition hover:text-froly"
+              className="text-xs font-bold text-primary-dark transition hover:text-primary-dark"
               onClick={() => selectDate(new Date())}
               type="button"
             >

@@ -16,9 +16,9 @@ export function SelectField({
 
   return (
     <label className={`grid gap-2 ${className}`.trim()} htmlFor={selectId}>
-      <span className="text-sm font-bold text-mauve">{label}</span>
+      <span className="text-sm font-bold text-graphite">{label}</span>
       <select
-        className="min-h-12 w-full rounded-lg border border-frenchRose/20 bg-white px-4 text-ink outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
+        className="min-h-12 w-full rounded-lg border border-primary/20 bg-white px-4 text-graphite outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
         id={selectId}
         name={name}
         {...props}
@@ -44,9 +44,9 @@ export function TextAreaField({
 
   return (
     <label className={`grid gap-2 ${className}`.trim()} htmlFor={textareaId}>
-      <span className="text-sm font-bold text-mauve">{label}</span>
+      <span className="text-sm font-bold text-graphite">{label}</span>
       <textarea
-        className="min-h-28 w-full rounded-lg border border-frenchRose/20 bg-white px-4 py-3 text-ink outline-none transition placeholder:text-mauve/60 focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
+        className="min-h-28 w-full rounded-lg border border-primary/20 bg-white px-4 py-3 text-graphite outline-none transition placeholder:text-muted/60 focus:border-primary focus:ring-4 focus:ring-primary/15"
         id={textareaId}
         name={name}
         {...props}

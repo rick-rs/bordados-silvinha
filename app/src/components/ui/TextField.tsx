@@ -17,20 +17,20 @@ export function TextField({
 
   return (
     <label className={`grid gap-2 ${className}`.trim()} htmlFor={inputId}>
-      <span className="text-sm font-bold text-mauve">{label}</span>
+      <span className="text-sm font-bold text-graphite">{label}</span>
       <input
         aria-describedby={errorId}
         aria-invalid={error ? 'true' : 'false'}
         className={[
-          'min-h-12 w-full rounded-lg border border-frenchRose/20 bg-white px-4 text-ink outline-none transition',
-          'placeholder:text-mauve/60',
-          'focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15',
+          'min-h-12 w-full rounded-lg border border-border/20 bg-white px-4 text-graphite outline-none transition',
+          'placeholder:text-muted/60',
+          'focus:border-primary focus:ring-4 focus:ring-primary/15',
         ].join(' ')}
         id={inputId}
         {...props}
       />
       {error ? (
-        <span className="text-sm text-rose-800" id={errorId} role="alert">
+        <span className="text-sm text-danger" id={errorId} role="alert">
           {error}
         </span>
       ) : null}

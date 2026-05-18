@@ -249,7 +249,7 @@ export function CatalogPage() {
               className={[
                 'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm transition',
                 'hover:-translate-y-0.5 hover:bg-slate-50 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60',
-                'focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-froly/30',
+                'focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-primary/30',
                 'sm:min-h-9 sm:w-auto sm:text-xs',
               ].join(' ')}
               disabled={isExporting}
@@ -261,9 +261,9 @@ export function CatalogPage() {
             </button>
             <button
               className={[
-                'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-frenchRose px-4 text-sm font-bold text-white shadow-sm transition',
-                'hover:-translate-y-0.5 hover:bg-froly hover:shadow-lg',
-                'focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-froly/30',
+                'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-white shadow-sm transition',
+                'hover:-translate-y-0.5 hover:bg-primary-dark hover:shadow-lg',
+                'focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-primary/30',
                 'sm:min-h-9 sm:w-auto sm:text-xs',
               ].join(' ')}
               onClick={() => navigate('/catalogo/novo')}
@@ -294,8 +294,8 @@ export function CatalogPage() {
               className={[
                 'inline-flex items-center justify-center gap-2 rounded-md px-3 transition',
                 catalogView === 'list'
-                  ? 'bg-white text-frenchRose shadow-sm'
-                  : 'hover:text-ink',
+                  ? 'bg-primary/10 text-primary-dark shadow-sm'
+                  : 'hover:text-graphite',
               ].join(' ')}
               onClick={() => setCatalogView('list')}
               type="button"
@@ -308,8 +308,8 @@ export function CatalogPage() {
               className={[
                 'inline-flex items-center justify-center gap-2 rounded-md px-3 transition',
                 catalogView === 'cards'
-                  ? 'bg-white text-frenchRose shadow-sm'
-                  : 'hover:text-ink',
+                  ? 'bg-primary/10 text-primary-dark shadow-sm'
+                  : 'hover:text-graphite',
               ].join(' ')}
               onClick={() => setCatalogView('cards')}
               type="button"
@@ -325,7 +325,7 @@ export function CatalogPage() {
                 Filtrar por tipo
               </label>
               <select
-                className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15 xl:w-40"
+                className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15 xl:w-40"
                 id="catalog-type-filter"
                 onChange={(event) => updateTypeFilter(event.target.value)}
                 value={typeFilter}
@@ -339,7 +339,7 @@ export function CatalogPage() {
                 Filtrar por status
               </label>
               <select
-                className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15 xl:w-40"
+                className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15 xl:w-40"
                 id="catalog-active-filter"
                 onChange={(event) => updateActiveFilter(event.target.value)}
                 value={activeFilter}
@@ -358,7 +358,7 @@ export function CatalogPage() {
                 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
               />
               <input
-                className="min-h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm text-ink outline-none transition placeholder:text-slate-400 focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
+                className="min-h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm text-graphite outline-none transition placeholder:text-slate-400 focus:border-primary focus:ring-4 focus:ring-primary/15"
                 id="catalog-search"
                 onChange={(event) => updateSearch(event.target.value)}
                 placeholder="Buscar por nome, categoria ou descrição"
@@ -388,12 +388,12 @@ export function CatalogPage() {
               <tbody className="divide-y divide-slate-100">
                 {products.map((product) => (
                   <tr
-                    className="cursor-pointer bg-white transition hover:bg-chantilly/20"
+                    className="cursor-pointer bg-white transition hover:bg-primary/5"
                     key={product.id}
                     onClick={() => navigate(`/catalogo/${product.id}`)}
                   >
                     <td className="px-4 py-3">
-                      <p className="font-extrabold text-ink">{product.nome}</p>
+                      <p className="font-extrabold text-graphite">{product.nome}</p>
                       <p className="mt-1 text-xs text-slate-500">
                         {product.descricao || '-'}
                       </p>
@@ -407,7 +407,7 @@ export function CatalogPage() {
                         ? `${Number(product.tempo_estimado).toLocaleString('pt-BR')} h`
                         : '-'}
                     </td>
-                    <td className="px-4 py-3 font-extrabold text-frenchRose">
+                    <td className="px-4 py-3 font-extrabold text-primary-dark">
                       {formatMoney(product.preco_base)}
                     </td>
                     <td className="px-4 py-3 text-slate-600">
@@ -446,8 +446,8 @@ export function CatalogPage() {
         ) : products.length > 0 ? (
           <div className="grid gap-4 p-4 sm:grid-cols-2 xl:grid-cols-3">
             {products.map((product) => (
-              <article
-                className="cursor-pointer overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-frenchRose/30 hover:shadow-md"
+                  <article
+                className="cursor-pointer overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
                 key={product.id}
                 onClick={() => navigate(`/catalogo/${product.id}`)}
               >
@@ -458,7 +458,7 @@ export function CatalogPage() {
                     src={product.imagem_url}
                   />
                 ) : (
-                  <div className="grid h-40 place-items-center bg-chantilly/25 text-frenchRose">
+                  <div className="grid h-40 place-items-center bg-primary/10 text-primary-dark">
                     <Image aria-hidden className="h-9 w-9" />
                   </div>
                 )}
@@ -477,10 +477,10 @@ export function CatalogPage() {
                     </p>
                   </div>
                   <div className="flex items-center justify-between gap-3">
-                    <span className="rounded-full bg-chantilly/45 px-2 py-1 text-xs font-bold text-frenchRose">
+                    <span className="rounded-full bg-primary/20 px-2 py-1 text-xs font-bold text-primary-dark">
                       {product.tipo}
                     </span>
-                    <p className="font-extrabold text-frenchRose">
+                    <p className="font-extrabold text-primary-dark">
                       {formatMoney(product.preco_base)}
                     </p>
                   </div>

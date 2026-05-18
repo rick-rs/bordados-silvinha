@@ -17,7 +17,7 @@ export function AlertMessage({
   return (
     <p
       className={[
-        'mb-5 rounded-lg border border-frenchRose/30 bg-chantilly/40 px-4 py-3 text-sm leading-relaxed text-rose-900',
+        'mb-5 rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm leading-relaxed text-primary-dark',
         className,
       ]
         .filter(Boolean)
@@ -45,7 +45,7 @@ export function EmptyState({
   return (
     <div className={`grid ${minHeightClassName} place-items-center px-6 py-10 text-center`}>
       <div>
-        <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-chantilly/50 text-frenchRose">
+        <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-primary/20 text-primary-dark">
           {icon ?? <Inbox aria-hidden className="h-5 w-5" />}
         </div>
         <p className="mt-3 text-sm font-bold text-slate-600">{title}</p>
