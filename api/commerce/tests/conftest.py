@@ -2,7 +2,20 @@ import pytest
 
 
 @pytest.fixture
-def api_client():
+def api_client(db):
+    from django.contrib.auth import get_user_model
+    from rest_framework.test import APIClient
+
+    user_model = get_user_model()
+    user = user_model.objects.create_user(username="api-tester", password="secret")
+
+    client = APIClient()
+    client.force_authenticate(user=user)
+    return client
+
+
+@pytest.fixture
+def anonymous_api_client():
     from rest_framework.test import APIClient
 
     return APIClient()

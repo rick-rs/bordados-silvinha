@@ -2,10 +2,8 @@ import pytest
 
 
 @pytest.mark.django_db
-def test_produto_crud_api():
-    from rest_framework.test import APIClient
-
-    client = APIClient()
+def test_produto_crud_api(api_client):
+    client = api_client
 
     # Create
     payload = {"nome": "Camiseta Teste", "preco_base": "49.90"}
@@ -43,6 +41,8 @@ def test_produto_crud_api():
     # Ensure deleted
     resp = client.get(f"/api/produtos/{produto_id}/")
     assert resp.status_code == 404
+
+
 
 
 @pytest.mark.django_db

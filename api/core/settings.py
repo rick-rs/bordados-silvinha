@@ -134,10 +134,18 @@ CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = config("DJANGO_CORS_ALLOWED_ORIGINS", cast=csv)
 
+# API access mode
+# Default to authenticated access, but allow local development to keep the API public.
+API_PUBLIC_ACCESS = config("DJANGO_API_PUBLIC_ACCESS", cast=bool, default=DEBUG)
+
 # REST Framework settings
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.AllowAny",
+        (
+            "rest_framework.permissions.AllowAny"
+            if API_PUBLIC_ACCESS
+            else "rest_framework.permissions.IsAuthenticated"
+        ),
     ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }

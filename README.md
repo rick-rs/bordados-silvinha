@@ -33,6 +33,8 @@ docker compose logs -f
 
 O Docker Compose lê o arquivo `.env` da raiz para valores como banco e URL do frontend. Os arquivos `api/.env` e `app/.env` alimentam os containers e devem ser mantidos sincronizados com os exemplos.
 
+Por padrão, o ambiente local mantém a API aberta para facilitar o desenvolvimento. Em produção, defina `DJANGO_API_PUBLIC_ACCESS=false` para exigir autenticação no backend.
+
 ### 3. Acessar a aplicação
 
 - **Frontend:** http://localhost:5173
