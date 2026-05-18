@@ -356,6 +356,9 @@ export function OrdersBoard({
                   {statusLabel(status)}
                 </h3>
                 <span className="rounded-full bg-primary/20 px-2 py-1 text-[11px] font-extrabold text-primary-dark">
+                   {statusLabel(status)}
+                </span>
+              </header>
               <div className="grid flex-1 content-start gap-3 p-3">
                 {columnOrders.length > 0 ? (
                   columnOrders.map((order) => {
