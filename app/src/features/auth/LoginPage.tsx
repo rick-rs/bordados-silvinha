@@ -61,6 +61,13 @@ export function LoginPage() {
         aria-labelledby="login-title"
       >
         <div className="mb-7">
+          <div className="flex justify-center mb-4">
+            <img
+              src={appBrand.logo}
+              alt={appBrand.name}
+              className="h-16 w-auto"
+            />
+          </div>
           <p className="mb-2 text-sm font-bold uppercase tracking-normal text-frenchRose">
             {appBrand.name}
           </p>
