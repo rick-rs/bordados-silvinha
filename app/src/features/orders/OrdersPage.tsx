@@ -3,6 +3,7 @@ import { Columns3, Inbox, List, Plus, Search } from 'lucide-react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
+import { Button } from '../../components/ui/Button';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { AlertMessage, EmptyState, LoadingRows } from '../../components/ui/Feedback';
 import { FilterToolbar } from '../../components/ui/FilterToolbar';
@@ -309,16 +310,12 @@ export function OrdersPage() {
       <PageHeader
         actions={
           <Link
-            className={[
-              'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-frenchRose px-4 text-sm font-bold text-white shadow-sm transition',
-              'hover:-translate-y-0.5 hover:bg-froly hover:shadow-lg',
-              'focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-froly/30',
-              'sm:min-h-9 sm:w-auto sm:text-xs',
-            ].join(' ')}
             to="/pedidos/novo"
           >
-            <Plus aria-hidden className="h-4 w-4" />
-            Nova Encomenda
+            <Button className="w-full sm:w-auto sm:self-auto">
+              <Plus aria-hidden className="h-4 w-4" />
+              Nova Encomenda
+            </Button>
           </Link>
         }
         breadcrumb="Dashboard / Pedidos"

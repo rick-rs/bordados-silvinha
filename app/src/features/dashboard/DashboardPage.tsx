@@ -14,6 +14,7 @@ import {
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
+import { Button } from '../../components/ui/Button';
 import { AlertMessage, EmptyState } from '../../components/ui/Feedback';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Surface, SurfaceHeader } from '../../components/ui/Surface';
@@ -215,16 +216,12 @@ export function DashboardPage() {
       <PageHeader
         actions={
           <Link
-            className={[
-                'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-white shadow-sm transition',
-                  'hover:-translate-y-0.5 hover:bg-primary-dark hover:shadow-lg',
-                  'focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-primary/30',
-              'sm:min-h-9 sm:w-auto sm:self-auto sm:text-xs',
-            ].join(' ')}
             to="/pedidos/novo"
           >
-            <Plus aria-hidden className="h-4 w-4" />
-            Nova Encomenda
+            <Button className="w-full sm:w-auto sm:self-auto">
+              <Plus aria-hidden className="h-4 w-4" />
+              Nova Encomenda
+            </Button>
           </Link>
         }
         breadcrumb={`Olá, ${user.nome}`}

@@ -20,6 +20,7 @@ import { IconButton } from '../../components/ui/IconButton';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { PaginationControls } from '../../components/ui/PaginationControls';
 import { Surface } from '../../components/ui/Surface';
+import { Button } from '../../components/ui/Button';
 import { getSession } from '../../services/auth';
 import { deleteProduct, listProductsPage, Product } from '../../services/orders';
 
@@ -245,32 +246,22 @@ export function CatalogPage() {
       <PageHeader
         actions={
           <div className="flex flex-col gap-3 sm:flex-row">
-            <button
-              className={[
-                'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm transition',
-                'hover:-translate-y-0.5 hover:bg-slate-50 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60',
-                'focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-primary/30',
-                'sm:min-h-9 sm:w-auto sm:text-xs',
-              ].join(' ')}
-              disabled={isExporting}
-              onClick={handleExportCatalog}
-              type="button"
-            >
-              <Download aria-hidden className="h-4 w-4" />
-              {isExporting ? 'Exportando...' : 'Exportar'}
+            <button type="button" disabled={isExporting} onClick={handleExportCatalog}>
+              <Button
+                className="w-full sm:w-auto"
+                disabled={isExporting}
+                tone="outline"
+              >
+                <Download aria-hidden className="h-4 w-4" />
+                {isExporting ? 'Exportando...' : 'Exportar'}
+              </Button>
             </button>
-            <button
-              className={[
-                'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-white shadow-sm transition',
-                'hover:-translate-y-0.5 hover:bg-primary-dark hover:shadow-lg',
-                'focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-primary/30',
-                'sm:min-h-9 sm:w-auto sm:text-xs',
-              ].join(' ')}
-              onClick={() => navigate('/catalogo/novo')}
-              type="button"
-            >
-              <Plus aria-hidden className="h-4 w-4" />
-              Novo Item
+
+            <button type="button" onClick={() => navigate('/catalogo/novo')}>
+              <Button className="w-full sm:w-auto" tone="primary">
+                <Plus aria-hidden className="h-4 w-4" />
+                Novo Item
+              </Button>
             </button>
           </div>
         }

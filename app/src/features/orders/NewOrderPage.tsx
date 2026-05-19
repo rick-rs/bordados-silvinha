@@ -6,7 +6,7 @@ import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
 import { TextField } from '../../components/ui/TextField';
 import { AlertMessage } from '../../components/ui/Feedback';
-import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+
 import { getSession } from '../../services/auth';
 import {
   Client,

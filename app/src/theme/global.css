@@ -24,14 +24,14 @@
     --color-french-rose: 0 32 96;
     --color-ink: 42 42 42;
     --color-mauve: 0 32 96;
-    color-scheme: light;
-    font-synthesis: none;
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
   }
 
   body {
     @apply min-h-screen min-w-80 bg-ice text-graphite;
+    color-scheme: light;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
   }
 
   #root {

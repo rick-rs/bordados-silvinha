@@ -32,11 +32,6 @@ export function ConfirmDialog({
     return null;
   }
 
-  const isDanger = tone === 'danger';
-  const isWarning = tone === 'warning';
-  const isSuccess = tone === 'success';
-  const isInfo = tone === 'info';
-
   // Color schemes for each tone
   const toneStyles = {
     danger: {

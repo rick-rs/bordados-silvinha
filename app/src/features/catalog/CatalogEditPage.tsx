@@ -253,13 +253,12 @@ function CatalogFormPage({ mode }: CatalogFormPageProps) {
             )}
 
             <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
-              <button
-                className="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-200 bg-white px-5 text-sm font-bold text-slate-600 transition hover:bg-slate-50"
+              <Button
+                tone="outline"
                 onClick={() => navigate(mode === 'create' ? '/catalogo' : `/catalogo/${id}`)}
-                type="button"
               >
                 Cancelar
-              </button>
+              </Button>
               <Button
                 className="min-h-11 px-5 text-sm"
                 isLoading={isSaving}

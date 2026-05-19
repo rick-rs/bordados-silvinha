@@ -141,17 +141,11 @@ export function ClientsPage() {
     <AppShell activePage="Clientes">
       <PageHeader
         actions={
-          <Link
-            className={[
-              'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-frenchRose px-4 text-sm font-bold text-white shadow-sm transition',
-              'hover:-translate-y-0.5 hover:bg-froly hover:shadow-lg',
-              'focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-froly/30',
-              'sm:min-h-9 sm:w-auto sm:text-xs',
-            ].join(' ')}
-            to="/clientes/novo"
-          >
-            <Plus aria-hidden className="h-4 w-4" />
-            Novo Cliente
+          <Link to="/clientes/novo">
+            <Button className="w-full sm:w-auto sm:self-auto" tone="primary">
+              <Plus aria-hidden className="h-4 w-4" />
+              Novo Cliente
+            </Button>
           </Link>
         }
         breadcrumb="Dashboard / Clientes"

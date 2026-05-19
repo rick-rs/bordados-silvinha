@@ -12,6 +12,7 @@ import {
 import { Navigate, useNavigate } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
+import { Button } from '../../components/ui/Button';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { AlertMessage, EmptyState, LoadingRows } from '../../components/ui/Feedback';
 import { FilterToolbar } from '../../components/ui/FilterToolbar';
@@ -242,23 +243,25 @@ export function StockPage() {
       <PageHeader
         actions={
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-            <button
-              className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-frenchRose/30 bg-white px-4 text-sm font-bold text-frenchRose shadow-sm transition hover:-translate-y-0.5 hover:bg-chantilly/30 hover:shadow-lg sm:min-h-9 sm:w-auto sm:text-xs"
+            <Button
+              className="w-full sm:w-auto"
               disabled={selectedMaterialIds.length === 0}
               onClick={() => setIsBulkMovementOpen((isOpen) => !isOpen)}
               type="button"
+              tone="outline"
             >
               <ArrowUpDown aria-hidden className="h-4 w-4" />
               Movimentar selecionados
-            </button>
-            <button
-              className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-frenchRose px-4 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-froly hover:shadow-lg sm:min-h-9 sm:w-auto sm:text-xs"
+            </Button>
+            <Button
+              className="w-full sm:w-auto"
               onClick={() => navigate('/estoque/novo')}
               type="button"
+              tone="primary"
             >
               <Plus aria-hidden className="h-4 w-4" />
               Novo Material
-            </button>
+            </Button>
           </div>
         }
         breadcrumb="Dashboard / Estoque"
