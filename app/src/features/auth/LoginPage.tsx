@@ -57,7 +57,7 @@ export function LoginPage() {
   return (
     <main className="grid min-h-screen place-items-center bg-gradient-to-br from-chantilly/60 via-white to-illusion/40 px-4 py-8">
       <section
-        className="w-full max-w-[420px] rounded-lg border border-frenchRose/20 bg-white/90 p-6 shadow-softPink sm:p-8"
+        className="w-full max-w-[420px] rounded-lg border border-muted/20 bg-white/90 p-6 shadow-md sm:p-8"
         aria-labelledby="login-title"
       >
         <div className="mb-7">
@@ -68,12 +68,8 @@ export function LoginPage() {
               className="h-16 w-auto"
             />
           </div>
-          <p className="mb-2 text-sm font-bold uppercase tracking-normal text-frenchRose">
-            {appBrand.name}
-          </p>
-          <h1 className="text-3xl font-bold leading-tight text-ink" id="login-title">
-            Entrar
-          </h1>
+          
+          
         </div>
 
         <form className="grid gap-5" onSubmit={handleSubmit}>
