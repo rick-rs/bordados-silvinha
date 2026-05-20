@@ -2,11 +2,11 @@ import { FormEvent, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
-import { Button } from '../../components/ui/Button';
-import { AlertMessage } from '../../components/ui/Feedback';
-import { PageHeader } from '../../components/ui/PageHeader';
-import { Surface, SurfaceHeader } from '../../components/ui/Surface';
-import { TextField } from '../../components/ui/TextField';
+import { Button } from '../../components/ui/buttons';
+import { AlertMessage } from '../../components/ui/feedback';
+import { PageHeader } from '../../components/ui/headers';
+import { Surface, SurfaceHeader } from '../../components/ui/surfaces';
+import { TextField } from '../../components/ui/forms';
 import {
   changePassword,
   getSession,

@@ -1,4 +1,4 @@
-import { formatDate, getDeadlineState } from '../../features/orders/orderUtils';
+import { formatDate, getDeadlineState } from '../../../features/orders/orderUtils';
 
 type OrderDeadlineCellProps = {
   deadline: string;

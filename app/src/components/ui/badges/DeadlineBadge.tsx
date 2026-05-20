@@ -4,7 +4,7 @@ type DeadlineState = {
 };
 
 type DeadlineBadgeProps = {
-  deadline: DeadlineState | undefined;
+  deadline: DeadlineState | undefined | null;
 };
 
 export function DeadlineBadge({ deadline }: DeadlineBadgeProps) {

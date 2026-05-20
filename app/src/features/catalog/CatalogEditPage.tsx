@@ -1,14 +1,14 @@
-import { FormEvent, useEffect, useState } from 'react';
-import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
+import { ConfirmDialog } from '../../components/ui/dialogs';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
-import { Button } from '../../components/ui/Button';
-import { AlertMessage, LoadingRows } from '../../components/ui/Feedback';
-import { SelectField, TextAreaField } from '../../components/ui/FormFields';
-import { PageHeader } from '../../components/ui/PageHeader';
-import { Surface } from '../../components/ui/Surface';
-import { TextField } from '../../components/ui/TextField';
+import { Button } from '../../components/ui/buttons';
+import { AlertMessage, LoadingRows } from '../../components/ui/feedback';
+import { SelectField, TextAreaField } from '../../components/ui/forms';
+import { PageHeader } from '../../components/ui/headers';
+import { Surface } from '../../components/ui/surfaces';
+import { TextField } from '../../components/ui/forms';
 import { getSession } from '../../services/auth';
 import {
   createProduct,
@@ -199,7 +199,7 @@ function CatalogFormPage({ mode }: CatalogFormPageProps) {
               <SelectField
                 label="Tipo"
                 name="tipo"
-                onChange={(event) => updateField('tipo', event.target.value)}
+                onChange={(event: ChangeEvent<HTMLSelectElement>) => updateField('tipo', event.target.value)}
                 value={form.tipo}
               >
                 <option value="peca">Peça</option>
@@ -209,7 +209,7 @@ function CatalogFormPage({ mode }: CatalogFormPageProps) {
                 label="Preço Base *"
                 min="0"
                 name="preco_base"
-                onChange={(event) => updateField('preco_base', event.target.value)}
+                onChange={(event: ChangeEvent<HTMLInputElement>) => updateField('preco_base', event.target.value)}
                 required
                 step="0.01"
                 type="number"

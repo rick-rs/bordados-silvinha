@@ -1,27 +1,17 @@
 import { FormEvent, useMemo, useState, useEffect } from 'react';
-import {
-  AlertTriangle,
-  ArrowUpDown,
-  History,
-  Inbox,
-  Pencil,
-  Plus,
-  Search,
-  Trash2,
-} from 'lucide-react';
+import { ArrowUpDown, History, Inbox, Plus, Search } from 'lucide-react';
 import { Navigate, useNavigate } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
-import { Button } from '../../components/ui/Button';
-import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
-import { AlertMessage, EmptyState, LoadingRows } from '../../components/ui/Feedback';
-import { FilterToolbar } from '../../components/ui/FilterToolbar';
-import { SelectField, TextAreaField } from '../../components/ui/FormFields';
-import { IconButton } from '../../components/ui/IconButton';
-import { PageHeader } from '../../components/ui/PageHeader';
-import { PaginationControls } from '../../components/ui/PaginationControls';
-import { Surface, SurfaceHeader } from '../../components/ui/Surface';
-import { TextField } from '../../components/ui/TextField';
+import { Button } from '../../components/ui/buttons';
+import { ConfirmDialog } from '../../components/ui/dialogs';
+import { AlertMessage, EmptyState, LoadingRows } from '../../components/ui/feedback';
+import { FilterToolbar } from '../../components/ui/filters';
+import { PageHeader } from '../../components/ui/headers';
+import { PaginationControls } from '../../components/ui/pagination';
+import { Surface, SurfaceHeader } from '../../components/ui/surfaces';
+import { StockTableRow, StockMovementHistoryTable } from '../../components/ui/tables';
+import { StockAlertCard } from '../../components/ui/cards';
 import { getSession } from '../../services/auth';
 import {
   createStockMovement,
@@ -32,6 +22,7 @@ import {
   StockMovement,
   StockMovementPayload,
 } from '../../services/stock';
+import { StockMovementModal } from './StockMovementModal';
 
 const initialBulkMovementForm: Omit<StockMovementPayload, 'material'> = {
   tipo: 'entrada',
@@ -276,83 +267,13 @@ export function StockPage() {
       )}
 
       {isBulkMovementOpen ? (
-        <Surface as="section" className="mb-5">
-          <SurfaceHeader>
-            <p className="text-xs font-semibold text-mauve">Movimentação em lote</p>
-            <h2 className="mt-1 text-sm font-extrabold text-ink">
-              {selectedMaterialIds.length} item(ns) selecionado(s)
-            </h2>
-          </SurfaceHeader>
-
-          <form
-            className="grid gap-5 p-4 lg:grid-cols-[minmax(0,1fr)_320px]"
-            onSubmit={handleBulkMovementSubmit}
-          >
-            <div className="grid gap-4 sm:grid-cols-2">
-              <SelectField
-                label="Tipo"
-                name="tipo_movimentacao_lote"
-                onChange={(event) =>
-                  updateBulkMovementField(
-                    'tipo',
-                    event.target.value as StockMovementPayload['tipo'],
-                  )
-                }
-                value={bulkMovementForm.tipo}
-              >
-                <option value="entrada">Entrada</option>
-                <option value="saida">Saída</option>
-              </SelectField>
-
-              <TextField
-                label="Quantidade por item *"
-                min="0.01"
-                name="quantidade_movimentacao_lote"
-                onChange={(event) =>
-                  updateBulkMovementField('quantidade', event.target.value)
-                }
-                required
-                step="0.01"
-                type="number"
-                value={bulkMovementForm.quantidade}
-              />
-
-              <TextAreaField
-                className="sm:col-span-2"
-                label="Observação"
-                name="observacao_movimentacao_lote"
-                onChange={(event) =>
-                  updateBulkMovementField('observacao', event.target.value)
-                }
-                value={bulkMovementForm.observacao}
-              />
-            </div>
-
-            <div className="rounded-lg bg-slate-50 p-3">
-              <p className="text-xs font-bold text-slate-500">Resumo</p>
-              <div className="mt-3 grid max-h-36 gap-2 overflow-auto pr-1">
-                {selectedMaterials.map((material) => (
-                  <div
-                    className="rounded-md bg-white px-3 py-2 text-xs font-bold text-slate-600"
-                    key={material.id}
-                  >
-                    {material.nome}
-                    <span className="ml-1 font-semibold text-slate-400">
-                      ({material.quantidade_atual} {material.unidade_medida})
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <button
-                className="mt-4 inline-flex min-h-10 w-full items-center justify-center rounded-lg bg-frenchRose px-4 text-sm font-bold text-white shadow-sm transition hover:bg-froly disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={isSavingBulkMovement}
-                type="submit"
-              >
-                {isSavingBulkMovement ? 'Registrando...' : 'Registrar movimentação'}
-              </button>
-            </div>
-          </form>
-        </Surface>
+        <StockMovementModal
+          form={bulkMovementForm}
+          isLoading={isSavingBulkMovement}
+          selectedMaterials={selectedMaterials}
+          onSubmit={handleBulkMovementSubmit}
+          onFieldChange={updateBulkMovementField}
+        />
       ) : null}
 
       <Surface>
@@ -414,27 +335,11 @@ export function StockPage() {
         {!isLoading && lowStockMaterials.length > 0 ? (
           <div className="grid gap-3 border-t border-slate-100 px-4 py-4 md:grid-cols-2 xl:grid-cols-3">
             {lowStockMaterials.slice(0, 6).map((material) => (
-              <button
-                className="relative rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-left shadow-sm transition after:absolute after:-bottom-2 after:left-7 after:h-4 after:w-4 after:rotate-45 after:border-b after:border-r after:border-amber-200 after:bg-amber-50 hover:-translate-y-0.5 hover:shadow-md"
+              <StockAlertCard
                 key={material.id}
+                material={material}
                 onClick={() => navigate(`/estoque/${material.id}`)}
-                type="button"
-              >
-                <div className="flex items-start gap-3">
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-amber-600">
-                    <AlertTriangle aria-hidden className="h-4 w-4" />
-                  </span>
-                  <div>
-                    <p className="text-sm font-extrabold text-amber-900">
-                      {material.nome}
-                    </p>
-                    <p className="mt-1 text-xs font-semibold text-amber-800">
-                      {material.quantidade_atual} em estoque, mínimo{' '}
-                      {material.estoque_minimo}
-                    </p>
-                  </div>
-                </div>
-              </button>
+              />
             ))}
           </div>
         ) : null}
@@ -464,93 +369,18 @@ export function StockPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {materials.map((material) => {
-                  const current = Number.parseFloat(material.quantidade_atual);
-                  const minimum = Number.parseFloat(material.estoque_minimo);
-                  const isLow = current <= minimum;
-
-                  return (
-                    <tr
-                      className="cursor-pointer bg-white transition hover:bg-chantilly/20"
-                      key={material.id}
-                      onClick={() => navigate(`/estoque/${material.id}`)}
-                    >
-                      <td className="px-4 py-3">
-                        <input
-                          aria-label={`Selecionar ${material.nome}`}
-                          checked={selectedMaterialIds.includes(material.id)}
-                          className="h-4 w-4 rounded border-slate-300 text-frenchRose focus:ring-frenchRose"
-                          onChange={() => toggleMaterialSelection(material.id)}
-                          onClick={(event) => event.stopPropagation()}
-                          type="checkbox"
-                        />
-                      </td>
-                      <td className="px-4 py-3">
-                        <p className="font-extrabold text-ink">{material.nome}</p>
-                        <p className="mt-1 text-xs text-slate-500">
-                          {material.descricao || '-'}
-                        </p>
-                      </td>
-                      <td className="px-4 py-3 text-slate-600">
-                        {material.unidade_medida}
-                      </td>
-                      <td className="px-4 py-3 font-extrabold text-ink">
-                        {material.quantidade_atual}
-                      </td>
-                      <td className="px-4 py-3 text-slate-600">
-                        {material.estoque_minimo}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={[
-                            'rounded-full px-2 py-1 text-xs font-bold',
-                            isLow
-                              ? 'bg-rose-50 text-rose-700'
-                              : 'bg-emerald-50 text-emerald-700',
-                          ].join(' ')}
-                        >
-                          {isLow ? 'Reposição' : 'Ok'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <IconButton
-                          aria-label={`Movimentar ${material.nome}`}
-                          className="mr-1"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            navigate(`/estoque/${material.id}`);
-                          }}
-                          title="Movimentar estoque"
-                        >
-                          <ArrowUpDown aria-hidden className="h-4 w-4" />
-                        </IconButton>
-                        <IconButton
-                          aria-label={`Editar ${material.nome}`}
-                          className="mr-1"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            navigate(`/estoque/${material.id}/editar`);
-                          }}
-                          title="Editar material"
-                        >
-                          <Pencil aria-hidden className="h-4 w-4" />
-                        </IconButton>
-                        <IconButton
-                          aria-label={`Excluir ${material.nome}`}
-                          disabled={deletingId === material.id}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleDelete(material);
-                          }}
-                          title="Excluir material"
-                          tone="danger"
-                        >
-                          <Trash2 aria-hidden className="h-4 w-4" />
-                        </IconButton>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {materials.map((material) => (
+                  <StockTableRow
+                    key={material.id}
+                    material={material}
+                    isSelected={selectedMaterialIds.includes(material.id)}
+                    isDeletingId={deletingId}
+                    onToggleSelect={() => toggleMaterialSelection(material.id)}
+                    onNavigateMovement={() => navigate(`/estoque/${material.id}`)}
+                    onNavigateEdit={() => navigate(`/estoque/${material.id}/editar`)}
+                    onDelete={() => handleDelete(material)}
+                  />
+                ))}
               </tbody>
             </table>
           </div>
@@ -589,61 +419,11 @@ export function StockPage() {
             Histórico de Movimentações
           </h2>
         </SurfaceHeader>
-        {movements.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] border-collapse text-left text-sm">
-              <thead className="bg-slate-50 text-xs font-bold text-slate-500">
-                <tr>
-                  <th className="px-4 py-3">Data</th>
-                  <th className="px-4 py-3">Material</th>
-                  <th className="px-4 py-3">Tipo</th>
-                  <th className="px-4 py-3">Quantidade</th>
-                  <th className="px-4 py-3">Observação</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {movements.slice(0, 12).map((movement) => {
-                  const material = materialsById.get(movement.material);
-                  const isEntry = movement.tipo === 'entrada';
-
-                  return (
-                    <tr className="bg-white" key={movement.id}>
-                      <td className="px-4 py-3 text-xs font-bold text-slate-500">
-                        {formatDateTime(movement.registrado_em)}
-                      </td>
-                      <td className="px-4 py-3 font-extrabold text-ink">
-                        {material?.nome ?? `Material #${movement.material}`}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={[
-                            'rounded-full px-2 py-1 text-xs font-bold',
-                            isEntry
-                              ? 'bg-emerald-50 text-emerald-700'
-                              : 'bg-rose-50 text-rose-700',
-                          ].join(' ')}
-                        >
-                          {isEntry ? 'Entrada' : 'Saída'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 font-extrabold text-ink">
-                        {movement.quantidade} {material?.unidade_medida ?? ''}
-                      </td>
-                      <td className="px-4 py-3 text-slate-600">
-                        {movement.observacao || '-'}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <EmptyState
-            minHeightClassName="min-h-40"
-            title="Nenhuma movimentação registrada."
-          />
-        )}
+        <StockMovementHistoryTable
+          movements={movements}
+          materialsById={materialsById}
+          formatDateTime={formatDateTime}
+        />
       </Surface>
     </AppShell>
   );

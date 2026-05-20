@@ -1,6 +1,6 @@
 import { Ban, Pencil, Trash2 } from 'lucide-react';
-import { Order } from '../../services/orders';
-import { ActionButton } from './ActionButton';
+import { Order } from '../../../services/orders';
+import { ActionButton } from '../buttons';
 
 type OrderCardActionsProps = {
   clientName?: string;

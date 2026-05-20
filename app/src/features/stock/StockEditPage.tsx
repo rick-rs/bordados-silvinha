@@ -2,14 +2,14 @@ import { FormEvent, useEffect, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
-import { Button } from '../../components/ui/Button';
-import { AlertMessage, LoadingRows } from '../../components/ui/Feedback';
-import { SelectField, TextAreaField } from '../../components/ui/FormFields';
-import { PageHeader } from '../../components/ui/PageHeader';
-import { Surface } from '../../components/ui/Surface';
-import { TextField } from '../../components/ui/TextField';
+import { Button } from '../../components/ui/buttons';
+import { AlertMessage, LoadingRows } from '../../components/ui/feedback';
+import { SelectField, TextAreaField } from '../../components/ui/forms';
+import { PageHeader } from '../../components/ui/headers';
+import { Surface } from '../../components/ui/surfaces';
+import { TextField } from '../../components/ui/forms';
 import { getSession } from '../../services/auth';
-import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { ConfirmDialog } from '../../components/ui/dialogs';
 import {
   createMaterial,
   getMaterial,

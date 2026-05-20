@@ -2,10 +2,10 @@ import { FormEvent, useEffect, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
-import { Button } from '../../components/ui/Button';
-import { TextField } from '../../components/ui/TextField';
-import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
-import { AlertMessage } from '../../components/ui/Feedback';
+import { Button } from '../../components/ui/buttons';
+import { TextField } from '../../components/ui/forms';
+import { ConfirmDialog } from '../../components/ui/dialogs';
+import { AlertMessage } from '../../components/ui/feedback';
 import { getSession } from '../../services/auth';
 import { Client, listClients } from '../../services/clients';
 import {

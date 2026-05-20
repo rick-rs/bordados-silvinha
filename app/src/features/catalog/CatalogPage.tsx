@@ -13,14 +13,14 @@ import {
 import { Navigate, useNavigate } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
-import { AlertMessage, EmptyState, LoadingRows } from '../../components/ui/Feedback';
-import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
-import { FilterToolbar } from '../../components/ui/FilterToolbar';
-import { IconButton } from '../../components/ui/IconButton';
-import { PageHeader } from '../../components/ui/PageHeader';
-import { PaginationControls } from '../../components/ui/PaginationControls';
-import { Surface } from '../../components/ui/Surface';
-import { Button } from '../../components/ui/Button';
+import { AlertMessage, EmptyState, LoadingRows } from '../../components/ui/feedback';
+import { ConfirmDialog } from '../../components/ui/dialogs';
+import { FilterToolbar } from '../../components/ui/filters';
+import { IconButton } from '../../components/ui/buttons';
+import { PageHeader } from '../../components/ui/headers';
+import { PaginationControls } from '../../components/ui/pagination';
+import { Surface } from '../../components/ui/surfaces';
+import { Button } from '../../components/ui/buttons';
 import { getSession } from '../../services/auth';
 import { deleteProduct, listProductsPage, Product } from '../../services/orders';
 

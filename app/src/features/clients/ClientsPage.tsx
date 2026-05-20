@@ -3,15 +3,15 @@ import { Inbox, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
-import { AlertMessage, EmptyState, LoadingRows } from '../../components/ui/Feedback';
-import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
-import { FilterToolbar } from '../../components/ui/FilterToolbar';
-import { IconButton } from '../../components/ui/IconButton';
-import { PageHeader } from '../../components/ui/PageHeader';
-import { PaginationControls } from '../../components/ui/PaginationControls';
-import { Button } from '../../components/ui/Button';
-import { Surface } from '../../components/ui/Surface';
-import { TextField } from '../../components/ui/TextField';
+import { AlertMessage, EmptyState, LoadingRows } from '../../components/ui/feedback';
+import { ConfirmDialog } from '../../components/ui/dialogs';
+import { FilterToolbar } from '../../components/ui/filters';
+import { IconButton } from '../../components/ui/buttons';
+import { PageHeader } from '../../components/ui/headers';
+import { PaginationControls } from '../../components/ui/pagination';
+import { Button } from '../../components/ui/buttons';
+import { Surface } from '../../components/ui/surfaces';
+import { TextField } from '../../components/ui/forms';
 import {
   Client,
   ClientPayload,

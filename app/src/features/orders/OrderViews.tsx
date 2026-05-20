@@ -3,8 +3,8 @@ import { DragEvent, useEffect, useMemo, useState } from 'react';
 import { Client } from '../../services/clients';
 import { Order, OrderItem, Product } from '../../services/orders';
 import { statusLabel, statusOptions } from './orderUtils';
-import { OrderCard } from '../../components/ui/OrderCard';
-import { OrderTableRow } from '../../components/ui/OrderTableRow';
+import { OrderCard } from '../../components/ui/cards';
+import { OrderTableRow } from '../../components/ui/tables';
 
 type OrdersViewProps = {
   clientsById: Map<number, Client>;

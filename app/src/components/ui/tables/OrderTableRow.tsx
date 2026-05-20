@@ -1,9 +1,9 @@
 import { Flag } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-import { Client } from '../../services/clients';
-import { Order, OrderItem, Product } from '../../services/orders';
-import { formatCurrency } from '../../utils/format';
+import { Client } from '../../../services/clients';
+import { Order, OrderItem, Product } from '../../../services/orders';
+import { formatCurrency } from '../../../utils/format';
 import {
   buildItemSummary,
   formatOrderNumber,
@@ -11,10 +11,10 @@ import {
   paymentClassName,
   paymentLabel,
   paymentMethodLabel,
-} from '../../features/orders/orderUtils';
-import { OrderStatusBadge } from './OrderStatusBadge';
-import { OrderDeadlineCell } from './OrderDeadlineCell';
-import { OrderActionsCell } from './OrderActionsCell';
+} from '../../../features/orders/orderUtils';
+import { OrderStatusBadge } from '../badges';
+import { OrderDeadlineCell } from '../tables';
+import { OrderActionsCell } from '../tables';
 
 type OrderTableRowProps = {
   client?: Client;

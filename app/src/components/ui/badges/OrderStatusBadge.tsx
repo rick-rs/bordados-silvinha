@@ -1,4 +1,4 @@
-import { statusLabel, statusClassName } from '../../features/orders/orderUtils';
+import { statusLabel, statusClassName } from '../../../features/orders/orderUtils';
 
 type OrderStatusBadgeProps = {
   status: string;

@@ -3,9 +3,9 @@ import { Flag, Plus, Search, Trash2 } from 'lucide-react';
 import { Navigate, useNavigate } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
-import { Button } from '../../components/ui/Button';
-import { TextField } from '../../components/ui/TextField';
-import { AlertMessage } from '../../components/ui/Feedback';
+import { Button } from '../../components/ui/buttons';
+import { TextField } from '../../components/ui/forms';
+import { AlertMessage } from '../../components/ui/feedback';
 
 import { getSession } from '../../services/auth';
 import {

@@ -1,9 +1,9 @@
 import { FormEvent, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 
-import { Button } from '../../components/ui/Button';
-import { AlertMessage } from '../../components/ui/Feedback';
-import { TextField } from '../../components/ui/TextField';
+import { Button } from '../../components/ui/buttons';
+import { AlertMessage } from '../../components/ui/feedback';
+import { TextField } from '../../components/ui/forms';
 import { ApiError } from '../../services/api';
 import { getSession, login, saveSession } from '../../services/auth';
 import { appBrand } from '../../theme/brand';

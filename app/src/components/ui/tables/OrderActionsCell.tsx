@@ -1,6 +1,6 @@
 import { ArrowRight, Ban, Pencil, Trash2 } from 'lucide-react';
-import { Order } from '../../services/orders';
-import { formatOrderNumber, getNextStatus, statusLabel } from '../../features/orders/orderUtils';
+import { Order } from '../../../services/orders';
+import { formatOrderNumber, getNextStatus, statusLabel } from '../../../features/orders/orderUtils';
 
 type OrderActionsCellProps = {
   deletingId: number | null;

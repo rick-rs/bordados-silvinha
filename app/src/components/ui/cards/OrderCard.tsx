@@ -2,9 +2,9 @@ import { DragEvent, forwardRef, memo } from 'react';
 import { Flag } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-import { Client } from '../../services/clients';
-import { Order, OrderItem, Product } from '../../services/orders';
-import { formatCurrency } from '../../utils/format';
+import { Client } from '../../../services/clients';
+import { Order, OrderItem, Product } from '../../../services/orders';
+import { formatCurrency } from '../../../utils/format';
 import {
   buildItemSummary,
   formatDate,
@@ -12,9 +12,9 @@ import {
   paymentClassName,
   paymentLabel,
   paymentMethodLabel,
-} from '../../features/orders/orderUtils';
-import { Badge } from './Badge';
-import { DeadlineBadge } from './DeadlineBadge';
+} from '../../../features/orders/orderUtils';
+import { Badge } from '../badges';
+import { DeadlineBadge } from '../badges';
 import { OrderCardActions } from './OrderCardActions';
 
 type OrderCardProps = {

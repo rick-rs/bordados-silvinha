@@ -3,9 +3,9 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
-import { AlertMessage, EmptyState } from '../../components/ui/Feedback';
-import { PageHeader } from '../../components/ui/PageHeader';
-import { Surface, SurfaceHeader } from '../../components/ui/Surface';
+import { AlertMessage, EmptyState } from '../../components/ui/feedback';
+import { PageHeader } from '../../components/ui/headers';
+import { Surface, SurfaceHeader } from '../../components/ui/surfaces';
 import { getSession } from '../../services/auth';
 import { Client, listClients } from '../../services/clients';
 import { listOrders, Order } from '../../services/orders';

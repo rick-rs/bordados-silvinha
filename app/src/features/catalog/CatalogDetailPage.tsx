@@ -3,11 +3,11 @@ import { Pencil } from 'lucide-react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
-import { Button } from '../../components/ui/Button';
-import { DescriptionItem, DescriptionList } from '../../components/ui/DescriptionList';
-import { AlertMessage } from '../../components/ui/Feedback';
-import { PageHeader } from '../../components/ui/PageHeader';
-import { Surface, SurfaceHeader } from '../../components/ui/Surface';
+import { Button } from '../../components/ui/buttons';
+import { DescriptionItem, DescriptionList } from '../../components/ui/descriptions';
+import { AlertMessage } from '../../components/ui/feedback';
+import { PageHeader } from '../../components/ui/headers';
+import { Surface, SurfaceHeader } from '../../components/ui/surfaces';
 import { getSession } from '../../services/auth';
 import { getProduct, Product } from '../../services/orders';
 import { formatCurrency } from '../../utils/format';

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { AlertTriangle } from 'lucide-react';
 
-import { Button } from './Button';
+import { Button } from '../buttons';
 
 type ConfirmDialogProps = {
   cancelLabel?: string;
