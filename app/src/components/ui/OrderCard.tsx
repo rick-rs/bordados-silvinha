@@ -1,5 +1,5 @@
 import { DragEvent, forwardRef, memo } from 'react';
-import { Ban, Flag, Pencil, Trash2 } from 'lucide-react';
+import { Flag } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { Client } from '../../services/clients';
@@ -12,7 +12,10 @@ import {
   paymentClassName,
   paymentLabel,
   paymentMethodLabel,
-} from './orderUtils';
+} from '../../features/orders/orderUtils';
+import { Badge } from './Badge';
+import { DeadlineBadge } from './DeadlineBadge';
+import { OrderCardActions } from './OrderCardActions';
 
 type OrderCardProps = {
   clientsById: Map<number, Client>;
@@ -60,6 +63,13 @@ export const OrderCard = memo(
       const deadline = getDeadlineState(order);
       const isCanceled = order.status === 'Cancelado';
 
+      const borderColorClass = !isCanceled
+        && deadline?.label.startsWith('Atrasado')
+        ? 'border-rose-200'
+        : !isCanceled && deadline
+          ? 'border-amber-200'
+          : 'border-slate-200';
+
       return (
         <article
           ref={ref}
@@ -67,11 +77,7 @@ export const OrderCard = memo(
             'cursor-grab rounded-lg border bg-white p-2 text-left shadow-sm transition overflow-hidden',
             'hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md',
             isCanceled ? 'bg-slate-50 opacity-75' : '',
-            !isCanceled && deadline?.label.startsWith('Atrasado')
-              ? 'border-rose-200'
-              : !isCanceled && deadline
-                ? 'border-amber-200'
-                : 'border-slate-200',
+            borderColorClass,
             isUpdating ? 'opacity-60' : '',
           ].join(' ')}
           draggable={!isUpdating}
@@ -94,30 +100,19 @@ export const OrderCard = memo(
                     {client?.nome ?? `Cliente #${order.cliente}`}
                   </p>
                   {order.urgente ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-extrabold text-rose-700 flex-shrink-0">
-                      <Flag aria-hidden className="h-3 w-3" />
+                    <Badge variant="urgent" icon={<Flag className="h-3 w-3" />}>
                       Urgente
-                    </span>
+                    </Badge>
                   ) : null}
                 </div>
                 <p className="mt-1 text-[11px] font-bold text-frenchRose">
                   {formatDate(order.prazo)}
                 </p>
-                {deadline ? (
-                  <p
-                    className={`mt-1 inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-extrabold ring-1 ${deadline.tone}`}
-                  >
-                    {deadline.label}
-                  </p>
-                ) : null}
+                <DeadlineBadge deadline={deadline} />
               </div>
             </div>
 
-            <span
-              className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold truncate ${paymentClassName(
-                payment,
-              )}`}
-            >
+            <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold truncate ${paymentClassName(payment)}`}>
               {paymentMethod ? `${paymentMethod} · ${payment}` : payment}
             </span>
 
@@ -129,52 +124,16 @@ export const OrderCard = memo(
               <p className="font-extrabold text-ink text-xs flex-1 truncate">
                 {formatCurrency(order.valor_total) ?? 'R$ 0,00'}
               </p>
-              <div className="flex items-center gap-0.5 flex-shrink-0">
-                <button
-                  aria-label={`Cancelar pedido de ${
-                    client?.nome ?? 'cliente não identificado'
-                  }`}
-                  className="inline-flex h-6 w-6 items-center justify-center rounded text-slate-500 transition hover:bg-rose-50 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-40 flex-shrink-0"
-                  disabled={isCanceled || isUpdating}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onCancel(order);
-                  }}
-                  title={isCanceled ? 'Pedido já cancelado' : 'Cancelar pedido'}
-                  type="button"
-                >
-                  <Ban aria-hidden className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  aria-label={`Editar pedido de ${
-                    client?.nome ?? 'cliente não identificado'
-                  }`}
-                  className="inline-flex h-6 w-6 items-center justify-center rounded text-slate-500 transition hover:bg-slate-100 hover:text-ink flex-shrink-0"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onEdit(order);
-                  }}
-                  title="Editar pedido"
-                  type="button"
-                >
-                  <Pencil aria-hidden className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  aria-label={`Excluir pedido de ${
-                    client?.nome ?? 'cliente não identificado'
-                  }`}
-                  className="inline-flex h-6 w-6 items-center justify-center rounded text-frenchRose transition hover:bg-chantilly/45 disabled:cursor-not-allowed disabled:opacity-60 flex-shrink-0"
-                  disabled={deletingId === order.id}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onDelete(order);
-                  }}
-                  title="Excluir pedido"
-                  type="button"
-                >
-                  <Trash2 aria-hidden className="h-3.5 w-3.5" />
-                </button>
-              </div>
+              <OrderCardActions
+                clientName={client?.nome}
+                deletingId={deletingId}
+                isCanceled={isCanceled}
+                isUpdating={isUpdating}
+                onCancel={onCancel}
+                onDelete={onDelete}
+                onEdit={onEdit}
+                order={order}
+              />
             </div>
           </div>
         </article>

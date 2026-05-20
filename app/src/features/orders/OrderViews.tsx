@@ -18,7 +18,7 @@ import {
   statusLabel,
   statusOptions,
 } from './orderUtils';
-import { OrderCard } from './OrderCard';
+import { OrderCard } from '../../components/ui/OrderCard';
 
 type OrdersViewProps = {
   clientsById: Map<number, Client>;
