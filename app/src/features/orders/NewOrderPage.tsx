@@ -33,14 +33,7 @@ import {
   paymentOptions,
   toDecimalString,
 } from './orderUtils';
-
-type OrderItemForm = {
-  id: string;
-  peca: string;
-  produto: string;
-  quantidade: string;
-  valor_unitario: string;
-};
+import { useOrderItems, type OrderItemForm } from './hooks/useOrderItems';
 
 type OrderStep = 1 | 2 | 3;
 
@@ -76,28 +69,11 @@ const initialQuickClientForm: ClientPayload = {
   estado: '',
 };
 
-function createEmptyItem(): OrderItemForm {
-  return {
-    id: String(Date.now() + Math.random()),
-    peca: '',
-    produto: '',
-    quantidade: '1',
-    valor_unitario: '',
-  };
-}
-
-function itemSubtotal(item: OrderItemForm) {
-  const quantity = Number.parseInt(item.quantidade, 10);
-
-  return (Number.isNaN(quantity) ? 0 : quantity) * parseMoney(item.valor_unitario);
-}
-
 export function NewOrderPage() {
   const user = getSession();
   const navigate = useNavigate();
   const [step, setStep] = useState<OrderStep>(1);
   const [form, setForm] = useState(initialOrderForm);
-  const [items, setItems] = useState<OrderItemForm[]>([createEmptyItem()]);
   const [quickClientForm, setQuickClientForm] = useState(initialQuickClientForm);
   const [clientMode, setClientMode] = useState<'existing' | 'new'>('existing');
   const [clientSearch, setClientSearch] = useState('');
@@ -110,6 +86,17 @@ export function NewOrderPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
+
+  // Use order items hook
+  const {
+    items,
+    updateItem,
+    updateCatalogItem,
+    addItem,
+    removeItem,
+    getTotal,
+    validateItems,
+  } = useOrderItems();
 
   useEffect(() => {
     let isMounted = true;
@@ -145,7 +132,7 @@ export function NewOrderPage() {
   }, []);
 
   const activeProducts = products.filter((product) => product.ativo);
-  const total = items.reduce((currentTotal, item) => currentTotal + itemSubtotal(item), 0);
+  const total = getTotal();
   const selectedClient = clients.find((client) => String(client.id) === form.cliente);
   const filteredClients = useMemo(() => {
     const normalizedSearch = normalizeText(clientSearch.trim());
@@ -217,47 +204,9 @@ export function NewOrderPage() {
     setQuickClientForm((currentForm) => ({ ...currentForm, [field]: value }));
   }
 
-  function updateItem(id: string, field: keyof OrderItemForm, value: string) {
-    setItems((currentItems) =>
-      currentItems.map((item) =>
-        item.id === id ? { ...item, [field]: value } : item,
-      ),
-    );
-  }
-
-  function updateCatalogItem(id: string, value: string) {
-    setItems((currentItems) =>
-      currentItems.map((item) => {
-        if (item.id !== id) {
-          return item;
-        }
-
-        const product = products.find(
-          (currentProduct) => String(currentProduct.id) === value,
-        );
-        const suggestedUnitValue = parseMoney(product?.preco_base ?? '');
-
-        return {
-          ...item,
-          produto: value,
-          peca: product?.nome ?? '',
-          valor_unitario:
-            suggestedUnitValue > 0 ? toDecimalString(suggestedUnitValue) : '',
-        };
-      }),
-    );
-  }
-
-  function addItem() {
-    setItems((currentItems) => [...currentItems, createEmptyItem()]);
-  }
-
-  function removeItem(id: string) {
-    setItems((currentItems) =>
-      currentItems.length === 1
-        ? currentItems
-        : currentItems.filter((item) => item.id !== id),
-    );
+  function handleUpdateCatalogItem(id: string, productId: string) {
+    const product = products.find((p) => String(p.id) === productId);
+    updateCatalogItem(id, productId, product?.nome ?? '', product?.preco_base ?? '');
   }
 
   function validateOrderData() {
@@ -266,18 +215,7 @@ export function NewOrderPage() {
       return false;
     }
 
-    const hasInvalidItem = items.some((item) => {
-      const quantity = Number.parseInt(item.quantidade, 10);
-
-      return (
-        !item.produto ||
-        Number.isNaN(quantity) ||
-        quantity <= 0 ||
-        parseMoney(item.valor_unitario) <= 0
-      );
-    });
-
-    if (hasInvalidItem) {
+    if (!validateItems()) {
       setError('Selecione o item, quantidade e valor de todos os itens.');
       return false;
     }
@@ -707,7 +645,7 @@ export function NewOrderPage() {
             items={items}
             productOptions={activeProducts}
             removeItem={removeItem}
-            updateCatalogItem={updateCatalogItem}
+            updateCatalogItem={handleUpdateCatalogItem}
             updateItem={updateItem}
           />
         </section>
@@ -785,6 +723,11 @@ function OrderItemsForm({
   updateCatalogItem: (id: string, value: string) => void;
   updateItem: (id: string, field: keyof OrderItemForm, value: string) => void;
 }) {
+  function calculateItemSubtotal(item: OrderItemForm): number {
+    const quantity = Number.parseInt(item.quantidade, 10);
+    return (Number.isNaN(quantity) ? 0 : quantity) * parseMoney(item.valor_unitario);
+  }
+
   return (
     <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
       <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
@@ -865,7 +808,7 @@ function OrderItemsForm({
               <div className="grid gap-2">
                 <span className="text-sm font-bold text-mauve">Subtotal</span>
                 <div className="flex min-h-12 items-center rounded-lg border border-slate-200 bg-slate-50 px-4 text-sm font-extrabold text-ink">
-                  {formatCurrency(itemSubtotal(item)) ?? 'R$ 0,00'}
+                  {formatCurrency(calculateItemSubtotal(item)) ?? 'R$ 0,00'}
                 </div>
               </div>
             </div>
@@ -889,6 +832,11 @@ function OrderSummary({
   selectedClient: Client | undefined;
   total: number;
 }) {
+  function calculateItemSubtotal(item: OrderItemForm): number {
+    const quantity = Number.parseInt(item.quantidade, 10);
+    return (Number.isNaN(quantity) ? 0 : quantity) * parseMoney(item.valor_unitario);
+  }
+
   return (
     <section className="grid gap-5 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
       <div className="grid gap-4 lg:grid-cols-3">
@@ -945,7 +893,7 @@ function OrderSummary({
                   </p>
                 </div>
                 <p className="text-sm font-extrabold text-frenchRose">
-                  {formatCurrency(itemSubtotal(item)) ?? 'R$ 0,00'}
+                  {formatCurrency(calculateItemSubtotal(item)) ?? 'R$ 0,00'}
                 </p>
               </div>
             );

@@ -1,4 +1,4 @@
-import { ChangeEvent, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, useEffect, useState } from 'react';
 import { Columns3, Inbox, List, Plus, Search } from 'lucide-react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 
@@ -11,17 +11,7 @@ import { PageHeader } from '../../components/ui/PageHeader';
 import { PaginationControls } from '../../components/ui/PaginationControls';
 import { Surface } from '../../components/ui/Surface';
 import { getSession } from '../../services/auth';
-import { Client, listClients } from '../../services/clients';
-import {
-  deleteOrder,
-  listOrderItems,
-  listOrdersPage,
-  listProducts,
-  Order,
-  OrderItem,
-  Product,
-  updateOrder,
-} from '../../services/orders';
+import { deleteOrder, Order, updateOrder } from '../../services/orders';
 import { OrdersBoard, OrdersTable } from './OrderViews';
 import {
   channelOptions,
@@ -30,6 +20,7 @@ import {
   statusLabel,
   statusOptions,
 } from './orderUtils';
+import { useOrderFilters, OrdersFilterState } from './hooks/useOrderFilters';
 export { NewOrderPage } from './NewOrderPage';
 
 type OrdersView = 'list' | 'board';
@@ -44,21 +35,21 @@ function getInitialOrdersView(): OrdersView {
 export function OrdersPage() {
   const user = getSession();
   const navigate = useNavigate();
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
-  const [items, setItems] = useState<OrderItem[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [statusFilter, setStatusFilter] = useState('');
-  const [paymentFilter, setPaymentFilter] = useState('');
-  const [channelFilter, setChannelFilter] = useState('');
-  const [dateFromFilter, setDateFromFilter] = useState('');
-  const [dateToFilter, setDateToFilter] = useState('');
-  const [search, setSearch] = useState('');
+
+  // Filter and pagination state
+  const [filters, setFilters] = useState<OrdersFilterState>({
+    statusFilter: '',
+    paymentFilter: '',
+    channelFilter: '',
+    dateFromFilter: '',
+    dateToFilter: '',
+    search: '',
+    page: 1,
+    pageSize: 10,
+  });
+
+  // UI state
   const [ordersView, setOrdersView] = useState<OrdersView>(getInitialOrdersView);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [count, setCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [updatingStatusId, setUpdatingStatusId] = useState<number | null>(null);
   const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
@@ -66,141 +57,97 @@ export function OrdersPage() {
   const [cancelReason, setCancelReason] = useState('');
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    let isMounted = true;
+  // Load data with filters
+  const {
+    orders,
+    clientsById,
+    productsById,
+    itemsByOrder,
+    count,
+    isLoading,
+    error: loadError,
+  } = useOrderFilters(filters);
 
-    async function loadOrders() {
-      try {
-        const [ordersResponse, clientsResponse, itemsResponse, productsResponse] =
-          await Promise.all([
-            listOrdersPage({
-              canal: channelFilter,
-              page,
-              pageSize,
-              prazo_fim: dateToFilter,
-              prazo_inicio: dateFromFilter,
-              q: search,
-              status: statusFilter,
-              status_pagamento: paymentFilter,
-            }),
-            listClients(),
-            listOrderItems(),
-            listProducts(),
-          ]);
-
-        if (isMounted) {
-          setOrders(ordersResponse.results);
-          setCount(ordersResponse.count);
-          setClients(clientsResponse);
-          setItems(itemsResponse);
-          setProducts(productsResponse);
-          setError('');
-        }
-      } catch {
-        if (isMounted) {
-          setError('Não foi possível carregar os pedidos.');
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    loadOrders();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [
-    channelFilter,
-    dateFromFilter,
-    dateToFilter,
-    page,
-    pageSize,
-    paymentFilter,
-    search,
-    statusFilter,
-  ]);
-
+  // Persist view preference
   useEffect(() => {
     window.localStorage.setItem(ordersViewStorageKey, ordersView);
   }, [ordersView]);
-
-  const clientsById = useMemo(
-    () => new Map(clients.map((client) => [client.id, client])),
-    [clients],
-  );
-  const productsById = useMemo(
-    () => new Map(products.map((product) => [product.id, product])),
-    [products],
-  );
-  const itemsByOrder = useMemo(() => {
-    const groupedItems = new Map<number, OrderItem[]>();
-
-    items.forEach((item) => {
-      groupedItems.set(item.pedido, [...(groupedItems.get(item.pedido) ?? []), item]);
-    });
-
-    return groupedItems;
-  }, [items]);
-
-  const filteredOrders = useMemo(
-    () =>
-      [...orders].sort((leftOrder, rightOrder) => {
-        if (leftOrder.status === 'Cancelado' && rightOrder.status !== 'Cancelado') {
-          return 1;
-        }
-
-        if (leftOrder.status !== 'Cancelado' && rightOrder.status === 'Cancelado') {
-          return -1;
-        }
-
-        return 0;
-      }),
-    [orders],
-  );
 
   if (!user) {
     return <Navigate replace to="/login" />;
   }
 
-  function updateStatusFilter(event: ChangeEvent<HTMLSelectElement>) {
-    setStatusFilter(event.target.value);
-    setPage(1);
+  // Sort orders: non-canceled first, then canceled
+  const sortedOrders = [...orders].sort((leftOrder, rightOrder) => {
+    if (leftOrder.status === 'Cancelado' && rightOrder.status !== 'Cancelado') {
+      return 1;
+    }
+
+    if (leftOrder.status !== 'Cancelado' && rightOrder.status === 'Cancelado') {
+      return -1;
+    }
+
+    return 0;
+  });
+
+  // Filter handlers - reset pagination when filter changes
+  function handleStatusFilterChange(event: ChangeEvent<HTMLSelectElement>) {
+    setFilters((current) => ({
+      ...current,
+      statusFilter: event.target.value,
+      page: 1,
+    }));
   }
 
-  function updatePaymentFilter(event: ChangeEvent<HTMLSelectElement>) {
-    setPaymentFilter(event.target.value);
-    setPage(1);
+  function handlePaymentFilterChange(event: ChangeEvent<HTMLSelectElement>) {
+    setFilters((current) => ({
+      ...current,
+      paymentFilter: event.target.value,
+      page: 1,
+    }));
   }
 
-  function updateChannelFilter(event: ChangeEvent<HTMLSelectElement>) {
-    setChannelFilter(event.target.value);
-    setPage(1);
+  function handleChannelFilterChange(event: ChangeEvent<HTMLSelectElement>) {
+    setFilters((current) => ({
+      ...current,
+      channelFilter: event.target.value,
+      page: 1,
+    }));
   }
 
-  function updateDateFromFilter(value: string) {
-    setDateFromFilter(value);
-    setPage(1);
+  function handleDateFromFilterChange(value: string) {
+    setFilters((current) => ({
+      ...current,
+      dateFromFilter: value,
+      page: 1,
+    }));
   }
 
-  function updateDateToFilter(value: string) {
-    setDateToFilter(value);
-    setPage(1);
+  function handleDateToFilterChange(value: string) {
+    setFilters((current) => ({
+      ...current,
+      dateToFilter: value,
+      page: 1,
+    }));
   }
 
-  function updateSearch(value: string) {
-    setSearch(value);
-    setPage(1);
+  function handleSearchChange(value: string) {
+    setFilters((current) => ({
+      ...current,
+      search: value,
+      page: 1,
+    }));
   }
 
-  function updatePageSize(value: number) {
-    setPageSize(value);
-    setPage(1);
+  function handlePageSizeChange(pageSize: number) {
+    setFilters((current) => ({
+      ...current,
+      pageSize,
+      page: 1,
+    }));
   }
 
-  async function confirmDelete() {
+  async function handleDeleteOrder() {
     if (!orderToDelete) {
       return;
     }
@@ -210,13 +157,9 @@ export function OrdersPage() {
 
     try {
       await deleteOrder(orderToDelete.id);
-      setOrders((currentOrders) =>
-        currentOrders.filter((currentOrder) => currentOrder.id !== orderToDelete.id),
-      );
-      setItems((currentItems) =>
-        currentItems.filter((currentItem) => currentItem.pedido !== orderToDelete.id),
-      );
       setOrderToDelete(null);
+      // Refetch by resetting page
+      setFilters((current) => ({ ...current, page: 1 }));
     } catch {
       setError('Não foi possível excluir o pedido.');
     } finally {
@@ -224,7 +167,7 @@ export function OrdersPage() {
     }
   }
 
-  async function confirmCancel() {
+  async function handleCancelOrder() {
     if (!orderToCancel) {
       return;
     }
@@ -236,37 +179,20 @@ export function OrdersPage() {
       return;
     }
 
-    const previousOrders = orders;
-
     setUpdatingStatusId(orderToCancel.id);
     setError('');
-    setOrders((currentOrders) =>
-      currentOrders.map((currentOrder) =>
-        currentOrder.id === orderToCancel.id
-          ? {
-              ...currentOrder,
-              motivo_cancelamento: reason,
-              status: 'Cancelado',
-              atualizado_em: new Date().toISOString(),
-            }
-          : currentOrder,
-      ),
-    );
 
     try {
-      const updatedOrder = await updateOrder(orderToCancel.id, {
+      await updateOrder(orderToCancel.id, {
         motivo_cancelamento: reason,
         status: 'Cancelado',
       });
-      setOrders((currentOrders) =>
-        currentOrders.map((currentOrder) =>
-          currentOrder.id === updatedOrder.id ? updatedOrder : currentOrder,
-        ),
-      );
+
       setOrderToCancel(null);
       setCancelReason('');
+      // Refetch by resetting page
+      setFilters((current) => ({ ...current, page: 1 }));
     } catch {
-      setOrders(previousOrders);
       setError('Não foi possível cancelar o pedido.');
     } finally {
       setUpdatingStatusId(null);
@@ -278,27 +204,14 @@ export function OrdersPage() {
       return;
     }
 
-    const previousOrders = orders;
-
     setUpdatingStatusId(order.id);
     setError('');
-    setOrders((currentOrders) =>
-      currentOrders.map((currentOrder) =>
-        currentOrder.id === order.id
-          ? { ...currentOrder, status, atualizado_em: new Date().toISOString() }
-          : currentOrder,
-      ),
-    );
 
     try {
-      const updatedOrder = await updateOrder(order.id, { status });
-      setOrders((currentOrders) =>
-        currentOrders.map((currentOrder) =>
-          currentOrder.id === updatedOrder.id ? updatedOrder : currentOrder,
-        ),
-      );
+      await updateOrder(order.id, { status });
+      // Refetch by resetting page
+      setFilters((current) => ({ ...current, page: 1 }));
     } catch {
-      setOrders(previousOrders);
       setError('Não foi possível atualizar o status do pedido.');
     } finally {
       setUpdatingStatusId(null);
@@ -309,9 +222,7 @@ export function OrdersPage() {
     <AppShell activePage="Pedidos">
       <PageHeader
         actions={
-          <Link
-            to="/pedidos/novo"
-          >
+          <Link to="/pedidos/novo">
             <Button className="w-full sm:w-auto sm:self-auto">
               <Plus aria-hidden className="h-4 w-4" />
               Nova Encomenda
@@ -322,7 +233,7 @@ export function OrdersPage() {
         title="Gestão de Pedidos"
       />
 
-      <AlertMessage>{error}</AlertMessage>
+      <AlertMessage>{error || loadError}</AlertMessage>
 
       <Surface>
         <FilterToolbar
@@ -366,8 +277,8 @@ export function OrdersPage() {
               <select
                 className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15 xl:w-40"
                 id="status-filter"
-                onChange={updateStatusFilter}
-                value={statusFilter}
+                onChange={handleStatusFilterChange}
+                value={filters.statusFilter}
               >
                 <option value="">Todos os status</option>
                 {statusOptions.map((status) => (
@@ -383,8 +294,8 @@ export function OrdersPage() {
               <select
                 className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15 xl:w-40"
                 id="channel-filter"
-                onChange={updateChannelFilter}
-                value={channelFilter}
+                onChange={handleChannelFilterChange}
+                value={filters.channelFilter}
               >
                 <option value="">Todos os canais</option>
                 {channelOptions.map((channel) => (
@@ -399,10 +310,10 @@ export function OrdersPage() {
                 <input
                   className="min-h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
                   id="date-from-filter"
-                  onChange={(event) => updateDateFromFilter(event.target.value)}
+                  onChange={(event) => handleDateFromFilterChange(event.target.value)}
                   title="Prazo inicial"
                   type="date"
-                  value={dateFromFilter}
+                  value={filters.dateFromFilter}
                 />
               </label>
 
@@ -411,10 +322,10 @@ export function OrdersPage() {
                 <input
                   className="min-h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
                   id="date-to-filter"
-                  onChange={(event) => updateDateToFilter(event.target.value)}
+                  onChange={(event) => handleDateToFilterChange(event.target.value)}
                   title="Prazo final"
                   type="date"
-                  value={dateToFilter}
+                  value={filters.dateToFilter}
                 />
               </label>
 
@@ -424,8 +335,8 @@ export function OrdersPage() {
               <select
                 className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15 xl:w-44"
                 id="payment-filter"
-                onChange={updatePaymentFilter}
-                value={paymentFilter}
+                onChange={handlePaymentFilterChange}
+                value={filters.paymentFilter}
               >
                 <option value="">Todos os pagamentos</option>
                 {paymentOptions.map((payment) => (
@@ -446,10 +357,10 @@ export function OrdersPage() {
               <input
                 className="min-h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm text-ink outline-none transition placeholder:text-slate-400 focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
                 id="order-search"
-                onChange={(event) => updateSearch(event.target.value)}
+                onChange={(event) => handleSearchChange(event.target.value)}
                 placeholder="Buscar cliente ou nº pedido"
                 type="search"
-                value={search}
+                value={filters.search}
               />
             </label>
           }
@@ -457,7 +368,7 @@ export function OrdersPage() {
 
         {isLoading ? (
           <LoadingRows count={4} />
-        ) : filteredOrders.length > 0 && ordersView === 'list' ? (
+        ) : sortedOrders.length > 0 && ordersView === 'list' ? (
           <OrdersTable
             clientsById={clientsById}
             deletingId={deletingId}
@@ -466,11 +377,11 @@ export function OrdersPage() {
             onCancel={(order) => setOrderToCancel(order)}
             onEdit={(order) => navigate(`/pedidos/${order.id}/editar`)}
             onDelete={(order) => setOrderToDelete(order)}
-            orders={filteredOrders}
+            orders={sortedOrders}
             productsById={productsById}
             updatingStatusId={updatingStatusId}
           />
-        ) : filteredOrders.length > 0 ? (
+        ) : sortedOrders.length > 0 ? (
           <OrdersBoard
             clientsById={clientsById}
             deletingId={deletingId}
@@ -479,7 +390,7 @@ export function OrdersPage() {
             onDelete={(order) => setOrderToDelete(order)}
             onEdit={(order) => navigate(`/pedidos/${order.id}/editar`)}
             onStatusChange={handleStatusChange}
-            orders={filteredOrders}
+            orders={sortedOrders}
             productsById={productsById}
             updatingStatusId={updatingStatusId}
           />
@@ -490,13 +401,13 @@ export function OrdersPage() {
             description="Ajuste os filtros ou cadastre uma nova encomenda."
           />
         )}
-        {count > pageSize ? (
+        {count > filters.pageSize ? (
           <PaginationControls
             count={count}
-            onPageChange={setPage}
-            onPageSizeChange={updatePageSize}
-            page={page}
-            pageSize={pageSize}
+            onPageChange={(page) => setFilters((current) => ({ ...current, page }))}
+            onPageSizeChange={handlePageSizeChange}
+            page={filters.page}
+            pageSize={filters.pageSize}
           />
         ) : null}
       </Surface>
@@ -511,7 +422,7 @@ export function OrdersPage() {
         isLoading={deletingId === orderToDelete?.id}
         isOpen={Boolean(orderToDelete)}
         onCancel={() => setOrderToDelete(null)}
-        onConfirm={confirmDelete}
+        onConfirm={handleDeleteOrder}
         title="Excluir pedido"
       />
 
@@ -528,7 +439,7 @@ export function OrdersPage() {
           setOrderToCancel(null);
           setCancelReason('');
         }}
-        onConfirm={confirmCancel}
+        onConfirm={handleCancelOrder}
         title="Cancelar pedido"
       >
         <label className="grid gap-2" htmlFor="cancel-reason">

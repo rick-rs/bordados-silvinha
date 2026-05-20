@@ -1,24 +1,10 @@
 import { DragEvent, useEffect, useMemo, useState } from 'react';
-import { ArrowRight, Ban, Flag, Pencil, Trash2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 
 import { Client } from '../../services/clients';
 import { Order, OrderItem, Product } from '../../services/orders';
-import { formatCurrency } from '../../utils/format';
-import {
-  buildItemSummary,
-  formatDate,
-  formatOrderNumber,
-  getDeadlineState,
-  getNextStatus,
-  paymentClassName,
-  paymentLabel,
-  paymentMethodLabel,
-  statusClassName,
-  statusLabel,
-  statusOptions,
-} from './orderUtils';
+import { statusLabel, statusOptions } from './orderUtils';
 import { OrderCard } from '../../components/ui/OrderCard';
+import { OrderTableRow } from '../../components/ui/OrderTableRow';
 
 type OrdersViewProps = {
   clientsById: Map<number, Client>;
@@ -48,8 +34,6 @@ export function OrdersTable({
   productsById,
   updatingStatusId,
 }: OrdersTableProps) {
-  const navigate = useNavigate();
-
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[980px] border-collapse text-left text-sm">
@@ -64,140 +48,21 @@ export function OrdersTable({
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
-          {orders.map((order) => {
-            const client = clientsById.get(order.cliente);
-            const itemSummary = buildItemSummary(order.id, itemsByOrder, productsById);
-            const total = formatCurrency(order.valor_total) ?? 'R$ 0,00';
-            const payment = paymentLabel(order.status_pagamento);
-            const paymentMethod = paymentMethodLabel(order.forma_pagamento ?? '');
-            const nextStatus = getNextStatus(order.status);
-            const deadline = getDeadlineState(order);
-            const isCanceled = order.status === 'Cancelado';
-
-            return (
-              <tr
-                className={[
-                  'cursor-pointer align-top transition hover:bg-primary/5',
-                  isCanceled ? 'bg-slate-50 opacity-75' : 'bg-white',
-                  !isCanceled && deadline?.label.startsWith('Atrasado')
-                    ? 'border-l-4 border-l-rose-400'
-                    : !isCanceled && deadline
-                      ? 'border-l-4 border-l-amber-400'
-                      : '',
-                ].join(' ')}
-                key={order.id}
-                onClick={() => navigate(`/pedidos/${order.id}`)}
-              >
-                <td className="px-4 py-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-extrabold text-ink">
-                      {formatOrderNumber(order.id)}
-                    </p>
-                    {order.urgente ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-danger/10 px-2 py-0.5 text-[11px] font-extrabold text-danger">
-                        <Flag aria-hidden className="h-3 w-3" />
-                        Urgente
-                      </span>
-                    ) : null}
-                  </div>
-                  <p className="mt-1 text-xs font-semibold text-slate-500">
-                    {client?.nome ?? `Cliente #${order.cliente}`}
-                  </p>
-                </td>
-                <td className="max-w-80 px-4 py-3 text-slate-600">{itemSummary}</td>
-                <td className="px-4 py-3">
-                  <p className="font-extrabold text-primary-dark">
-                    {formatDate(order.prazo)}
-                  </p>
-                  {deadline ? (
-                    <p
-                      className={`mt-2 inline-flex rounded-full px-2 py-1 text-[11px] font-extrabold ring-1 ${deadline.tone}`}
-                    >
-                      {deadline.label}
-                    </p>
-                  ) : null}
-                  <p className="mt-1 text-xs text-slate-500">
-                    {order.data_pedido ? `Entrada ${formatDate(order.data_pedido)}` : '-'}
-                  </p>
-                </td>
-                <td className="px-4 py-3">
-                  <span
-                    className={`rounded-full px-2 py-1 text-xs font-bold ${statusClassName(
-                      order.status,
-                    )}`}
-                  >
-                    {statusLabel(order.status)}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <p className="font-extrabold text-ink">{total}</p>
-                  <p className={`mt-1 text-xs font-bold ${paymentClassName(payment)}`}>
-                    {paymentMethod ? `${paymentMethod} · ${payment}` : payment}
-                  </p>
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <button
-                    aria-label={`Avançar pedido ${formatOrderNumber(order.id)} para o próximo status`}
-                    className="mr-1 inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
-                    disabled={!nextStatus || updatingStatusId === order.id}
-                    onClick={(event) => {
-                      event.stopPropagation();
-
-                      if (nextStatus) {
-                        onAdvanceStatus(order, nextStatus);
-                      }
-                    }}
-                    title={
-                      nextStatus
-                        ? `Avançar para ${statusLabel(nextStatus)}`
-                        : 'Pedido no último status'
-                    }
-                    type="button"
-                  >
-                    <ArrowRight aria-hidden className="h-4 w-4" />
-                  </button>
-                  <button
-                    aria-label={`Cancelar pedido ${formatOrderNumber(order.id)}`}
-                    className="mr-1 inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-danger/10 hover:text-danger disabled:cursor-not-allowed disabled:opacity-40"
-                    disabled={isCanceled || updatingStatusId === order.id}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onCancel(order);
-                    }}
-                    title={isCanceled ? 'Pedido já cancelado' : 'Cancelar pedido'}
-                    type="button"
-                  >
-                    <Ban aria-hidden className="h-4 w-4" />
-                  </button>
-                  <button
-                    aria-label={`Editar pedido ${formatOrderNumber(order.id)}`}
-                    className="mr-1 inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-ink"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onEdit(order);
-                    }}
-                    title="Editar pedido"
-                    type="button"
-                  >
-                    <Pencil aria-hidden className="h-4 w-4" />
-                  </button>
-                  <button
-                    aria-label={`Excluir pedido ${formatOrderNumber(order.id)}`}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-danger transition hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-60"
-                    disabled={deletingId === order.id}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onDelete(order);
-                    }}
-                    title="Excluir pedido"
-                    type="button"
-                  >
-                    <Trash2 aria-hidden className="h-4 w-4" />
-                  </button>
-                </td>
-              </tr>
-            );
-          })}
+          {orders.map((order) => (
+            <OrderTableRow
+              key={order.id}
+              client={clientsById.get(order.cliente)}
+              deletingId={deletingId}
+              itemsByOrder={itemsByOrder}
+              onAdvanceStatus={onAdvanceStatus}
+              onCancel={onCancel}
+              onDelete={onDelete}
+              onEdit={onEdit}
+              order={order}
+              productsById={productsById}
+              updatingStatusId={updatingStatusId}
+            />
+          ))}
         </tbody>
       </table>
     </div>
