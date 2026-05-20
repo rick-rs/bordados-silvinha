@@ -1,12 +1,12 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { Inbox, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { Inbox, Plus, Search } from 'lucide-react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
 import { AlertMessage, EmptyState, LoadingRows } from '../../components/ui/feedback';
 import { ConfirmDialog } from '../../components/ui/dialogs';
 import { FilterToolbar } from '../../components/ui/filters';
-import { IconButton } from '../../components/ui/buttons';
+import { ClientTableRow } from '../../components/ui/tables';
 import { PageHeader } from '../../components/ui/headers';
 import { PaginationControls } from '../../components/ui/pagination';
 import { Button } from '../../components/ui/buttons';
@@ -216,52 +216,14 @@ export function ClientsPage() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {clients.map((client) => (
-                  <tr
-                    className="cursor-pointer bg-white transition hover:bg-chantilly/20"
+                  <ClientTableRow
+                    client={client}
+                    deletingId={deletingId}
                     key={client.id}
-                    onClick={() => navigate(`/clientes/${client.id}`)}
-                  >
-                    <td className="px-4 py-3 font-extrabold text-ink">
-                      {client.nome}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {client.telefone || '-'}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {client.email || '-'}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {client.cidade || '-'}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {client.estado || '-'}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <IconButton
-                        aria-label={`Editar cliente ${client.nome}`}
-                        className="mr-1"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          navigate(`/clientes/${client.id}/editar`);
-                        }}
-                        title="Editar cliente"
-                      >
-                        <Pencil aria-hidden className="h-4 w-4" />
-                      </IconButton>
-                      <IconButton
-                        aria-label={`Excluir cliente ${client.nome}`}
-                        disabled={deletingId === client.id}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleDelete(client);
-                        }}
-                        title="Excluir cliente"
-                        tone="danger"
-                      >
-                        <Trash2 aria-hidden className="h-4 w-4" />
-                      </IconButton>
-                    </td>
-                  </tr>
+                    onNavigate={() => navigate(`/clientes/${client.id}`)}
+                    onEdit={() => navigate(`/clientes/${client.id}/editar`)}
+                    onDelete={() => handleDelete(client)}
+                  />
                 ))}
               </tbody>
             </table>

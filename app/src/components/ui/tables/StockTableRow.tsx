@@ -28,7 +28,7 @@ export function StockTableRow({
   const isLow = current <= minimum;
 
   return (
-    <tr className="cursor-pointer transition duration-150 ease-in-out hover:shadow-md hover:bg-chantilly/30">
+    <tr className="cursor-pointer bg-white align-top transition hover:bg-primary/5">
       <td className="px-4 py-3">
         <input
           aria-label={`Selecionar ${material.nome}`}

@@ -235,7 +235,7 @@ export function StockPage() {
         actions={
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
             <Button
-              className="w-full sm:w-auto"
+              className="w-full sm:w-auto disabled:pointer-events-none disabled:opacity-60 disabled:shadow-none disabled:hover:bg-transparent disabled:hover:text-inherit"
               disabled={selectedMaterialIds.length === 0}
               onClick={() => setIsBulkMovementOpen((isOpen) => !isOpen)}
               type="button"
@@ -368,6 +368,7 @@ export function StockPage() {
                   <th className="px-4 py-3 text-right">Ações</th>
                 </tr>
               </thead>
+
               <tbody className="divide-y divide-slate-100">
                 {materials.map((material) => (
                   <StockTableRow
@@ -390,6 +391,7 @@ export function StockPage() {
             title="Nenhum material cadastrado."
           />
         )}
+
         {count > pageSize ? (
           <PaginationControls
             count={count}
