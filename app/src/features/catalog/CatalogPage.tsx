@@ -99,6 +99,10 @@ export function CatalogPage() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [error, setError] = useState('');
 
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<Product | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
+
   useEffect(() => {
     let isMounted = true;
 
@@ -164,10 +168,6 @@ export function CatalogPage() {
   if (!user) {
     return <Navigate replace to="/login" />;
   }
-
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [pendingDelete, setPendingDelete] = useState<Product | null>(null);
-  const [showSuccess, setShowSuccess] = useState(false);
 
   async function handleDelete(product: Product) {
     setPendingDelete(product);

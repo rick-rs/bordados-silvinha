@@ -46,6 +46,7 @@ export function OrdersPage() {
     search: '',
     page: 1,
     pageSize: 10,
+    refresh: 0,
   });
 
   // UI state
@@ -158,8 +159,7 @@ export function OrdersPage() {
     try {
       await deleteOrder(orderToDelete.id);
       setOrderToDelete(null);
-      // Refetch by resetting page
-      setFilters((current) => ({ ...current, page: 1 }));
+      setFilters((current) => ({ ...current, page: 1, refresh: current.refresh + 1 }));
     } catch {
       setError('Não foi possível excluir o pedido.');
     } finally {
@@ -190,8 +190,7 @@ export function OrdersPage() {
 
       setOrderToCancel(null);
       setCancelReason('');
-      // Refetch by resetting page
-      setFilters((current) => ({ ...current, page: 1 }));
+      setFilters((current) => ({ ...current, page: 1, refresh: current.refresh + 1 }));
     } catch {
       setError('Não foi possível cancelar o pedido.');
     } finally {
@@ -209,8 +208,7 @@ export function OrdersPage() {
 
     try {
       await updateOrder(order.id, { status });
-      // Refetch by resetting page
-      setFilters((current) => ({ ...current, page: 1 }));
+      setFilters((current) => ({ ...current, page: 1, refresh: current.refresh + 1 }));
     } catch {
       setError('Não foi possível atualizar o status do pedido.');
     } finally {

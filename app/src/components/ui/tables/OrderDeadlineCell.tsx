@@ -1,3 +1,4 @@
+import type { Order } from '../../../services/orders';
 import { formatDate, getDeadlineState } from '../../../features/orders/orderUtils';
 
 type OrderDeadlineCellProps = {
@@ -6,7 +7,10 @@ type OrderDeadlineCellProps = {
 };
 
 export function OrderDeadlineCell({ deadline, entryDate }: OrderDeadlineCellProps) {
-  const deadlineState = getDeadlineState({ prazo: deadline } as any);
+  const deadlineState = getDeadlineState({
+    status: 'Recebido',
+    prazo: deadline,
+  } as Order);
 
   return (
     <div>

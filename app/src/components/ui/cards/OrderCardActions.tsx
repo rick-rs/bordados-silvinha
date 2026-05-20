@@ -24,7 +24,7 @@ export function OrderCardActions({
   order,
 }: OrderCardActionsProps) {
   const handleButtonClick = (
-    event: React.MouseEvent,
+    event: React.MouseEvent<HTMLButtonElement>,
     callback: (order: Order) => void,
   ) => {
     event.stopPropagation();
@@ -36,7 +36,7 @@ export function OrderCardActions({
       <ActionButton
         aria-label={`Cancelar pedido de ${clientName}`}
         disabled={isCanceled || isUpdating}
-        onClick={(event) => handleButtonClick(event as any, onCancel)}
+        onClick={(event) => handleButtonClick(event, onCancel)}
         title={isCanceled ? 'Pedido já cancelado' : 'Cancelar pedido'}
         variant="danger"
       >
@@ -44,7 +44,7 @@ export function OrderCardActions({
       </ActionButton>
       <ActionButton
         aria-label={`Editar pedido de ${clientName}`}
-        onClick={(event) => handleButtonClick(event as any, onEdit)}
+        onClick={(event) => handleButtonClick(event, onEdit)}
         title="Editar pedido"
       >
         <Pencil aria-hidden className="h-3.5 w-3.5" />
@@ -52,7 +52,7 @@ export function OrderCardActions({
       <ActionButton
         aria-label={`Excluir pedido de ${clientName}`}
         disabled={deletingId === order.id}
-        onClick={(event) => handleButtonClick(event as any, onDelete)}
+        onClick={(event) => handleButtonClick(event, onDelete)}
         title="Excluir pedido"
         className="text-frenchRose hover:bg-chantilly/45"
       >

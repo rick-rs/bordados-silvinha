@@ -1,6 +1,11 @@
 import { ArrowRight, Ban, Pencil, Trash2 } from 'lucide-react';
+
 import { Order } from '../../../services/orders';
-import { formatOrderNumber, getNextStatus, statusLabel } from '../../../features/orders/orderUtils';
+import {
+  formatOrderNumber,
+  getNextStatus,
+  statusLabel,
+} from '../../../features/orders/orderUtils';
 
 type OrderActionsCellProps = {
   deletingId: number | null;
@@ -24,14 +29,14 @@ export function OrderActionsCell({
   const nextStatus = getNextStatus(order.status);
   const isCanceled = order.status === 'Cancelado';
 
-  const handleButtonClick = (
-    event: React.MouseEvent,
-    callback: (order: Order, ...args: any[]) => void,
-    ...args: any[]
-  ) => {
+  function handleButtonClick<TArgs extends unknown[]>(
+    event: React.MouseEvent<HTMLButtonElement>,
+    callback: (order: Order, ...args: TArgs) => void,
+    ...args: TArgs
+  ) {
     event.stopPropagation();
     callback(order, ...args);
-  };
+  }
 
   return (
     <div className="flex gap-1">
@@ -40,9 +45,8 @@ export function OrderActionsCell({
         className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
         disabled={!nextStatus || updatingStatusId === order.id}
         onClick={(event) => {
-          if (nextStatus) {
-            handleButtonClick(event, onAdvanceStatus, nextStatus);
-          }
+          if (!nextStatus) return;
+          handleButtonClick(event, onAdvanceStatus, nextStatus);
         }}
         title={
           nextStatus ? `Avançar para ${statusLabel(nextStatus)}` : 'Pedido no último status'

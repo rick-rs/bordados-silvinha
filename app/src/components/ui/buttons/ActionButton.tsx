@@ -2,12 +2,11 @@ import { forwardRef, ButtonHTMLAttributes, ReactNode } from 'react';
 
 type ActionButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   children: ReactNode;
-  icon?: ReactNode;
   variant?: 'default' | 'danger';
 };
 
 export const ActionButton = forwardRef<HTMLButtonElement, ActionButtonProps>(
-  ({ children, className = '', icon, variant = 'default', ...props }, ref) => {
+  ({ children, className = '', variant = 'default', ...props }, ref) => {
     const variantClasses = {
       default:
         'text-slate-500 transition hover:bg-slate-100 hover:text-ink disabled:cursor-not-allowed disabled:opacity-40',

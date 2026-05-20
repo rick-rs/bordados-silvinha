@@ -18,6 +18,7 @@ export type OrdersFilterState = {
   search: string;
   page: number;
   pageSize: number;
+  refresh: number; // trigger para refetch após updates (status/cancel/delete)
 };
 
 export type OrdersFilterData = {
@@ -97,6 +98,7 @@ export function useOrderFilters(filters: OrdersFilterState) {
     filters.page,
     filters.pageSize,
     filters.paymentFilter,
+    filters.refresh,
     filters.search,
     filters.statusFilter,
   ]);
