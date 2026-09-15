@@ -15,4 +15,4 @@ router.register(r"historico-status", views.HistoricoStatusViewSet)
 router.register(r"materiais", views.MaterialViewSet)
 router.register(r"movimentacoes-estoque", views.MovimentacaoEstoqueViewSet)
 
-urlpatterns = [path("", include(router.urls))]
+urlpatterns = [path("accessibility-profile/", views.AccessibilityProfileView.as_view(), name="accessibility-profile"), path("", include(router.urls))]

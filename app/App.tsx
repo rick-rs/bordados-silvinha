@@ -1,3 +1,5 @@
+import { AccessibilityProvider } from './src/features/accessibility/AccessibilityProvider';
+import { AccessibilityPage } from './src/features/accessibility/AccessibilityPage';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 
 import { AgendaPage } from './src/features/agenda/AgendaPage';
@@ -19,7 +21,7 @@ import './src/theme/global.css';
 
 function App() {
   return (
-    <BrowserRouter>
+    <AccessibilityProvider><BrowserRouter>
       <Routes>
         <Route element={<LoginPage />} path="/login" />
         <Route element={<DashboardPage />} path="/dashboard" />
@@ -40,10 +42,11 @@ function App() {
         <Route element={<StockNewPage />} path="/estoque/novo" />
         <Route element={<StockEditPage />} path="/estoque/:id/editar" />
         <Route element={<StockDetailPage />} path="/estoque/:id" />
+        <Route element={<AccessibilityPage />} path="/perfil/acessibilidade" />
         <Route element={<ProfilePage />} path="/perfil" />
         <Route element={<Navigate replace to="/dashboard" />} path="*" />
       </Routes>
-    </BrowserRouter>
+    </BrowserRouter></AccessibilityProvider>
   );
 }
 

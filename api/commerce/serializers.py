@@ -181,3 +181,21 @@ class MovimentacaoEstoqueSerializer(serializers.ModelSerializer):
 
         model = models.MovimentacaoEstoque
         fields = "__all__"
+
+
+class AccessibilityProfileSerializer(serializers.ModelSerializer):
+    """Strictly validate preferences; never accept an owner from the client."""
+    class Meta:
+        model = models.AccessibilityProfile
+        fields = ("text_size", "high_contrast", "reduced_motion", "highlight_links", "readable_font", "increased_spacing")
+
+    def to_internal_value(self, data):
+        if not isinstance(data, dict):
+            raise serializers.ValidationError({"non_field_errors": ["Informe um objeto JSON de preferências."]})
+        unknown = set(data) - set(self.fields)
+        if unknown:
+            raise serializers.ValidationError({field: "Campo desconhecido." for field in unknown})
+        for field in self.fields:
+            if field != "text_size" and field in data and type(data[field]) is not bool:
+                raise serializers.ValidationError({field: "Informe true ou false."})
+        return super().to_internal_value(data)

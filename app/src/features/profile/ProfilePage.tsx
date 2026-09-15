@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/buttons';
@@ -108,6 +108,12 @@ export function ProfilePage() {
   return (
     <AppShell activePage="Perfil">
       <PageHeader breadcrumb="Conta e configurações" title="Perfil" />
+
+      <Surface as="section" className="mb-5 p-5">
+        <h2 className="text-lg font-bold">Acessibilidade</h2>
+        <p className="my-3">Personalize texto, contraste, movimentos e espaçamento da interface.</p>
+        <Link className="inline-flex min-h-11 items-center font-bold text-primary-dark underline" to="/perfil/acessibilidade">Configurar acessibilidade</Link>
+      </Surface>
 
       <section className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
         <Surface as="article">

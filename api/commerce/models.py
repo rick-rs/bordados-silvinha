@@ -17,9 +17,25 @@ class Usuario(models.Model):
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
 
+    @property
+    def is_authenticated(self):
+        return True
+
     def __str__(self):
         """Return display name for admin and logs."""
         return self.nome
+
+
+class AccessibilityProfile(models.Model):
+    """Interface preferences belonging exclusively to a commerce user."""
+
+    user = models.OneToOneField(Usuario, on_delete=models.CASCADE, related_name="accessibility_profile")
+    text_size = models.CharField(max_length=16, choices=[("standard", "Padrão"), ("large", "Grande"), ("extra_large", "Extra grande")], default="standard")
+    high_contrast = models.BooleanField(default=False)
+    reduced_motion = models.BooleanField(default=False)
+    highlight_links = models.BooleanField(default=False)
+    readable_font = models.BooleanField(default=False)
+    increased_spacing = models.BooleanField(default=False)
 
 
 class Cliente(models.Model):

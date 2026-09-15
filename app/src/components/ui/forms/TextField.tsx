@@ -22,8 +22,8 @@ export function TextField({
         aria-describedby={errorId}
         aria-invalid={error ? 'true' : 'false'}
         className={[
-          'min-h-12 w-full rounded-lg border border-border/20 bg-white px-4 text-graphite outline-none transition',
-          'placeholder:text-muted/60',
+          'min-h-12 w-full rounded-lg border border-slate-500 bg-white px-4 text-graphite outline-none transition',
+          'placeholder:text-muted',
           'focus:border-primary focus:ring-4 focus:ring-primary/15',
         ].join(' ')}
         id={inputId}

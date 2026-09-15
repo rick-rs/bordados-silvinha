@@ -14,6 +14,8 @@ export type LoginCredentials = {
 
 export type LoginResponse = {
   usuario: Usuario;
+  token: string;
+  accessibility: import("./accessibility").AccessibilityPreferences;
 };
 
 const sessionKey = 'bordados-app:user';
@@ -47,12 +49,13 @@ export function changePassword(
 
 export function saveSession(usuario: Usuario) {
   localStorage.setItem(sessionKey, JSON.stringify(usuario));
+  window.dispatchEvent(new Event("session-changed"));
 }
 
 export function getSession() {
   const storedSession = localStorage.getItem(sessionKey);
 
-  if (!storedSession) {
+  if (!storedSession || !localStorage.getItem("bordados-app:token")) {
     return null;
   }
 
@@ -66,4 +69,6 @@ export function getSession() {
 
 export function clearSession() {
   localStorage.removeItem(sessionKey);
+  localStorage.removeItem("bordados-app:token");
+  window.dispatchEvent(new Event("session-changed"));
 }

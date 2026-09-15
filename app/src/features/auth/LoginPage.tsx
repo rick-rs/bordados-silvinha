@@ -1,3 +1,4 @@
+import { cachePreferences, applyPreferences } from '../../services/accessibility';
 import { FormEvent, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 
@@ -36,6 +37,9 @@ export function LoginPage() {
 
     try {
       const response = await login(form);
+      localStorage.setItem("bordados-app:token", response.token);
+      cachePreferences(response.usuario.id, response.accessibility);
+      applyPreferences(response.accessibility);
       saveSession(response.usuario);
       navigate('/dashboard', { replace: true });
     } catch (loginError) {
@@ -72,6 +76,7 @@ export function LoginPage() {
           
         </div>
 
+        <h1 id="login-title" className="mb-5 text-xl font-bold">Entrar na sua conta</h1>
         <form className="grid gap-5" onSubmit={handleSubmit}>
           <TextField
             autoComplete="email"

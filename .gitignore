@@ -426,3 +426,6 @@ buck-out/
 
 # End of https://www.toptal.com/developers/gitignore/api/reactnative
 .aider*
+
+# Local Codex configuration
+/.codex/

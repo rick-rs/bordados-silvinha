@@ -45,6 +45,7 @@ export function AppShell({ activePage, children }: AppShellProps) {
 
   return (
     <div className="min-h-screen bg-ice text-graphite">
+      <a className="skip-link" href="#main-content">Pular para o conteúdo</a>
       <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur md:hidden">
         <Link className="text-sm font-extrabold text-primary-dark" to="/dashboard">
           <AppBrand compact />
@@ -58,12 +59,12 @@ export function AppShell({ activePage, children }: AppShellProps) {
         </button>
       </header>
 
-      <aside className="fixed inset-y-0 left-0 hidden w-40 border-r border-slate-200 bg-white md:flex md:flex-col">
+      <aside className="fixed inset-y-0 left-0 hidden w-40 overflow-y-auto border-r border-slate-200 bg-white md:flex md:flex-col">
         <Link className="flex h-14 items-center gap-2 px-4 text-sm font-extrabold text-primary-dark" to="/dashboard">
           <AppBrand compact />
         </Link>
 
-        <nav className="flex flex-1 flex-col gap-1 px-2 py-3">
+        <nav aria-label="Navegação principal" className="flex flex-1 flex-col gap-1 px-2 py-3">
           {navItems.map((item) => (
             <NavItemLink
               active={activePage === item.label}
@@ -90,11 +91,11 @@ export function AppShell({ activePage, children }: AppShellProps) {
         </div>
       </aside>
 
-      <main className="mx-auto min-h-screen w-full max-w-[1440px] px-4 pb-28 pt-5 sm:px-5 md:px-8 md:pb-8 md:pl-48">
+      <main id="main-content" tabIndex={-1} className="mx-auto min-h-screen w-full max-w-[1440px] px-4 pb-28 pt-5 sm:px-5 md:px-8 md:pb-8 md:pl-48">
         {children}
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-2 py-2 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur md:hidden">
+      <nav aria-label="Navegação móvel" className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-2 py-2 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur md:hidden">
         <div className="flex gap-1 overflow-x-auto pb-1">
           {[...navItems, { label: 'Perfil', icon: CircleUser, path: '/perfil' }].map(
             (item) => {
@@ -129,7 +130,7 @@ function NavItemLink({ active, item }: { active: boolean; item: NavItem }) {
   return (
     <NavLink
       className={[
-        'flex h-9 items-center gap-2 rounded-md px-3 text-left text-xs font-semibold transition',
+        'flex min-h-9 items-center gap-2 rounded-md px-3 text-left text-xs font-semibold transition',
         active
           ? 'bg-primary/10 text-primary-dark'
           : 'text-slate-600 hover:bg-slate-100 hover:text-ink',

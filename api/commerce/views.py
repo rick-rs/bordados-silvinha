@@ -9,7 +9,9 @@ from django.utils import timezone
 from django.utils.crypto import constant_time_compare
 from rest_framework import status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.views import APIView
+from .authentication import UsuarioAuthentication, issue_token
 from rest_framework.response import Response
 
 from . import dashboard, models, serializers
@@ -48,6 +50,8 @@ def login_response(request):
     return Response(
         {
             "usuario": serializers.UsuarioSerializer(usuario).data,
+            "token": issue_token(usuario),
+            "accessibility": serializers.AccessibilityProfileSerializer(models.AccessibilityProfile.objects.get_or_create(user=usuario)[0]).data,
         }
     )
 
@@ -367,3 +371,29 @@ class MovimentacaoEstoqueViewSet(viewsets.ModelViewSet):
         models.Material.objects.filter(id=movement.material_id).update(
             quantidade_atual=F("quantidade_atual") + (movement.quantidade * multiplier)
         )
+
+
+class AccessibilityProfileView(APIView):
+    """Current user's preferences, protected even in public development mode."""
+    authentication_classes = [UsuarioAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get_profile(self, request):
+        return models.AccessibilityProfile.objects.get_or_create(user=request.user)[0]
+
+    def get(self, request):
+        return Response(serializers.AccessibilityProfileSerializer(self.get_profile(request)).data)
+
+    def patch(self, request):
+        serializer = serializers.AccessibilityProfileSerializer(self.get_profile(request), data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    def post(self, request):
+        profile = self.get_profile(request)
+        defaults = {field: models.AccessibilityProfile._meta.get_field(field).get_default() for field in serializers.AccessibilityProfileSerializer.Meta.fields}
+        serializer = serializers.AccessibilityProfileSerializer(profile, data=defaults)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)

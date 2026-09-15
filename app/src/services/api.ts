@@ -54,6 +54,7 @@ export async function apiRequest<T>(
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      ...(localStorage.getItem('bordados-app:token') ? { Authorization: `Bearer ${localStorage.getItem('bordados-app:token')}` } : {}),
       ...options.headers,
     },
     body: options.body ? JSON.stringify(options.body) : undefined,
@@ -63,6 +64,12 @@ export async function apiRequest<T>(
   const data = contentType?.includes('application/json')
     ? await response.json()
     : null;
+
+  if (response.status === 401 && localStorage.getItem("bordados-app:token")) {
+    localStorage.removeItem("bordados-app:token");
+    localStorage.removeItem("bordados-app:user");
+    window.dispatchEvent(new Event("session-changed"));
+  }
 
   if (!response.ok) {
     const message =

@@ -11,7 +11,7 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   tone?: ButtonTone;
 };
 
-const baseStyles = 'inline-flex items-center justify-center rounded-lg border-0 font-bold shadow-sm transition focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-primary/30 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:-translate-y-0 disabled:hover:shadow-none disabled:hover:bg-current disabled:hover:text-current';
+const baseStyles = 'inline-flex items-center justify-center rounded-lg font-bold shadow-sm transition focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-primary/30 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:-translate-y-0 disabled:hover:shadow-none disabled:hover:bg-current disabled:hover:text-current';
 
 const sizeStyles: Record<ButtonSize, string> = {
   sm: 'min-h-9 px-3 text-sm',
