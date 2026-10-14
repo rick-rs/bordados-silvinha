@@ -29,7 +29,7 @@ def test_criar_pedido_completo_com_itens_do_catalogo(api_client, cliente):
                 "status_pagamento": "Pendente",
                 "canal": "WhatsApp",
                 "prazo": (timezone.localdate() + timedelta(days=3)).isoformat(),
-                "valor_total": "100.00",
+                "valor_total": "9000.00",
             },
             "itens": [
                 {

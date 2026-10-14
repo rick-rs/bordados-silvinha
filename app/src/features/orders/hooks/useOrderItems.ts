@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { parseMoney, toDecimalString } from '../orderUtils';
 
 export type OrderItemForm = {
   id: string;
@@ -18,15 +19,7 @@ function createEmptyItem(): OrderItemForm {
   };
 }
 
-function parseMoney(value: string): number {
-  return Number.parseFloat(value.replace(/[^\d.-]/g, '')) || 0;
-}
-
-function toDecimalString(value: number): string {
-  return value.toFixed(2).replace('.', ',');
-}
-
-function itemSubtotal(item: OrderItemForm): number {
+export function itemSubtotal(item: OrderItemForm): number {
   const quantity = Number.parseInt(item.quantidade, 10);
   return (Number.isNaN(quantity) ? 0 : quantity) * parseMoney(item.valor_unitario);
 }

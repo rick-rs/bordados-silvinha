@@ -289,6 +289,10 @@ class PedidoViewSet(viewsets.ModelViewSet):
                 itens_serializers.append(serializer)
 
             itens = [serializer.save() for serializer in itens_serializers]
+            pedido.valor_total = sum(
+                (item.subtotal for item in itens), Decimal("0.00")
+            )
+            pedido.save(update_fields=["valor_total"])
 
         return Response(
             {
