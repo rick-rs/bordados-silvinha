@@ -16,8 +16,33 @@ from commerce import models
         },
     }
 )
-def test_admin_login_uses_jazzmin(anonymous_api_client):
-    response = anonymous_api_client.get("/admin/login/")
+def test_admin_index_uses_jazzmin(anonymous_api_client):
+    django_user = get_user_model().objects.create_superuser(
+        username="admin-user", email="admin@test.local", password="secret"
+    )
+    anonymous_api_client.force_login(django_user)
+    response = anonymous_api_client.get("/admin/")
+
+    assert response.status_code == 200
+    assert b"jazzmin" in response.content.lower()
+
+
+@pytest.mark.django_db
+@override_settings(
+    STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"
+        },
+    },
+)
+def test_admin_index_supports_production_static_storage(anonymous_api_client):
+    django_user = get_user_model().objects.create_superuser(
+        username="admin-user", email="admin@test.local", password="secret"
+    )
+    anonymous_api_client.force_login(django_user)
+
+    response = anonymous_api_client.get("/admin/")
 
     assert response.status_code == 200
     assert b"jazzmin" in response.content.lower()
