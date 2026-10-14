@@ -120,6 +120,29 @@ docker compose --env-file .env.prod -f docker-compose.prod.yml down
 
 Não use `down -v` a menos que queira apagar também os dados persistentes do PostgreSQL.
 
+### Deploy automático pelo GitHub Actions
+
+O workflow `Deploy Production` é acionado somente quando o workflow `CI` termina com sucesso para um `push` em `main`. Pull requests não publicam a aplicação. O deploy conecta ao servidor por SSH, busca o commit aprovado, avança o checkout de produção até esse SHA e executa `docker compose up -d --build`. Ao final, verifica se a página inicial responde por HTTP. O grupo de concorrência evita deploys simultâneos.
+
+O servidor precisa ter Git e Docker Compose instalados, Nginx ativo, o checkout do repositório em uma branch `main` local, o arquivo `.env.prod` configurado e permissão para o usuário de deploy executar Docker. O `origin` desse checkout precisa permitir `git fetch` pelo próprio servidor: se o repositório for privado, configure uma chave SSH de leitura como Deploy key no repositório e aceite `github.com` em `known_hosts`. Por exemplo, gere a chave como usuário de deploy com `ssh-keygen -t ed25519 -C bordados-production-readonly -f ~/.ssh/bordados_github -N ''`, adicione o conteúdo de `~/.ssh/bordados_github.pub` em **Settings > Deploy keys** com acesso somente de leitura e configure o `origin` para usar essa identidade. Essa chave de leitura do GitHub é distinta da chave usada pelo Actions para entrar no servidor. O checkout não pode ter alterações rastreadas locais; o deploy para se encontrar modificações para evitar sobrescrevê-las.
+
+No GitHub, crie o Environment `production` em **Settings > Environments**, restrinja as branches de deploy a `main` e cadastre nele estes secrets:
+
+- `DEPLOY_HOST`: IP ou hostname SSH do servidor, sem esquema `http://`.
+- `DEPLOY_USER`: usuário Linux que possui o checkout e pode executar Docker.
+- `DEPLOY_SSH_KEY`: chave privada Ed25519 dedicada para o Actions conectar ao servidor.
+- `DEPLOY_KNOWN_HOSTS`: linha(s) de chave(s) de host SSH do servidor, obtidas com `ssh-keyscan -H <IP-ou-host>` e verificadas por fingerprint usando um canal confiável antes de salvar.
+- `DEPLOY_PATH`: caminho absoluto do checkout, por exemplo `/home/ubuntu/bordados-silvinha`.
+
+Gere uma chave exclusiva para o Actions em uma máquina administrativa confiável e instale somente a chave pública no usuário de deploy, preservando as entradas existentes de `authorized_keys`:
+
+```bash
+ssh-keygen -t ed25519 -C github-actions-bordados-deploy -f bordados-deploy
+ssh-copy-id -i bordados-deploy.pub <usuario>@<servidor>
+```
+
+Cadastre o conteúdo de `bordados-deploy` em `DEPLOY_SSH_KEY`; mantenha esse arquivo privado fora do repositório. Para `DEPLOY_KNOWN_HOSTS`, confira o fingerprint da saída de `ssh-keyscan` com a informação obtida no console ou em um canal confiável do provedor antes de adicioná-la ao Environment. Não desative a verificação da chave do servidor. Depois de mesclar alterações em `main`, acompanhe as execuções de `CI` e `Deploy Production` na aba **Actions**.
+
 ---
 
 ## Comandos úteis de desenvolvimento

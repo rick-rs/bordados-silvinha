@@ -1,0 +1,75 @@
+name: Deploy Production
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.event.workflow_run.event == 'push' && github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+      DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+      DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - name: Validate deployment secrets
+        run: |
+          : "${DEPLOY_HOST:?Missing DEPLOY_HOST}"
+          : "${DEPLOY_USER:?Missing DEPLOY_USER}"
+          : "${DEPLOY_SSH_KEY:?Missing DEPLOY_SSH_KEY}"
+          : "${DEPLOY_KNOWN_HOSTS:?Missing DEPLOY_KNOWN_HOSTS}"
+          : "${DEPLOY_PATH:?Missing DEPLOY_PATH}"
+          case "$DEPLOY_PATH" in
+            *[[:space:]]*) echo "DEPLOY_PATH must not contain whitespace." >&2; exit 1 ;;
+          esac
+
+      - name: Configure SSH
+        run: |
+          install -m 700 -d "$RUNNER_TEMP/ssh"
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$RUNNER_TEMP/ssh/deploy_key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$RUNNER_TEMP/ssh/known_hosts"
+          chmod 600 "$RUNNER_TEMP/ssh/deploy_key" "$RUNNER_TEMP/ssh/known_hosts"
+
+      - name: Deploy validated commit
+        run: |
+          ssh -i "$RUNNER_TEMP/ssh/deploy_key" \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" \
+            "$DEPLOY_USER@$DEPLOY_HOST" bash -s -- "$DEPLOY_PATH" "$DEPLOY_SHA" <<'REMOTE'
+          set -Eeuo pipefail
+          deploy_path="$1"
+          deploy_sha="$2"
+
+          cd "$deploy_path"
+          if ! git diff --quiet || ! git diff --cached --quiet; then
+            echo "Deployment checkout has tracked local changes; refusing to deploy." >&2
+            exit 1
+          fi
+
+          git fetch origin main
+          git merge-base --is-ancestor "$deploy_sha" origin/main
+          git switch main
+          git merge --ff-only "$deploy_sha"
+          test "$(git rev-parse HEAD)" = "$deploy_sha"
+
+          test -r .env.prod
+          docker compose --env-file .env.prod -f docker-compose.prod.yml config --quiet
+          docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build --remove-orphans
+          curl --silent --show-error --fail --retry 10 --retry-delay 3 --retry-connrefused --output /dev/null http://127.0.0.1/
+          REMOTE
