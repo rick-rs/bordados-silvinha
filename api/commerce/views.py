@@ -66,6 +66,7 @@ class UsuarioViewSet(viewsets.ModelViewSet):
         detail=False,
         methods=["post"],
         permission_classes=[AllowAny],
+        authentication_classes=[],
         url_path="login",
     )
     def login(self, request):

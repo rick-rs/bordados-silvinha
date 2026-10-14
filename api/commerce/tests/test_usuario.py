@@ -1,5 +1,7 @@
 import pytest
+from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import check_password
+from rest_framework.test import APIClient
 
 from commerce import models
 
@@ -57,6 +59,24 @@ def test_usuario_login_rejeita_credenciais_invalidas(anonymous_api_client):
     )
 
     assert resp.status_code == 401
+
+
+@pytest.mark.django_db
+def test_usuario_login_nao_exige_csrf_de_sessao_django():
+    django_user = get_user_model().objects.create_user(
+        username="session-user", password="secret"
+    )
+    client = APIClient(enforce_csrf_checks=True)
+    client.force_login(django_user)
+
+    response = client.post(
+        "/api/usuarios/login/",
+        {"email": "missing@test.local", "senha": "invalid"},
+        format="json",
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "E-mail ou senha invalidos."
 
 
 @pytest.mark.django_db
