@@ -33,7 +33,7 @@ docker compose logs -f
 
 O Docker Compose lê o arquivo `.env` da raiz para valores como banco e URL do frontend. Os arquivos `api/.env` e `app/.env` alimentam os containers e devem ser mantidos sincronizados com os exemplos.
 
-Por padrão, o ambiente local mantém a API aberta para facilitar o desenvolvimento. Em produção, defina `DJANGO_API_PUBLIC_ACCESS=false` para exigir autenticação no backend.
+Por padrão, o ambiente local mantém a API aberta para facilitar o desenvolvimento. O Compose de produção é separado e exige autenticação na API.
 
 ### 3. Acessar a aplicação
 
@@ -65,6 +65,83 @@ Rotas úteis da API:
 ```bash
 docker compose down
 ```
+
+## Produção com Nginx
+
+A produção usa Nginx no host como proxy reverso e `docker-compose.prod.yml` para os containers. O Nginx escuta na porta 80; API e frontend são publicados somente em `127.0.0.1`, e o PostgreSQL não publica portas. Os serviços permanecem na rede Docker interna. Esta configuração é HTTP sem TLS; configure HTTPS quando tiver domínio.
+
+O arquivo `.env.prod` contém os segredos locais da implantação, tem permissões restritas e não deve ser versionado. O repositório inclui apenas o modelo sem segredos `.env.prod.example`. Neste servidor, o `.env.prod` já foi gerado com chaves aleatórias; ajuste `DJANGO_ALLOWED_HOSTS` quando o IP público mudar ou quando adicionar domínio.
+
+Instalar o Nginx uma vez no host e ativar a configuração do projeto:
+
+```bash
+sudo apt-get update && sudo apt-get install -y nginx
+sudo install -m 0644 deploy/nginx/bordados.conf /etc/nginx/sites-available/bordados
+sudo ln -sfn /etc/nginx/sites-available/bordados /etc/nginx/sites-enabled/bordados
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t && sudo systemctl enable --now nginx
+```
+
+Na Oracle Cloud, permita entrada TCP/80 no NSG ou Security List. No host, o UFW deve permitir HTTP; a imagem Oracle também carrega um `REJECT` global antes das chains do UFW, então a exceção persistente de TCP/80 deve ficar antes dele. Isso mantém a regra de SSH e não abre as portas dos containers:
+
+```bash
+sudo ufw allow 80/tcp
+sudo cp -a /etc/iptables/rules.v4 /etc/iptables/rules.v4.bak
+grep -qE '^-A INPUT .*--dport 80 -j ACCEPT' /etc/iptables/rules.v4 || sudo sed -i '/^-A INPUT -j REJECT/i -A INPUT -p tcp -m state --state NEW -m tcp --dport 80 -j ACCEPT' /etc/iptables/rules.v4
+sudo iptables -C INPUT -p tcp -m state --state NEW -m tcp --dport 80 -j ACCEPT || sudo iptables -I INPUT 5 -p tcp -m state --state NEW -m tcp --dport 80 -j ACCEPT
+```
+
+Não abra as portas 8000, 4173 ou 5432.
+
+Iniciar ou atualizar a produção:
+
+```bash
+docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
+```
+
+Acompanhar logs e verificar os serviços:
+
+```bash
+docker compose --env-file .env.prod -f docker-compose.prod.yml ps
+docker compose --env-file .env.prod -f docker-compose.prod.yml logs -f
+```
+
+Criar um usuário administrativo Django:
+
+```bash
+docker compose --env-file .env.prod -f docker-compose.prod.yml exec api python manage.py createsuperuser
+```
+
+A aplicação ficará disponível em `http://<IP-publico>/`. A API e o admin usam os caminhos `/api/` e `/admin/`. Para parar somente os containers de produção, sem remover o Nginx do host:
+
+```bash
+docker compose --env-file .env.prod -f docker-compose.prod.yml down
+```
+
+Não use `down -v` a menos que queira apagar também os dados persistentes do PostgreSQL.
+
+### Deploy automático pelo GitHub Actions
+
+O workflow `Deploy Production` é acionado somente quando o workflow `CI` termina com sucesso para um `push` em `main`. Pull requests não publicam a aplicação. O deploy conecta ao servidor por SSH, busca o commit aprovado, avança o checkout de produção até esse SHA e executa `docker compose up -d --build`. Ao final, verifica se a página inicial responde por HTTP. O grupo de concorrência evita deploys simultâneos.
+
+O servidor precisa ter Git e Docker Compose instalados, Nginx ativo, o checkout do repositório em uma branch `main` local, o arquivo `.env.prod` configurado e permissão para o usuário de deploy executar Docker. O `origin` desse checkout precisa permitir `git fetch` pelo próprio servidor: se o repositório for privado, configure uma chave SSH de leitura como Deploy key no repositório e aceite `github.com` em `known_hosts`. Por exemplo, gere a chave como usuário de deploy com `ssh-keygen -t ed25519 -C bordados-production-readonly -f ~/.ssh/bordados_github -N ''`, adicione o conteúdo de `~/.ssh/bordados_github.pub` em **Settings > Deploy keys** com acesso somente de leitura e configure o `origin` para usar essa identidade. Essa chave de leitura do GitHub é distinta da chave usada pelo Actions para entrar no servidor. O checkout não pode ter alterações rastreadas locais; o deploy para se encontrar modificações para evitar sobrescrevê-las.
+
+No GitHub, crie o Environment `production` em **Settings > Environments**, restrinja as branches de deploy a `main` e cadastre nele estes secrets:
+
+- `DEPLOY_HOST`: IP ou hostname SSH do servidor, sem esquema `http://`.
+- `DEPLOY_USER`: usuário Linux que possui o checkout e pode executar Docker.
+- `DEPLOY_SSH_KEY`: chave privada Ed25519 dedicada para o Actions conectar ao servidor.
+- `DEPLOY_KNOWN_HOSTS`: linha(s) de chave(s) de host SSH do servidor, obtidas com `ssh-keyscan -H <IP-ou-host>` e verificadas por fingerprint usando um canal confiável antes de salvar.
+- `DEPLOY_PATH`: caminho absoluto do checkout, por exemplo `/home/ubuntu/bordados-silvinha`.
+
+Gere uma chave exclusiva para o Actions em uma máquina administrativa confiável e instale somente a chave pública no usuário de deploy, preservando as entradas existentes de `authorized_keys`:
+
+```bash
+ssh-keygen -t ed25519 -C github-actions-bordados-deploy -f bordados-deploy
+ssh-copy-id -i bordados-deploy.pub <usuario>@<servidor>
+```
+
+Cadastre o conteúdo de `bordados-deploy` em `DEPLOY_SSH_KEY`; mantenha esse arquivo privado fora do repositório. Para `DEPLOY_KNOWN_HOSTS`, confira o fingerprint da saída de `ssh-keyscan` com a informação obtida no console ou em um canal confiável do provedor antes de adicioná-la ao Environment. Não desative a verificação da chave do servidor. Depois de mesclar alterações em `main`, acompanhe as execuções de `CI` e `Deploy Production` na aba **Actions**.
 
 ---
 

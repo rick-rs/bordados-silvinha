@@ -66,6 +66,7 @@ class UsuarioViewSet(viewsets.ModelViewSet):
         detail=False,
         methods=["post"],
         permission_classes=[AllowAny],
+        authentication_classes=[],
         url_path="login",
     )
     def login(self, request):
@@ -288,6 +289,10 @@ class PedidoViewSet(viewsets.ModelViewSet):
                 itens_serializers.append(serializer)
 
             itens = [serializer.save() for serializer in itens_serializers]
+            pedido.valor_total = sum(
+                (item.subtotal for item in itens), Decimal("0.00")
+            )
+            pedido.save(update_fields=["valor_total"])
 
         return Response(
             {
