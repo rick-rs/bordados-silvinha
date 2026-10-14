@@ -1,9 +1,26 @@
 import pytest
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import check_password
+from django.test import override_settings
 from rest_framework.test import APIClient
 
 from commerce import models
+
+
+@pytest.mark.django_db
+@override_settings(
+    STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"
+        },
+    }
+)
+def test_admin_login_uses_jazzmin(anonymous_api_client):
+    response = anonymous_api_client.get("/admin/login/")
+
+    assert response.status_code == 200
+    assert b"jazzmin" in response.content.lower()
 
 
 @pytest.mark.django_db
