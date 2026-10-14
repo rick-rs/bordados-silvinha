@@ -33,7 +33,7 @@ docker compose logs -f
 
 O Docker Compose lê o arquivo `.env` da raiz para valores como banco e URL do frontend. Os arquivos `api/.env` e `app/.env` alimentam os containers e devem ser mantidos sincronizados com os exemplos.
 
-Por padrão, o ambiente local mantém a API aberta para facilitar o desenvolvimento. Em produção, defina `DJANGO_API_PUBLIC_ACCESS=false` para exigir autenticação no backend.
+Por padrão, o ambiente local mantém a API aberta para facilitar o desenvolvimento. O Compose de produção é separado e exige autenticação na API.
 
 ### 3. Acessar a aplicação
 
@@ -65,6 +65,60 @@ Rotas úteis da API:
 ```bash
 docker compose down
 ```
+
+## Produção com Nginx
+
+A produção usa Nginx no host como proxy reverso e `docker-compose.prod.yml` para os containers. O Nginx escuta na porta 80; API e frontend são publicados somente em `127.0.0.1`, e o PostgreSQL não publica portas. Os serviços permanecem na rede Docker interna. Esta configuração é HTTP sem TLS; configure HTTPS quando tiver domínio.
+
+O arquivo `.env.prod` contém os segredos locais da implantação, tem permissões restritas e não deve ser versionado. O repositório inclui apenas o modelo sem segredos `.env.prod.example`. Neste servidor, o `.env.prod` já foi gerado com chaves aleatórias; ajuste `DJANGO_ALLOWED_HOSTS` quando o IP público mudar ou quando adicionar domínio.
+
+Instalar o Nginx uma vez no host e ativar a configuração do projeto:
+
+```bash
+sudo apt-get update && sudo apt-get install -y nginx
+sudo install -m 0644 deploy/nginx/bordados.conf /etc/nginx/sites-available/bordados
+sudo ln -sfn /etc/nginx/sites-available/bordados /etc/nginx/sites-enabled/bordados
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t && sudo systemctl enable --now nginx
+```
+
+Na Oracle Cloud, permita entrada TCP/80 no NSG ou Security List. No host, o UFW deve permitir HTTP; a imagem Oracle também carrega um `REJECT` global antes das chains do UFW, então a exceção persistente de TCP/80 deve ficar antes dele. Isso mantém a regra de SSH e não abre as portas dos containers:
+
+```bash
+sudo ufw allow 80/tcp
+sudo cp -a /etc/iptables/rules.v4 /etc/iptables/rules.v4.bak
+grep -qE '^-A INPUT .*--dport 80 -j ACCEPT' /etc/iptables/rules.v4 || sudo sed -i '/^-A INPUT -j REJECT/i -A INPUT -p tcp -m state --state NEW -m tcp --dport 80 -j ACCEPT' /etc/iptables/rules.v4
+sudo iptables -C INPUT -p tcp -m state --state NEW -m tcp --dport 80 -j ACCEPT || sudo iptables -I INPUT 5 -p tcp -m state --state NEW -m tcp --dport 80 -j ACCEPT
+```
+
+Não abra as portas 8000, 4173 ou 5432.
+
+Iniciar ou atualizar a produção:
+
+```bash
+docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
+```
+
+Acompanhar logs e verificar os serviços:
+
+```bash
+docker compose --env-file .env.prod -f docker-compose.prod.yml ps
+docker compose --env-file .env.prod -f docker-compose.prod.yml logs -f
+```
+
+Criar um usuário administrativo Django:
+
+```bash
+docker compose --env-file .env.prod -f docker-compose.prod.yml exec api python manage.py createsuperuser
+```
+
+A aplicação ficará disponível em `http://<IP-publico>/`. A API e o admin usam os caminhos `/api/` e `/admin/`. Para parar somente os containers de produção, sem remover o Nginx do host:
+
+```bash
+docker compose --env-file .env.prod -f docker-compose.prod.yml down
+```
+
+Não use `down -v` a menos que queira apagar também os dados persistentes do PostgreSQL.
 
 ---
 
