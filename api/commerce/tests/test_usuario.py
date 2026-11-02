@@ -1,7 +1,51 @@
 import pytest
+from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import check_password
+from django.test import override_settings
+from rest_framework.test import APIClient
 
 from commerce import models
+
+
+@pytest.mark.django_db
+@override_settings(
+    STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"
+        },
+    }
+)
+def test_admin_index_uses_jazzmin(anonymous_api_client):
+    django_user = get_user_model().objects.create_superuser(
+        username="admin-user", email="admin@test.local", password="secret"
+    )
+    anonymous_api_client.force_login(django_user)
+    response = anonymous_api_client.get("/admin/")
+
+    assert response.status_code == 200
+    assert b"jazzmin" in response.content.lower()
+
+
+@pytest.mark.django_db
+@override_settings(
+    STORAGES={
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"
+        },
+    },
+)
+def test_admin_index_supports_production_static_storage(anonymous_api_client):
+    django_user = get_user_model().objects.create_superuser(
+        username="admin-user", email="admin@test.local", password="secret"
+    )
+    anonymous_api_client.force_login(django_user)
+
+    response = anonymous_api_client.get("/admin/")
+
+    assert response.status_code == 200
+    assert b"jazzmin" in response.content.lower()
 
 
 @pytest.mark.django_db
@@ -57,6 +101,24 @@ def test_usuario_login_rejeita_credenciais_invalidas(anonymous_api_client):
     )
 
     assert resp.status_code == 401
+
+
+@pytest.mark.django_db
+def test_usuario_login_nao_exige_csrf_de_sessao_django():
+    django_user = get_user_model().objects.create_user(
+        username="session-user", password="secret"
+    )
+    client = APIClient(enforce_csrf_checks=True)
+    client.force_login(django_user)
+
+    response = client.post(
+        "/api/usuarios/login/",
+        {"email": "missing@test.local", "senha": "invalid"},
+        format="json",
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "E-mail ou senha invalidos."
 
 
 @pytest.mark.django_db

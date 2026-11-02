@@ -1,8 +1,4 @@
-const apiBaseUrl = import.meta.env.VITE_API_URL;
-
-if (!apiBaseUrl) {
-  throw new Error('VITE_API_URL is required');
-}
+const apiBaseUrl = import.meta.env.VITE_API_URL ?? '';
 
 export class ApiError extends Error {
   status: number;
@@ -50,7 +46,8 @@ export async function apiRequest<T>(
   path: string,
   options: RequestOptions = {},
 ): Promise<T> {
-  const response = await fetch(`${apiBaseUrl}${path}`, {
+  const requestUrl = `${apiBaseUrl}${path}`;
+  const response = await fetch(requestUrl, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
