@@ -7,6 +7,17 @@ from rest_framework import serializers
 from . import models
 
 TERMINAL_ORDER_STATUSES = {"Entregue", "Cancelado"}
+PRODUCTION_ORDER_STATUSES = {
+    "Aguardando Matriz",
+    "Em Producao",
+    "Pronto para Entrega",
+    "Entregue",
+}
+ORDER_TRANSITIONS = {
+    "Aguardando Matriz": {"Em Producao"},
+    "Em Producao": {"Pronto para Entrega"},
+    "Pronto para Entrega": {"Entregue"},
+}
 
 
 def is_password_hash(value: str) -> bool:
@@ -152,13 +163,12 @@ class PedidoSerializer(serializers.ModelSerializer):
                 )
 
         current_status = getattr(instance, "status", None)
-        next_status = attrs.get("status", current_status)
+        next_status = attrs.get("status", current_status or "Recebido")
 
-        production_statuses = {"Em Producao", "Pronto para Entrega", "Entregue"}
         financial_release = total < 50 or paid * 2 >= total
 
         if (
-            next_status in production_statuses
+            next_status in PRODUCTION_ORDER_STATUSES
             and not financial_release
             and not self.context.get("skip_financial_release", False)
         ):
@@ -170,6 +180,28 @@ class PedidoSerializer(serializers.ModelSerializer):
                     )
                 }
             )
+
+        if not instance and next_status != "Recebido":
+            raise serializers.ValidationError(
+                {"status": "Um pedido novo deve iniciar como Recebido."}
+            )
+
+        if instance and next_status != current_status:
+            if next_status == "Cancelado":
+                pass
+            elif current_status == "Recebido":
+                expected_status = (
+                    "Aguardando Matriz" if attrs.get("precisa_matriz", instance.precisa_matriz)
+                    else "Em Producao"
+                )
+                if next_status != expected_status:
+                    raise serializers.ValidationError(
+                        {"status": f"A proxima etapa deste pedido e {expected_status}."}
+                    )
+            elif next_status not in ORDER_TRANSITIONS.get(current_status, set()):
+                raise serializers.ValidationError(
+                    {"status": "Transicao de status invalida para esta etapa do pedido."}
+                )
 
         if (
             instance

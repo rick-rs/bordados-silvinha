@@ -14,14 +14,6 @@ import {
   updateOrder,
 } from '../../services/orders';
 
-const statusOptions = [
-  'Recebido',
-  'Aguardando Matriz',
-  'Em Producao',
-  'Pronto para Entrega',
-  'Entregue',
-  'Cancelado',
-];
 const channelOptions = ['Instagram', 'WhatsApp', 'Facebook', 'Marketplace', 'Outro'];
 const paymentMethodOptions = ['Pix', 'Dinheiro', 'Cartao', 'Transferencia'];
 
@@ -59,6 +51,38 @@ const initialForm: OrderEditForm = {
 
 function statusLabel(status: string) {
   return status === 'Em Producao' ? 'Em Produção' : status;
+}
+
+function availableStatusOptions(
+  currentStatus: string,
+  precisaMatriz: boolean,
+  totalValue: string,
+  paidValue: string,
+) {
+  const statuses = [currentStatus];
+  const total = Number(totalValue);
+  const paid = Number(paidValue);
+  const financiallyReleased =
+    Number.isFinite(total) &&
+    Number.isFinite(paid) &&
+    total >= 0 &&
+    (total < 50 || paid * 2 >= total);
+
+  if (currentStatus === 'Recebido' && financiallyReleased) {
+    statuses.push(precisaMatriz ? 'Aguardando Matriz' : 'Em Producao');
+  } else if (currentStatus === 'Aguardando Matriz' && financiallyReleased) {
+    statuses.push('Em Producao');
+  } else if (currentStatus === 'Em Producao') {
+    statuses.push('Pronto para Entrega');
+  } else if (currentStatus === 'Pronto para Entrega') {
+    statuses.push('Entregue');
+  }
+
+  if (currentStatus !== 'Entregue' && currentStatus !== 'Cancelado') {
+    statuses.push('Cancelado');
+  }
+
+  return statuses;
 }
 
 function paymentMethodLabel(paymentMethod: string) {
@@ -255,7 +279,12 @@ export function OrderEditPage() {
                   onChange={(event) => updateField('status', event.target.value)}
                   value={form.status}
                 >
-                  {statusOptions.map((status) => (
+                  {availableStatusOptions(
+                    form.status,
+                    form.precisa_matriz,
+                    form.valor_total,
+                    form.valor_pago,
+                  ).map((status) => (
                     <option key={status} value={status}>
                       {statusLabel(status)}
                     </option>

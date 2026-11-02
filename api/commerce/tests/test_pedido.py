@@ -75,11 +75,11 @@ def test_pedido_pode_nao_precisar_matriz(api_client, cliente):
 @pytest.mark.parametrize(
     ("total", "pago", "expected_status"),
     [
-        ("49.99", "0.00", 201),
+        ("49.99", "0.00", 200),
         ("50.00", "24.99", 400),
-        ("50.00", "25.00", 201),
+        ("50.00", "25.00", 200),
         ("100.00", "49.99", 400),
-        ("100.00", "50.00", 201),
+        ("100.00", "50.00", 200),
     ],
 )
 def test_pedido_valida_limite_para_liberar_producao(
@@ -93,9 +93,14 @@ def test_pedido_valida_limite_para_liberar_producao(
             "prazo": (timezone.localdate() + timedelta(days=2)).isoformat(),
             "valor_total": total,
             "valor_pago": pago,
-            "status": "Em Producao",
         },
         format="json",
+    )
+
+    assert resp.status_code == 201
+    pedido_id = resp.json()["id"]
+    resp = api_client.patch(
+        f"/api/pedidos/{pedido_id}/", {"status": "Aguardando Matriz"}, format="json"
     )
 
     assert resp.status_code == expected_status
@@ -184,12 +189,116 @@ def test_edicao_pedido_exige_pagamento_antes_da_producao(api_client, cliente):
 
     resp = api_client.patch(
         f"/api/pedidos/{pedido.id}/",
-        {"status": "Em Producao", "valor_pago": "25.00"},
+        {"status": "Aguardando Matriz", "valor_pago": "25.00"},
         format="json",
     )
 
     assert resp.status_code == 200
     assert resp.json()["liberado_financeiro"] is True
+
+    resp = api_client.patch(
+        f"/api/pedidos/{pedido.id}/", {"status": "Em Producao"}, format="json"
+    )
+
+    assert resp.status_code == 200
+
+
+@pytest.mark.django_db
+def test_pedido_com_matriz_respeita_etapas_e_historico(api_client, cliente):
+    resp = api_client.post(
+        "/api/pedidos/",
+        {
+            "cliente": cliente.id,
+            "forma_pagamento": "Pix",
+            "prazo": (timezone.localdate() + timedelta(days=2)).isoformat(),
+            "valor_total": "100.00",
+            "valor_pago": "50.00",
+        },
+        format="json",
+    )
+    pedido_id = resp.json()["id"]
+
+    for invalid_status in ("Em Producao", "Pronto para Entrega", "Entregue"):
+        resp = api_client.patch(
+            f"/api/pedidos/{pedido_id}/", {"status": invalid_status}, format="json"
+        )
+        assert resp.status_code == 400
+
+    resp = api_client.patch(
+        f"/api/pedidos/{pedido_id}/", {"status": "Aguardando Matriz"}, format="json"
+    )
+    assert resp.status_code == 200
+
+    resp = api_client.patch(
+        f"/api/pedidos/{pedido_id}/", {"status": "Em Producao"}, format="json"
+    )
+    assert resp.status_code == 200
+
+    resp = api_client.patch(
+        f"/api/pedidos/{pedido_id}/", {"status": "Pronto para Entrega"}, format="json"
+    )
+    assert resp.status_code == 200
+
+    resp = api_client.patch(
+        f"/api/pedidos/{pedido_id}/", {"status": "Entregue"}, format="json"
+    )
+    assert resp.status_code == 200
+
+    historico = list(
+        models.HistoricoStatus.objects.filter(pedido_id=pedido_id).order_by("registrado_em")
+    )
+    assert [entry.status_novo for entry in historico] == [
+        "Aguardando Matriz",
+        "Em Producao",
+        "Pronto para Entrega",
+        "Entregue",
+    ]
+
+
+@pytest.mark.django_db
+def test_pedido_sem_matriz_avanca_direto_para_producao(api_client, cliente):
+    resp = api_client.post(
+        "/api/pedidos/",
+        {
+            "cliente": cliente.id,
+            "forma_pagamento": "Pix",
+            "prazo": (timezone.localdate() + timedelta(days=2)).isoformat(),
+            "valor_total": "100.00",
+            "valor_pago": "50.00",
+            "precisa_matriz": False,
+        },
+        format="json",
+    )
+    pedido_id = resp.json()["id"]
+
+    resp = api_client.patch(
+        f"/api/pedidos/{pedido_id}/", {"status": "Aguardando Matriz"}, format="json"
+    )
+    assert resp.status_code == 400
+
+    resp = api_client.patch(
+        f"/api/pedidos/{pedido_id}/", {"status": "Em Producao"}, format="json"
+    )
+    assert resp.status_code == 200
+
+
+@pytest.mark.django_db
+def test_pedido_novo_nao_pode_iniciar_em_etapa_avancada(api_client, cliente):
+    resp = api_client.post(
+        "/api/pedidos/",
+        {
+            "cliente": cliente.id,
+            "forma_pagamento": "Pix",
+            "prazo": (timezone.localdate() + timedelta(days=2)).isoformat(),
+            "valor_total": "100.00",
+            "valor_pago": "100.00",
+            "status": "Pronto para Entrega",
+        },
+        format="json",
+    )
+
+    assert resp.status_code == 400
+    assert "status" in resp.json()
 
 
 @pytest.mark.django_db
@@ -251,6 +360,12 @@ def test_pedido_status_gera_historico_e_entrega(api_client, cliente):
         prazo=timezone.localdate() + timedelta(days=2),
     )
 
+    for next_status in ("Aguardando Matriz", "Em Producao", "Pronto para Entrega"):
+        resp = api_client.patch(
+            f"/api/pedidos/{pedido.id}/", {"status": next_status}, format="json"
+        )
+        assert resp.status_code == 200
+
     resp = api_client.patch(
         f"/api/pedidos/{pedido.id}/",
         {"status": "Entregue", "observacoes_entrega": "Retirado pela cliente."},
@@ -260,10 +375,17 @@ def test_pedido_status_gera_historico_e_entrega(api_client, cliente):
     assert resp.status_code == 200
     data = resp.json()
     assert data["data_entrega"] == timezone.localdate().isoformat()
-    historico = models.HistoricoStatus.objects.get(pedido=pedido)
-    assert historico.status_anterior == "Recebido"
-    assert historico.status_novo == "Entregue"
-    assert historico.motivo == "Retirado pela cliente."
+    historico = list(
+        models.HistoricoStatus.objects.filter(pedido=pedido).order_by("registrado_em")
+    )
+    assert [entry.status_novo for entry in historico] == [
+        "Aguardando Matriz",
+        "Em Producao",
+        "Pronto para Entrega",
+        "Entregue",
+    ]
+    assert historico[-1].status_anterior == "Pronto para Entrega"
+    assert historico[-1].motivo == "Retirado pela cliente."
 
 
 @pytest.mark.django_db
