@@ -21,6 +21,12 @@ def test_historico_status_create(api_client, cliente, usuario):
 
     payload = {"pedido": pedido_id, "usuario": usuario.id, "status": "Recebido"}
     resp = api_client.post("/api/historico-status/", payload, format="json")
-    assert resp.status_code == 201
-    data = resp.json()
-    assert data["status"] == "Recebido"
+    assert resp.status_code == 405
+
+    resp = api_client.get("/api/historico-status/")
+    assert resp.status_code == 200
+
+
+@pytest.mark.django_db
+def test_historico_nao_autenticado_nao_e_exposto(anonymous_api_client):
+    assert anonymous_api_client.get("/api/historico-status/").status_code == 401

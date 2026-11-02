@@ -4,7 +4,7 @@ from decimal import Decimal
 
 from django.contrib.auth.hashers import check_password
 from django.db import transaction
-from django.db.models import F, Q
+from django.db.models import F, Q, Sum
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare
 from rest_framework import status, viewsets
@@ -17,6 +17,32 @@ from rest_framework.response import Response
 
 from . import dashboard, models, permissions, serializers
 from .pagination import StandardResultsSetPagination
+
+
+def atualizar_total_pedido(pedido_ids):
+    for pedido in models.Pedido.objects.select_for_update().filter(pk__in=set(pedido_ids)):
+        total = models.ItemPedido.objects.filter(pedido=pedido).aggregate(
+            total=Sum("subtotal")
+        )["total"] or Decimal("0.00")
+
+        if pedido.valor_pago > total:
+            raise ValidationError(
+                {"itens": "A alteração deixaria o pagamento maior que o total dos itens."}
+            )
+
+        pedido.valor_total = total
+        if not pedido.liberado_financeiro and pedido.status in {
+            "Aguardando Matriz",
+            "Em Producao",
+            "Pronto para Entrega",
+            "Entregue",
+        }:
+            raise ValidationError(
+                {"itens": "O total atualizado não atende ao mínimo financeiro desta etapa."}
+            )
+
+        pedido.atualizar_status_pagamento()
+        pedido.save(update_fields=["valor_total", "status_pagamento"])
 
 
 def senha_confere(senha: str, senha_armazenada: str) -> bool:
@@ -115,6 +141,17 @@ class UsuarioViewSet(viewsets.ModelViewSet):
         serializer.save()
 
         return Response({"detail": "Senha atualizada com sucesso."})
+
+    def perform_destroy(self, instance):
+        if instance.perfil == "administrador" and instance.ativo:
+            another_active_admin_exists = models.Usuario.objects.filter(
+                perfil="administrador", ativo=True
+            ).exclude(pk=instance.pk).exists()
+            if not another_active_admin_exists:
+                raise ValidationError(
+                    "Não é possível excluir o último administrador ativo."
+                )
+        instance.delete()
 
 
 class ClienteViewSet(viewsets.ModelViewSet):
@@ -308,29 +345,8 @@ class PedidoViewSet(viewsets.ModelViewSet):
                 itens_serializers.append(serializer)
 
             itens = [serializer.save() for serializer in itens_serializers]
-            pedido.valor_total = sum(
-                (item.subtotal for item in itens), Decimal("0.00")
-            )
-            if pedido.valor_pago > pedido.valor_total:
-                raise ValidationError(
-                    {"valor_pago": "O valor pago nao pode exceder o total dos itens."}
-                )
-
-            if (
-                pedido.status in {"Em Producao", "Pronto para Entrega", "Entregue"}
-                and not pedido.liberado_financeiro
-            ):
-                raise ValidationError(
-                    {
-                        "status": (
-                            "Para liberar a producao de pedidos a partir de R$ 50,00, "
-                            "registre o pagamento de pelo menos 50%."
-                        )
-                    }
-                )
-
-            pedido.atualizar_status_pagamento()
-            pedido.save(update_fields=["valor_total", "status_pagamento"])
+            atualizar_total_pedido([pedido.id])
+            pedido.refresh_from_db()
 
         return Response(
             {
@@ -347,12 +363,30 @@ class ItemPedidoViewSet(viewsets.ModelViewSet):
     queryset = models.ItemPedido.objects.all()
     serializer_class = serializers.ItemPedidoSerializer
 
+    def perform_create(self, serializer):
+        with transaction.atomic():
+            item = serializer.save()
+            atualizar_total_pedido([item.pedido_id])
 
-class HistoricoStatusViewSet(viewsets.ModelViewSet):
-    """ViewSet for `HistoricoStatus`."""
+    def perform_update(self, serializer):
+        previous_pedido_id = serializer.instance.pedido_id
+        with transaction.atomic():
+            item = serializer.save()
+            atualizar_total_pedido([previous_pedido_id, item.pedido_id])
+
+    def perform_destroy(self, instance):
+        pedido_id = instance.pedido_id
+        with transaction.atomic():
+            instance.delete()
+            atualizar_total_pedido([pedido_id])
+
+
+class HistoricoStatusViewSet(viewsets.ReadOnlyModelViewSet):
+    """Expose immutable order status history."""
 
     queryset = models.HistoricoStatus.objects.all()
     serializer_class = serializers.HistoricoStatusSerializer
+    permission_classes = [IsAuthenticated]
 
 
 class MaterialViewSet(viewsets.ModelViewSet):

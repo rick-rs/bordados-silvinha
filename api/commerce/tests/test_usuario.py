@@ -117,6 +117,28 @@ def test_administrador_pode_configurar_perfil_e_permissao_matriz(api_client):
 
 
 @pytest.mark.django_db
+def test_nao_e_possivel_remover_o_ultimo_administrador(api_client):
+    admin = models.Usuario.objects.get(email="api-tester@example.local")
+
+    disabled = api_client.patch(
+        f"/api/usuarios/{admin.id}/", {"ativo": False}, format="json"
+    )
+    assert disabled.status_code == 400
+
+    downgraded = api_client.patch(
+        f"/api/usuarios/{admin.id}/", {"perfil": "geral"}, format="json"
+    )
+    assert downgraded.status_code == 400
+
+    deleted = api_client.delete(f"/api/usuarios/{admin.id}/")
+    assert deleted.status_code == 400
+
+    admin.refresh_from_db()
+    assert admin.ativo is True
+    assert admin.perfil == "administrador"
+
+
+@pytest.mark.django_db
 @override_settings(API_PUBLIC_ACCESS=True)
 def test_usuario_geral_so_acessa_a_propria_conta(api_client):
     own = models.Usuario.objects.create(

@@ -302,6 +302,37 @@ def test_aprovacao_de_matriz_exige_permissao_especifica(api_client, cliente):
 
 
 @pytest.mark.django_db
+def test_usuario_sem_permissao_nao_pode_dispensa_matriz_ao_avancar(api_client, cliente):
+    user = models.Usuario.objects.create(
+        nome="Usuário geral",
+        email="bypass-matriz@test.local",
+        senha_hash="hash",
+    )
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {issue_token(user)}")
+    pedido = models.Pedido.objects.create(
+        cliente=cliente,
+        forma_pagamento="Pix",
+        prazo=timezone.localdate() + timedelta(days=2),
+        valor_total=Decimal("100.00"),
+        valor_pago=Decimal("50.00"),
+        status="Recebido",
+        precisa_matriz=True,
+    )
+
+    resp = client.patch(
+        f"/api/pedidos/{pedido.id}/",
+        {"status": "Em Producao", "precisa_matriz": False},
+        format="json",
+    )
+
+    assert resp.status_code == 403
+    pedido.refresh_from_db()
+    assert pedido.status == "Recebido"
+    assert pedido.precisa_matriz is True
+
+
+@pytest.mark.django_db
 def test_pedido_sem_matriz_avanca_direto_para_producao(api_client, cliente):
     resp = api_client.post(
         "/api/pedidos/",
