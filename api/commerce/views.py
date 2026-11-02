@@ -9,6 +9,7 @@ from django.utils import timezone
 from django.utils.crypto import constant_time_compare
 from rest_framework import status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
 from .authentication import UsuarioAuthentication, issue_token
@@ -274,7 +275,10 @@ class PedidoViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        pedido_serializer = self.get_serializer(data=pedido_data)
+        pedido_serializer = serializers.PedidoSerializer(
+            data=pedido_data,
+            context={**self.get_serializer_context(), "skip_financial_release": True},
+        )
         pedido_serializer.is_valid(raise_exception=True)
 
         with transaction.atomic():
@@ -292,7 +296,26 @@ class PedidoViewSet(viewsets.ModelViewSet):
             pedido.valor_total = sum(
                 (item.subtotal for item in itens), Decimal("0.00")
             )
-            pedido.save(update_fields=["valor_total"])
+            if pedido.valor_pago > pedido.valor_total:
+                raise ValidationError(
+                    {"valor_pago": "O valor pago nao pode exceder o total dos itens."}
+                )
+
+            if (
+                pedido.status in {"Em Producao", "Pronto para Entrega", "Entregue"}
+                and not pedido.liberado_financeiro
+            ):
+                raise ValidationError(
+                    {
+                        "status": (
+                            "Para liberar a producao de pedidos a partir de R$ 50,00, "
+                            "registre o pagamento de pelo menos 50%."
+                        )
+                    }
+                )
+
+            pedido.atualizar_status_pagamento()
+            pedido.save(update_fields=["valor_total", "status_pagamento"])
 
         return Response(
             {

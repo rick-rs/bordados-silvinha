@@ -22,7 +22,6 @@ const statusOptions = [
   'Entregue',
   'Cancelado',
 ];
-const paymentOptions = ['Pendente', 'Parcial', 'Pago'];
 const channelOptions = ['Instagram', 'WhatsApp', 'Facebook', 'Marketplace', 'Outro'];
 const paymentMethodOptions = ['Pix', 'Dinheiro', 'Cartao', 'Transferencia'];
 
@@ -31,7 +30,7 @@ type OrderEditForm = {
   prazo: string;
   canal: string;
   forma_pagamento: string;
-  status_pagamento: string;
+  valor_pago: string;
   status: string;
   urgente: boolean;
   precisa_matriz: boolean;
@@ -47,7 +46,7 @@ const initialForm: OrderEditForm = {
   prazo: '',
   canal: 'WhatsApp',
   forma_pagamento: 'Pix',
-  status_pagamento: 'Pendente',
+  valor_pago: '0.00',
   status: 'Recebido',
   urgente: false,
   precisa_matriz: true,
@@ -109,7 +108,7 @@ export function OrderEditPage() {
             prazo: order.prazo ?? '',
             canal: order.canal ?? 'WhatsApp',
             forma_pagamento: order.forma_pagamento ?? 'Pix',
-            status_pagamento: order.status_pagamento ?? 'Pendente',
+            valor_pago: order.valor_pago,
             status: order.status,
             urgente: order.urgente,
             precisa_matriz: order.precisa_matriz,
@@ -167,7 +166,7 @@ export function OrderEditPage() {
       prazo: form.prazo,
       canal: form.canal,
       forma_pagamento: form.forma_pagamento,
-      status_pagamento: form.status_pagamento,
+      valor_pago: form.valor_pago,
       status: form.status,
       urgente: form.urgente,
       precisa_matriz: form.precisa_matriz,
@@ -298,24 +297,6 @@ export function OrderEditPage() {
                 </select>
               </label>
 
-              <label className="grid gap-2" htmlFor="status_pagamento">
-                <span className="text-sm font-bold text-mauve">Status pagamento</span>
-                <select
-                  className="min-h-12 rounded-lg border border-frenchRose/20 bg-white px-4 text-ink outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
-                  id="status_pagamento"
-                  onChange={(event) =>
-                    updateField('status_pagamento', event.target.value)
-                  }
-                  value={form.status_pagamento}
-                >
-                  {paymentOptions.map((payment) => (
-                    <option key={payment} value={payment}>
-                      {payment}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
               <TextField
                 label="Valor total *"
                 min="0"
@@ -325,6 +306,16 @@ export function OrderEditPage() {
                 step="0.01"
                 type="number"
                 value={form.valor_total}
+              />
+
+              <TextField
+                label="Valor pago até agora"
+                min="0"
+                name="valor_pago"
+                onChange={(event) => updateField('valor_pago', event.target.value)}
+                step="0.01"
+                type="number"
+                value={form.valor_pago}
               />
 
               <label

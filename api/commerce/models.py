@@ -134,6 +134,7 @@ class Pedido(models.Model):
     status_pagamento = models.CharField(
         max_length=32, choices=STATUS_PAGAMENTO_CHOICES, blank=True, null=True
     )
+    valor_pago = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     urgente = models.BooleanField(default=False)
     precisa_matriz = models.BooleanField(default=True)
     observacoes = models.TextField(blank=True, null=True)
@@ -142,6 +143,25 @@ class Pedido(models.Model):
     status = models.CharField(max_length=32, choices=STATUS_CHOICES, default="Recebido")
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
+
+    @property
+    def saldo_restante(self):
+        return max(self.valor_total - self.valor_pago, 0)
+
+    @property
+    def liberado_financeiro(self):
+        return self.valor_total < 50 or self.valor_pago * 2 >= self.valor_total
+
+    def atualizar_status_pagamento(self, save=False):
+        if self.valor_total > 0 and self.valor_pago >= self.valor_total:
+            self.status_pagamento = "Pago"
+        elif self.valor_pago > 0:
+            self.status_pagamento = "Parcial"
+        else:
+            self.status_pagamento = "Pendente"
+
+        if save and self.pk:
+            self.save(update_fields=["status_pagamento"])
 
     def __str__(self):
         """Return a human-friendly representation for a pedido."""

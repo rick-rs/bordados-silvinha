@@ -87,6 +87,44 @@ def test_criar_pedido_completo_reverte_pedido_quando_item_falha(api_client, clie
 
 
 @pytest.mark.django_db
+def test_criar_pedido_completo_nao_usa_total_enviado_para_liberar_producao(
+    api_client, cliente
+):
+    produto = models.Produto.objects.create(
+        nome="Bordado",
+        preco_base=Decimal("100.00"),
+        tipo="bordado",
+    )
+
+    resp = api_client.post(
+        "/api/pedidos/criar-completo/",
+        {
+            "pedido": {
+                "cliente": cliente.id,
+                "forma_pagamento": "Pix",
+                "status": "Em Producao",
+                "prazo": (timezone.localdate() + timedelta(days=3)).isoformat(),
+                "valor_total": "1.00",
+                "valor_pago": "0.00",
+            },
+            "itens": [
+                {
+                    "produto": produto.id,
+                    "peca": "Toalha",
+                    "quantidade": 1,
+                    "valor_unitario": "100.00",
+                }
+            ],
+        },
+        format="json",
+    )
+
+    assert resp.status_code == 400
+    assert models.Pedido.objects.count() == 0
+    assert models.ItemPedido.objects.count() == 0
+
+
+@pytest.mark.django_db
 def test_catalogo_filtra_por_tipo_e_status_ativo(api_client):
     models.Produto.objects.create(nome="Camiseta", tipo="peca", ativo=True)
     models.Produto.objects.create(nome="Logo", tipo="bordado", ativo=True)

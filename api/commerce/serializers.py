@@ -78,6 +78,13 @@ class ProdutoSerializer(serializers.ModelSerializer):
 class PedidoSerializer(serializers.ModelSerializer):
     """Serializer for `Pedido`."""
 
+    precisa_matriz = serializers.BooleanField(required=False, default=True)
+    status_pagamento = serializers.SerializerMethodField()
+    saldo_restante = serializers.DecimalField(
+        max_digits=12, decimal_places=2, read_only=True
+    )
+    liberado_financeiro = serializers.BooleanField(read_only=True)
+
     class Meta:
         """Meta for PedidoSerializer."""
 
@@ -87,8 +94,21 @@ class PedidoSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         """Default new orders to the current local date."""
         validated_data.setdefault("data_pedido", timezone.localdate())
+        pedido = super().create(validated_data)
+        pedido.atualizar_status_pagamento(save=True)
+        return pedido
 
-        return super().create(validated_data)
+    def update(self, instance, validated_data):
+        pedido = super().update(instance, validated_data)
+        pedido.atualizar_status_pagamento(save=True)
+        return pedido
+
+    def get_status_pagamento(self, instance):
+        if instance.valor_total > 0 and instance.valor_pago >= instance.valor_total:
+            return "Pago"
+        if instance.valor_pago > 0:
+            return "Parcial"
+        return "Pendente"
 
     def validate(self, attrs):
         """Validate order business rules that belong to the backend."""
@@ -96,6 +116,18 @@ class PedidoSerializer(serializers.ModelSerializer):
         payment_method = attrs.get(
             "forma_pagamento", getattr(instance, "forma_pagamento", None)
         )
+        total = attrs.get("valor_total", getattr(instance, "valor_total", 0))
+        paid = attrs.get("valor_pago", getattr(instance, "valor_pago", 0))
+
+        if total < 0:
+            raise serializers.ValidationError(
+                {"valor_total": "O valor total nao pode ser negativo."}
+            )
+
+        if paid < 0 or paid > total:
+            raise serializers.ValidationError(
+                {"valor_pago": "O valor pago deve estar entre zero e o total do pedido."}
+            )
 
         if not payment_method:
             raise serializers.ValidationError(
@@ -121,6 +153,23 @@ class PedidoSerializer(serializers.ModelSerializer):
 
         current_status = getattr(instance, "status", None)
         next_status = attrs.get("status", current_status)
+
+        production_statuses = {"Em Producao", "Pronto para Entrega", "Entregue"}
+        financial_release = total < 50 or paid * 2 >= total
+
+        if (
+            next_status in production_statuses
+            and not financial_release
+            and not self.context.get("skip_financial_release", False)
+        ):
+            raise serializers.ValidationError(
+                {
+                    "status": (
+                        "Para liberar a producao de pedidos a partir de R$ 50,00, "
+                        "registre o pagamento de pelo menos 50%."
+                    )
+                }
+            )
 
         if (
             instance

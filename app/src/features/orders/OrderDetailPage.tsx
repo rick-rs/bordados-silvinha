@@ -199,6 +199,22 @@ export function OrderDetailPage() {
                 }
               />
               <DescriptionItem
+                label="Situação financeira"
+                value={order.status_pagamento ?? 'Pendente'}
+              />
+              <DescriptionItem
+                label="Valor pago"
+                value={formatCurrency(order.valor_pago) ?? 'R$ 0,00'}
+              />
+              <DescriptionItem
+                label="Saldo restante"
+                value={formatCurrency(order.saldo_restante) ?? 'R$ 0,00'}
+              />
+              <DescriptionItem
+                label="Liberação financeira"
+                value={order.liberado_financeiro ? 'Liberado' : 'Aguardando pagamento'}
+              />
+              <DescriptionItem
                 label="Obs. entrega"
                 value={order.observacoes_entrega || '-'}
               />

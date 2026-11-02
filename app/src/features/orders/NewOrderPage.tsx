@@ -30,7 +30,6 @@ import {
   parseMoney,
   paymentMethodLabel,
   paymentMethodOptions,
-  paymentOptions,
   toDecimalString,
 } from './orderUtils';
 import { useOrderItems, type OrderItemForm } from './hooks/useOrderItems';
@@ -50,7 +49,7 @@ const initialOrderForm: Omit<OrderPayload, 'cliente' | 'valor_total'> & {
   prazo: '',
   canal: 'WhatsApp',
   forma_pagamento: 'Pix',
-  status_pagamento: 'Pendente',
+  valor_pago: '0.00',
   urgente: false,
   precisa_matriz: true,
   observacoes: '',
@@ -286,7 +285,7 @@ export function NewOrderPage() {
       prazo: form.prazo,
       canal: form.canal,
       forma_pagamento: form.forma_pagamento,
-      status_pagamento: form.status_pagamento,
+      valor_pago: form.valor_pago,
       urgente: form.urgente,
       precisa_matriz: form.precisa_matriz,
       observacoes: form.observacoes,
@@ -592,23 +591,15 @@ export function NewOrderPage() {
                 </select>
               </label>
 
-              <label className="grid gap-2" htmlFor="status_pagamento">
-                <span className="text-sm font-bold text-mauve">Status do Pagamento</span>
-                <select
-                  className="min-h-12 w-full rounded-lg border border-frenchRose/20 bg-white px-4 text-ink outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
-                  id="status_pagamento"
-                  onChange={(event) =>
-                    updateField('status_pagamento', event.target.value)
-                  }
-                  value={form.status_pagamento}
-                >
-                  {paymentOptions.map((payment) => (
-                    <option key={payment} value={payment}>
-                      {payment}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <TextField
+                label="Valor pago até agora"
+                min="0"
+                name="valor_pago"
+                onChange={(event) => updateField('valor_pago', event.target.value)}
+                step="0.01"
+                type="number"
+                value={form.valor_pago}
+              />
 
               <label
                 className="flex min-h-12 items-center gap-3 rounded-lg border border-frenchRose/20 bg-white px-4"
@@ -872,7 +863,7 @@ function OrderSummary({
           <p className="font-extrabold text-ink">Prazo {formatDate(form.prazo)}</p>
           <p className="mt-1 text-sm text-slate-600">
             {form.canal} · {paymentMethodLabel(form.forma_pagamento)} ·{' '}
-            {form.status_pagamento}
+            {formatCurrency(parseMoney(form.valor_pago)) ?? 'R$ 0,00'} pago
           </p>
           {form.urgente ? (
             <p className="mt-2 inline-flex items-center gap-1 rounded-full bg-rose-50 px-2 py-1 text-xs font-extrabold text-rose-700">
