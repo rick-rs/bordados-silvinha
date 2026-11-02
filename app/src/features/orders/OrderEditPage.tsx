@@ -34,6 +34,7 @@ type OrderEditForm = {
   status_pagamento: string;
   status: string;
   urgente: boolean;
+  precisa_matriz: boolean;
   data_entrega: string;
   observacoes_entrega: string;
   motivo_cancelamento: string;
@@ -49,6 +50,7 @@ const initialForm: OrderEditForm = {
   status_pagamento: 'Pendente',
   status: 'Recebido',
   urgente: false,
+  precisa_matriz: true,
   data_entrega: '',
   observacoes_entrega: '',
   motivo_cancelamento: '',
@@ -110,6 +112,7 @@ export function OrderEditPage() {
             status_pagamento: order.status_pagamento ?? 'Pendente',
             status: order.status,
             urgente: order.urgente,
+            precisa_matriz: order.precisa_matriz,
             data_entrega: order.data_entrega ?? '',
             observacoes_entrega: order.observacoes_entrega ?? '',
             motivo_cancelamento: order.motivo_cancelamento ?? '',
@@ -167,6 +170,7 @@ export function OrderEditPage() {
       status_pagamento: form.status_pagamento,
       status: form.status,
       urgente: form.urgente,
+      precisa_matriz: form.precisa_matriz,
       observacoes: form.observacoes,
       valor_total: form.valor_total,
     };
@@ -336,6 +340,24 @@ export function OrderEditPage() {
                 />
                 <span className="text-sm font-bold text-mauve">
                   Marcar como urgente
+                </span>
+              </label>
+
+              <label
+                className="flex min-h-12 items-center gap-3 rounded-lg border border-frenchRose/20 bg-white px-4"
+                htmlFor="precisa_matriz"
+              >
+                <input
+                  checked={form.precisa_matriz}
+                  className="h-4 w-4 rounded border-frenchRose/30 text-frenchRose focus:ring-frenchRose/20"
+                  id="precisa_matriz"
+                  onChange={(event) =>
+                    updateField('precisa_matriz', event.target.checked)
+                  }
+                  type="checkbox"
+                />
+                <span className="text-sm font-bold text-mauve">
+                  Precisa de matriz para bordado
                 </span>
               </label>
 

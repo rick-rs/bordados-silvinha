@@ -135,6 +135,7 @@ class Pedido(models.Model):
         max_length=32, choices=STATUS_PAGAMENTO_CHOICES, blank=True, null=True
     )
     urgente = models.BooleanField(default=False)
+    precisa_matriz = models.BooleanField(default=True)
     observacoes = models.TextField(blank=True, null=True)
     motivo_cancelamento = models.TextField(blank=True, null=True)
     valor_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)

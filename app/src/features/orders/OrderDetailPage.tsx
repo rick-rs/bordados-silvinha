@@ -181,6 +181,10 @@ export function OrderDetailPage() {
                   )
                 }
               />
+              <DescriptionItem
+                label="Matriz"
+                value={order.precisa_matriz ? 'Precisa de matriz' : 'Sem matriz'}
+              />
               <DescriptionItem label="Status" value={statusLabel(order.status)} />
               <DescriptionItem
                 label="Data de entrega"
