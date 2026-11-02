@@ -68,27 +68,37 @@ docker compose down
 
 ## Produção com Nginx
 
-A produção usa Nginx no host como proxy reverso e `docker-compose.prod.yml` para os containers. O Nginx escuta na porta 80; API e frontend são publicados somente em `127.0.0.1`, e o PostgreSQL não publica portas. Os serviços permanecem na rede Docker interna. Esta configuração é HTTP sem TLS; configure HTTPS quando tiver domínio.
+A produção usa Nginx no host como proxy reverso e `docker-compose.prod.yml` para os containers. API e frontend são publicados somente em `127.0.0.1`, e o PostgreSQL não publica portas. O domínio `bordados-silvinha.ddnsfree.com` deve resolver para o IP público do servidor; o Nginx redireciona HTTP para HTTPS com certificado Let's Encrypt. O frontend Vite Preview também precisa permitir o hostname de produção em `preview.allowedHosts`.
 
 O arquivo `.env.prod` contém os segredos locais da implantação, tem permissões restritas e não deve ser versionado. O repositório inclui apenas o modelo sem segredos `.env.prod.example`. Neste servidor, o `.env.prod` já foi gerado com chaves aleatórias; ajuste `DJANGO_ALLOWED_HOSTS` quando o IP público mudar ou quando adicionar domínio.
 
-Instalar o Nginx uma vez no host e ativar a configuração do projeto:
+Instalar Nginx e Certbot uma vez no host. Primeiro ative a configuração HTTP temporária, usada para validar o domínio e emitir o certificado:
 
 ```bash
-sudo apt-get update && sudo apt-get install -y nginx
-sudo install -m 0644 deploy/nginx/bordados.conf /etc/nginx/sites-available/bordados
+sudo apt-get update && sudo apt-get install -y nginx certbot
+sudo mkdir -p /var/www/certbot
+sudo install -m 0644 deploy/nginx/bordados-http.conf /etc/nginx/sites-available/bordados
 sudo ln -sfn /etc/nginx/sites-available/bordados /etc/nginx/sites-enabled/bordados
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t && sudo systemctl enable --now nginx
+sudo certbot certonly --webroot -w /var/www/certbot -d bordados-silvinha.ddnsfree.com
+sudo install -d -m 0755 /etc/letsencrypt/renewal-hooks/deploy
+sudo install -m 0755 deploy/certbot/reload-nginx /etc/letsencrypt/renewal-hooks/deploy/reload-nginx
+sudo install -m 0644 deploy/nginx/bordados.conf /etc/nginx/sites-available/bordados
+sudo nginx -t && sudo systemctl reload nginx
+sudo certbot renew --cert-name bordados-silvinha.ddnsfree.com --dry-run
 ```
 
-Na Oracle Cloud, permita entrada TCP/80 no NSG ou Security List. No host, o UFW deve permitir HTTP; a imagem Oracle também carrega um `REJECT` global antes das chains do UFW, então a exceção persistente de TCP/80 deve ficar antes dele. Isso mantém a regra de SSH e não abre as portas dos containers:
+Antes de emitir o certificado, permita entrada TCP/80 e TCP/443 no NSG ou Security List da Oracle Cloud. No host, libere as mesmas portas no UFW; na imagem Oracle, a exceção persistente deve ficar antes do `REJECT` global:
 
 ```bash
 sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
 sudo cp -a /etc/iptables/rules.v4 /etc/iptables/rules.v4.bak
 grep -qE '^-A INPUT .*--dport 80 -j ACCEPT' /etc/iptables/rules.v4 || sudo sed -i '/^-A INPUT -j REJECT/i -A INPUT -p tcp -m state --state NEW -m tcp --dport 80 -j ACCEPT' /etc/iptables/rules.v4
+grep -qE '^-A INPUT .*--dport 443 -j ACCEPT' /etc/iptables/rules.v4 || sudo sed -i '/^-A INPUT -j REJECT/i -A INPUT -p tcp -m state --state NEW -m tcp --dport 443 -j ACCEPT' /etc/iptables/rules.v4
 sudo iptables -C INPUT -p tcp -m state --state NEW -m tcp --dport 80 -j ACCEPT || sudo iptables -I INPUT 5 -p tcp -m state --state NEW -m tcp --dport 80 -j ACCEPT
+sudo iptables -C INPUT -p tcp -m state --state NEW -m tcp --dport 443 -j ACCEPT || sudo iptables -I INPUT 6 -p tcp -m state --state NEW -m tcp --dport 443 -j ACCEPT
 ```
 
 Não abra as portas 8000, 4173 ou 5432.
