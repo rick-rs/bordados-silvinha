@@ -2,11 +2,23 @@
 
 from django.contrib.auth.hashers import identify_hasher, make_password
 from django.utils import timezone
+from rest_framework.exceptions import PermissionDenied
 from rest_framework import serializers
 
 from . import models
 
 TERMINAL_ORDER_STATUSES = {"Entregue", "Cancelado"}
+PRODUCTION_ORDER_STATUSES = {
+    "Aguardando Matriz",
+    "Em Producao",
+    "Pronto para Entrega",
+    "Entregue",
+}
+ORDER_TRANSITIONS = {
+    "Aguardando Matriz": {"Em Producao"},
+    "Em Producao": {"Pronto para Entrega"},
+    "Pronto para Entrega": {"Entregue"},
+}
 
 
 def is_password_hash(value: str) -> bool:
@@ -47,6 +59,36 @@ class UsuarioSerializer(serializers.ModelSerializer):
 
         return super().update(instance, validated_data)
 
+    def validate(self, attrs):
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        protected_fields = {"perfil", "pode_gerenciar_matrizes", "ativo"}
+
+        if (
+            self.instance
+            and not getattr(user, "is_administrador", False)
+            and protected_fields.intersection(self.initial_data)
+        ):
+            raise serializers.ValidationError(
+                "Somente administradores podem alterar perfil, permissões ou ativação."
+            )
+
+        if self.instance:
+            remains_active_admin = (
+                attrs.get("perfil", self.instance.perfil) == "administrador"
+                and attrs.get("ativo", self.instance.ativo)
+            )
+            if self.instance.perfil == "administrador" and self.instance.ativo and not remains_active_admin:
+                another_active_admin_exists = models.Usuario.objects.filter(
+                    perfil="administrador", ativo=True
+                ).exclude(pk=self.instance.pk).exists()
+                if not another_active_admin_exists:
+                    raise serializers.ValidationError(
+                        "Não é possível desativar ou rebaixar o último administrador ativo."
+                    )
+
+        return attrs
+
 
 class LoginSerializer(serializers.Serializer):
     """Validate login payload."""
@@ -78,6 +120,14 @@ class ProdutoSerializer(serializers.ModelSerializer):
 class PedidoSerializer(serializers.ModelSerializer):
     """Serializer for `Pedido`."""
 
+    precisa_matriz = serializers.BooleanField(required=False, default=True)
+    status_pagamento = serializers.SerializerMethodField()
+    saldo_restante = serializers.DecimalField(
+        max_digits=12, decimal_places=2, read_only=True
+    )
+    liberado_financeiro = serializers.BooleanField(read_only=True)
+    concluido = serializers.BooleanField(read_only=True)
+
     class Meta:
         """Meta for PedidoSerializer."""
 
@@ -87,8 +137,21 @@ class PedidoSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         """Default new orders to the current local date."""
         validated_data.setdefault("data_pedido", timezone.localdate())
+        pedido = super().create(validated_data)
+        pedido.atualizar_status_pagamento(save=True)
+        return pedido
 
-        return super().create(validated_data)
+    def update(self, instance, validated_data):
+        pedido = super().update(instance, validated_data)
+        pedido.atualizar_status_pagamento(save=True)
+        return pedido
+
+    def get_status_pagamento(self, instance):
+        if instance.valor_total > 0 and instance.valor_pago >= instance.valor_total:
+            return "Pago"
+        if instance.valor_pago > 0:
+            return "Parcial"
+        return "Pendente"
 
     def validate(self, attrs):
         """Validate order business rules that belong to the backend."""
@@ -96,6 +159,18 @@ class PedidoSerializer(serializers.ModelSerializer):
         payment_method = attrs.get(
             "forma_pagamento", getattr(instance, "forma_pagamento", None)
         )
+        total = attrs.get("valor_total", getattr(instance, "valor_total", 0))
+        paid = attrs.get("valor_pago", getattr(instance, "valor_pago", 0))
+
+        if total < 0:
+            raise serializers.ValidationError(
+                {"valor_total": "O valor total nao pode ser negativo."}
+            )
+
+        if paid < 0 or paid > total:
+            raise serializers.ValidationError(
+                {"valor_pago": "O valor pago deve estar entre zero e o total do pedido."}
+            )
 
         if not payment_method:
             raise serializers.ValidationError(
@@ -120,7 +195,77 @@ class PedidoSerializer(serializers.ModelSerializer):
                 )
 
         current_status = getattr(instance, "status", None)
-        next_status = attrs.get("status", current_status)
+        next_status = attrs.get("status", current_status or "Recebido")
+        user = getattr(self.context.get("request"), "user", None)
+        can_manage_matrix = (
+            isinstance(user, models.Usuario) and user.pode_gerenciar_matrizes
+        )
+
+        if attrs.get("precisa_matriz") is False and not can_manage_matrix:
+            raise PermissionDenied(
+                "Você não tem permissão para dispensar ou alterar a necessidade de matriz."
+            )
+
+        if (
+            instance
+            and "precisa_matriz" in attrs
+            and attrs["precisa_matriz"] != instance.precisa_matriz
+            and not can_manage_matrix
+        ):
+            raise PermissionDenied(
+                "Você não tem permissão para alterar a necessidade de matriz."
+            )
+
+        financial_release = total < 50 or paid * 2 >= total
+
+        if (
+            next_status in PRODUCTION_ORDER_STATUSES
+            and not financial_release
+            and not self.context.get("skip_financial_release", False)
+        ):
+            raise serializers.ValidationError(
+                {
+                    "status": (
+                        "Para liberar a producao de pedidos a partir de R$ 50,00, "
+                        "registre o pagamento de pelo menos 50%."
+                    )
+                }
+            )
+
+        if not instance and next_status != "Recebido":
+            raise serializers.ValidationError(
+                {"status": "Um pedido novo deve iniciar como Recebido."}
+            )
+
+        if instance and next_status != current_status:
+            if next_status == "Cancelado":
+                pass
+            elif (
+                current_status == "Aguardando Matriz"
+                and next_status == "Em Producao"
+            ):
+                request = self.context.get("request")
+                user = getattr(request, "user", None)
+                if not (
+                    isinstance(user, models.Usuario)
+                    and user.pode_gerenciar_matrizes
+                ):
+                    raise PermissionDenied(
+                        "Você não tem permissão para aprovar matrizes."
+                    )
+            elif current_status == "Recebido":
+                expected_status = (
+                    "Aguardando Matriz" if instance.precisa_matriz
+                    else "Em Producao"
+                )
+                if next_status != expected_status:
+                    raise serializers.ValidationError(
+                        {"status": f"A proxima etapa deste pedido e {expected_status}."}
+                    )
+            elif next_status not in ORDER_TRANSITIONS.get(current_status, set()):
+                raise serializers.ValidationError(
+                    {"status": "Transicao de status invalida para esta etapa do pedido."}
+                )
 
         if (
             instance

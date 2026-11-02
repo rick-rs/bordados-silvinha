@@ -16,7 +16,12 @@ export type Order = {
   canal: string | null;
   forma_pagamento: string | null;
   status_pagamento: string | null;
+  valor_pago: string;
+  saldo_restante: string;
+  liberado_financeiro: boolean;
+  concluido: boolean;
   urgente: boolean;
+  precisa_matriz: boolean;
   observacoes: string | null;
   motivo_cancelamento: string | null;
   valor_total: string;
@@ -30,8 +35,9 @@ export type OrderPayload = {
   prazo: string;
   canal: string;
   forma_pagamento: string;
-  status_pagamento: string;
+  valor_pago: string;
   urgente?: boolean;
+  precisa_matriz: boolean;
   observacoes: string;
   valor_total: string;
 };

@@ -17,6 +17,7 @@ import { ProfilePage } from './src/features/profile/ProfilePage';
 import { StockDetailPage } from './src/features/stock/StockDetailPage';
 import { StockEditPage, StockNewPage } from './src/features/stock/StockEditPage';
 import { StockPage } from './src/features/stock/StockPage';
+import { UsersAdminPage } from './src/features/users/UsersAdminPage';
 import './src/theme/global.css';
 
 function App() {
@@ -44,6 +45,7 @@ function App() {
         <Route element={<StockDetailPage />} path="/estoque/:id" />
         <Route element={<AccessibilityPage />} path="/perfil/acessibilidade" />
         <Route element={<ProfilePage />} path="/perfil" />
+        <Route element={<UsersAdminPage />} path="/usuarios" />
         <Route element={<Navigate replace to="/dashboard" />} path="*" />
       </Routes>
     </BrowserRouter></AccessibilityProvider>

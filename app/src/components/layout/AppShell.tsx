@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 
-import { clearSession } from '../../services/auth';
+import { clearSession, getSession } from '../../services/auth';
 import { AppBrand } from './AppBrand';
 
 type AppShellProps = {
@@ -37,6 +37,10 @@ const navItems: NavItem[] = [
 
 export function AppShell({ activePage, children }: AppShellProps) {
   const navigate = useNavigate();
+  const session = getSession();
+  const visibleNavItems = session?.perfil === 'administrador'
+    ? [...navItems, { label: 'Usuários', icon: Users, path: '/usuarios' }]
+    : navItems;
 
   function handleLogout() {
     clearSession();
@@ -65,7 +69,7 @@ export function AppShell({ activePage, children }: AppShellProps) {
         </Link>
 
         <nav aria-label="Navegação principal" className="flex flex-1 flex-col gap-1 px-2 py-3">
-          {navItems.map((item) => (
+          {visibleNavItems.map((item) => (
             <NavItemLink
               active={activePage === item.label}
               item={item}
@@ -97,7 +101,7 @@ export function AppShell({ activePage, children }: AppShellProps) {
 
       <nav aria-label="Navegação móvel" className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-2 py-2 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur md:hidden">
         <div className="flex gap-1 overflow-x-auto pb-1">
-          {[...navItems, { label: 'Perfil', icon: CircleUser, path: '/perfil' }].map(
+          {[...visibleNavItems, { label: 'Perfil', icon: CircleUser, path: '/perfil' }].map(
             (item) => {
               const Icon = item.icon;
 

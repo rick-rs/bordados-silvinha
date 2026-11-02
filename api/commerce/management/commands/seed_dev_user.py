@@ -23,6 +23,8 @@ class Command(BaseCommand):
                 "nome": "Admin Teste",
                 "senha_hash": make_password("admin"),
                 "ativo": True,
+                "perfil": "administrador",
+                "pode_gerenciar_matrizes": True,
             },
         )
 

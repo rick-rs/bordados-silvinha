@@ -86,6 +86,11 @@ export function OrderTableRow({
       </td>
       <td className="px-4 py-3">
         <OrderStatusBadge status={order.status} />
+        {order.status === 'Entregue' ? (
+          <p className="mt-1 text-xs font-semibold text-slate-500">
+            {order.concluido ? 'Concluído' : 'Aguardando quitação'}
+          </p>
+        ) : null}
       </td>
       <td className="px-4 py-3">
         <p className="font-extrabold text-ink">{total}</p>

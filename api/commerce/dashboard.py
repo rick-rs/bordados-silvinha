@@ -3,7 +3,7 @@
 from datetime import timedelta
 from decimal import Decimal
 
-from django.db.models import Count, F, Q, Sum
+from django.db.models import Count, DecimalField, ExpressionWrapper, F, Q, Sum
 from django.utils import timezone
 
 from . import models
@@ -69,15 +69,15 @@ def get_dashboard_summary() -> dict:
                 criado_em__month=today.month,
             )
         )
-        .filter(status_pagamento__in=["Pago", "Parcial"])
+        .filter(valor_pago__gt=0)
         .exclude(status="Cancelado")
     )
     open_orders = models.Pedido.objects.filter(status__in=OPEN_ORDER_STATUSES)
     overdue_orders = open_orders.filter(prazo__lt=today)
     due_soon_orders = open_orders.filter(prazo__gte=today, prazo__lte=soon_limit)
     urgent_orders = open_orders.filter(urgente=True)
-    pending_payment_orders = models.Pedido.objects.exclude(
-        status_pagamento="Pago"
+    pending_payment_orders = models.Pedido.objects.filter(
+        valor_pago__lt=F("valor_total")
     ).exclude(status="Cancelado")
     stock_alerts = models.Material.objects.filter(
         quantidade_atual__lte=F("estoque_minimo")
@@ -86,10 +86,15 @@ def get_dashboard_summary() -> dict:
         "-criado_em", "-id"
     )[:8]
 
-    revenue = month_orders.aggregate(total=Sum("valor_total"))["total"]
-    pending_payment_total = pending_payment_orders.aggregate(total=Sum("valor_total"))[
-        "total"
-    ]
+    revenue = month_orders.aggregate(total=Sum("valor_pago"))["total"]
+    pending_payment_total = pending_payment_orders.aggregate(
+        total=Sum(
+            ExpressionWrapper(
+                F("valor_total") - F("valor_pago"),
+                output_field=DecimalField(max_digits=12, decimal_places=2),
+            )
+        )
+    )["total"]
 
     return {
         "metrics": {

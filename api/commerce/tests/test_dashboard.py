@@ -37,6 +37,7 @@ def test_dashboard_summary_calculates_metrics(api_client):
         data_pedido=today,
         prazo=today - timedelta(days=1),
         valor_total=150,
+        valor_pago=150,
         status_pagamento="Pago",
         status="Em Producao",
         urgente=True,
@@ -53,6 +54,7 @@ def test_dashboard_summary_calculates_metrics(api_client):
         data_pedido=today,
         prazo=today + timedelta(days=3),
         valor_total=80,
+        valor_pago=40,
         status_pagamento="Parcial",
         status="Recebido",
     )
@@ -61,6 +63,7 @@ def test_dashboard_summary_calculates_metrics(api_client):
         data_pedido=today,
         prazo=today + timedelta(days=2),
         valor_total=40,
+        valor_pago=40,
         status_pagamento="Pago",
         status="Cancelado",
         motivo_cancelamento="Cliente desistiu.",
@@ -77,12 +80,12 @@ def test_dashboard_summary_calculates_metrics(api_client):
     assert resp.status_code == 200
     data = resp.json()
     assert data["metrics"]["orders_in_progress"] == 3
-    assert data["metrics"]["monthly_revenue"] == "R$ 230,00"
+    assert data["metrics"]["monthly_revenue"] == "R$ 190,00"
     assert data["metrics"]["overdue_orders"] == 1
     assert data["metrics"]["stock_alerts"] == 1
     assert data["metrics"]["urgent_orders"] == 1
     assert data["metrics"]["pending_payments"] == 2
-    assert data["metrics"]["pending_payments_value"] == "R$ 130,00"
+    assert data["metrics"]["pending_payments_value"] == "R$ 90,00"
     assert {"status": "Em Produção", "count": 1} in data["orders_by_status"]
     assert data["deadline_alerts"][0]["status"] == "Atrasado"
     assert data["deadline_alerts"][0]["urgent"] is True

@@ -181,7 +181,21 @@ export function OrderDetailPage() {
                   )
                 }
               />
+              <DescriptionItem
+                label="Matriz"
+                value={order.precisa_matriz ? 'Precisa de matriz' : 'Sem matriz'}
+              />
               <DescriptionItem label="Status" value={statusLabel(order.status)} />
+              <DescriptionItem
+                label="Conclusão"
+                value={
+                  order.concluido
+                    ? 'Concluído'
+                    : order.status === 'Entregue'
+                      ? 'Aguardando quitação'
+                      : 'Em andamento'
+                }
+              />
               <DescriptionItem
                 label="Data de entrega"
                 value={formatDate(order.data_entrega)}
@@ -193,6 +207,22 @@ export function OrderDetailPage() {
                     {formatCurrency(order.valor_total) ?? 'R$ 0,00'}
                   </span>
                 }
+              />
+              <DescriptionItem
+                label="Situação financeira"
+                value={order.status_pagamento ?? 'Pendente'}
+              />
+              <DescriptionItem
+                label="Valor pago"
+                value={formatCurrency(order.valor_pago) ?? 'R$ 0,00'}
+              />
+              <DescriptionItem
+                label="Saldo restante"
+                value={formatCurrency(order.saldo_restante) ?? 'R$ 0,00'}
+              />
+              <DescriptionItem
+                label="Liberação financeira"
+                value={order.liberado_financeiro ? 'Liberado' : 'Aguardando pagamento'}
               />
               <DescriptionItem
                 label="Obs. entrega"

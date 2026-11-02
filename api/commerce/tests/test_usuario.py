@@ -1,10 +1,21 @@
+from io import StringIO
+from unittest.mock import patch
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import check_password
+from django.core.management import call_command
 from django.test import override_settings
 from rest_framework.test import APIClient
 
 from commerce import models
+from commerce.authentication import issue_token
+
+
+def usuario_client(usuario):
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {issue_token(usuario)}")
+    return client
 
 
 @pytest.mark.django_db
@@ -56,6 +67,8 @@ def test_usuario_crud_api(api_client):
     data = resp.json()
     assert data["email"] == payload["email"]
     assert "senha_hash" not in data
+    assert data["perfil"] == "geral"
+    assert data["pode_gerenciar_matrizes"] is False
     usuario = models.Usuario.objects.get(id=data["id"])
     assert usuario.senha_hash != payload["senha_hash"]
     assert check_password(payload["senha_hash"], usuario.senha_hash)
@@ -65,12 +78,126 @@ def test_usuario_crud_api(api_client):
     assert resp.status_code == 200
 
     resp = api_client.patch(
-        f"/api/usuarios/{uid}/", {"nome": "Usu Novo"}, format="json"
+        f"/api/usuarios/{uid}/",
+        {
+            "nome": "Usu Novo",
+            "perfil": "geral",
+            "pode_gerenciar_matrizes": True,
+        },
+        format="json",
     )
     assert resp.status_code in (200, 202)
+    assert resp.json()["perfil"] == "geral"
+    assert resp.json()["pode_gerenciar_matrizes"] is True
 
-    resp = api_client.delete(f"/api/usuarios/{uid}/")
-    assert resp.status_code in (204, 200, 202)
+    resp = api_client.patch(
+        f"/api/usuarios/{uid}/", {"ativo": False}, format="json"
+    )
+    assert resp.status_code == 200
+    assert resp.json()["ativo"] is False
+
+
+@pytest.mark.django_db
+def test_administrador_pode_configurar_perfil_e_permissao_matriz(api_client):
+    response = api_client.post(
+        "/api/usuarios/",
+        {
+            "nome": "Aprovador",
+            "email": "aprovador@test.local",
+            "senha_hash": "senha123",
+            "perfil": "geral",
+            "pode_gerenciar_matrizes": True,
+        },
+        format="json",
+    )
+
+    assert response.status_code == 201
+    assert response.json()["perfil"] == "geral"
+    assert response.json()["pode_gerenciar_matrizes"] is True
+
+
+@pytest.mark.django_db
+def test_nao_e_possivel_remover_o_ultimo_administrador(api_client):
+    admin = models.Usuario.objects.get(email="api-tester@example.local")
+
+    disabled = api_client.patch(
+        f"/api/usuarios/{admin.id}/", {"ativo": False}, format="json"
+    )
+    assert disabled.status_code == 400
+
+    downgraded = api_client.patch(
+        f"/api/usuarios/{admin.id}/", {"perfil": "geral"}, format="json"
+    )
+    assert downgraded.status_code == 400
+
+    deleted = api_client.delete(f"/api/usuarios/{admin.id}/")
+    assert deleted.status_code == 400
+
+    admin.refresh_from_db()
+    assert admin.ativo is True
+    assert admin.perfil == "administrador"
+
+
+@pytest.mark.django_db
+@override_settings(API_PUBLIC_ACCESS=True)
+def test_usuario_geral_so_acessa_a_propria_conta(api_client):
+    own = models.Usuario.objects.create(
+        nome="Usuário Geral",
+        email="geral@test.local",
+        senha_hash="hash",
+    )
+    other = models.Usuario.objects.create(
+        nome="Outra Conta",
+        email="outra@test.local",
+        senha_hash="hash",
+    )
+    client = usuario_client(own)
+
+    assert client.get("/api/usuarios/").status_code == 403
+    assert client.get(f"/api/usuarios/{other.id}/").status_code == 404
+    assert client.patch(
+        f"/api/usuarios/{other.id}/", {"nome": "Invadida"}, format="json"
+    ).status_code == 404
+    assert client.delete(f"/api/usuarios/{other.id}/").status_code == 403
+    assert client.get(f"/api/usuarios/{own.id}/").status_code == 200
+    assert client.patch(
+        f"/api/usuarios/{own.id}/", {"nome": "Nome Atualizado"}, format="json"
+    ).status_code == 200
+    assert client.post(
+        "/api/usuarios/",
+        {"nome": "Conta", "email": "conta@test.local", "senha_hash": "pw"},
+        format="json",
+    ).status_code == 403
+
+
+@pytest.mark.django_db
+def test_usuario_geral_nao_pode_elevar_o_proprio_perfil(api_client):
+    user = models.Usuario.objects.create(
+        nome="Usuário Geral",
+        email="sem-promocao@test.local",
+        senha_hash="hash",
+    )
+    client = usuario_client(user)
+
+    response = client.patch(
+        f"/api/usuarios/{user.id}/",
+        {"perfil": "administrador", "pode_gerenciar_matrizes": True},
+        format="json",
+    )
+
+    assert response.status_code == 400
+    user.refresh_from_db()
+    assert user.perfil == "geral"
+    assert user.pode_gerenciar_matrizes is False
+
+
+@pytest.mark.django_db
+@override_settings(API_PUBLIC_ACCESS=True)
+def test_usuarios_nao_autenticados_nao_administram_contas(anonymous_api_client):
+    assert anonymous_api_client.get("/api/usuarios/").status_code == 401
+    assert anonymous_api_client.post(
+        "/api/usuarios/", {"nome": "Anon", "email": "anon@test.local", "senha_hash": "pw"}, format="json"
+    ).status_code == 401
 
 
 @pytest.mark.django_db
@@ -119,6 +246,25 @@ def test_usuario_login_nao_exige_csrf_de_sessao_django():
 
     assert response.status_code == 401
     assert response.json()["detail"] == "E-mail ou senha invalidos."
+
+
+@pytest.mark.django_db
+def test_bootstrap_cria_administrador_sem_permissao_de_matriz_implicita():
+    with patch(
+        "commerce.management.commands.bootstrap_admin.getpass",
+        side_effect=["secure-pass", "secure-pass"],
+    ):
+        call_command(
+            "bootstrap_admin",
+            nome="Admin Inicial",
+            email="admin-inicial@test.local",
+            stdout=StringIO(),
+        )
+
+    user = models.Usuario.objects.get(email="admin-inicial@test.local")
+    assert user.perfil == "administrador"
+    assert user.pode_gerenciar_matrizes is False
+    assert check_password("secure-pass", user.senha_hash)
 
 
 @pytest.mark.django_db

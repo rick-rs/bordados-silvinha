@@ -5,6 +5,8 @@ export type Usuario = {
   nome: string;
   email: string;
   ativo: boolean;
+  perfil: 'administrador' | 'geral';
+  pode_gerenciar_matrizes: boolean;
 };
 
 export type LoginCredentials = {

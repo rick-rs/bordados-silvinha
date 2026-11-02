@@ -14,15 +14,6 @@ import {
   updateOrder,
 } from '../../services/orders';
 
-const statusOptions = [
-  'Recebido',
-  'Aguardando Matriz',
-  'Em Producao',
-  'Pronto para Entrega',
-  'Entregue',
-  'Cancelado',
-];
-const paymentOptions = ['Pendente', 'Parcial', 'Pago'];
 const channelOptions = ['Instagram', 'WhatsApp', 'Facebook', 'Marketplace', 'Outro'];
 const paymentMethodOptions = ['Pix', 'Dinheiro', 'Cartao', 'Transferencia'];
 
@@ -31,9 +22,10 @@ type OrderEditForm = {
   prazo: string;
   canal: string;
   forma_pagamento: string;
-  status_pagamento: string;
+  valor_pago: string;
   status: string;
   urgente: boolean;
+  precisa_matriz: boolean;
   data_entrega: string;
   observacoes_entrega: string;
   motivo_cancelamento: string;
@@ -46,9 +38,10 @@ const initialForm: OrderEditForm = {
   prazo: '',
   canal: 'WhatsApp',
   forma_pagamento: 'Pix',
-  status_pagamento: 'Pendente',
+  valor_pago: '0.00',
   status: 'Recebido',
   urgente: false,
+  precisa_matriz: true,
   data_entrega: '',
   observacoes_entrega: '',
   motivo_cancelamento: '',
@@ -58,6 +51,38 @@ const initialForm: OrderEditForm = {
 
 function statusLabel(status: string) {
   return status === 'Em Producao' ? 'Em Produção' : status;
+}
+
+function availableStatusOptions(
+  currentStatus: string,
+  precisaMatriz: boolean,
+  totalValue: string,
+  paidValue: string,
+) {
+  const statuses = [currentStatus];
+  const total = Number(totalValue);
+  const paid = Number(paidValue);
+  const financiallyReleased =
+    Number.isFinite(total) &&
+    Number.isFinite(paid) &&
+    total >= 0 &&
+    (total < 50 || paid * 2 >= total);
+
+  if (currentStatus === 'Recebido' && financiallyReleased) {
+    statuses.push(precisaMatriz ? 'Aguardando Matriz' : 'Em Producao');
+  } else if (currentStatus === 'Aguardando Matriz' && financiallyReleased) {
+    statuses.push('Em Producao');
+  } else if (currentStatus === 'Em Producao') {
+    statuses.push('Pronto para Entrega');
+  } else if (currentStatus === 'Pronto para Entrega') {
+    statuses.push('Entregue');
+  }
+
+  if (currentStatus !== 'Entregue' && currentStatus !== 'Cancelado') {
+    statuses.push('Cancelado');
+  }
+
+  return statuses;
 }
 
 function paymentMethodLabel(paymentMethod: string) {
@@ -107,9 +132,10 @@ export function OrderEditPage() {
             prazo: order.prazo ?? '',
             canal: order.canal ?? 'WhatsApp',
             forma_pagamento: order.forma_pagamento ?? 'Pix',
-            status_pagamento: order.status_pagamento ?? 'Pendente',
+            valor_pago: order.valor_pago,
             status: order.status,
             urgente: order.urgente,
+            precisa_matriz: order.precisa_matriz,
             data_entrega: order.data_entrega ?? '',
             observacoes_entrega: order.observacoes_entrega ?? '',
             motivo_cancelamento: order.motivo_cancelamento ?? '',
@@ -164,9 +190,10 @@ export function OrderEditPage() {
       prazo: form.prazo,
       canal: form.canal,
       forma_pagamento: form.forma_pagamento,
-      status_pagamento: form.status_pagamento,
+      valor_pago: form.valor_pago,
       status: form.status,
       urgente: form.urgente,
+      precisa_matriz: form.precisa_matriz,
       observacoes: form.observacoes,
       valor_total: form.valor_total,
     };
@@ -252,7 +279,12 @@ export function OrderEditPage() {
                   onChange={(event) => updateField('status', event.target.value)}
                   value={form.status}
                 >
-                  {statusOptions.map((status) => (
+                  {availableStatusOptions(
+                    form.status,
+                    form.precisa_matriz,
+                    form.valor_total,
+                    form.valor_pago,
+                  ).map((status) => (
                     <option key={status} value={status}>
                       {statusLabel(status)}
                     </option>
@@ -294,24 +326,6 @@ export function OrderEditPage() {
                 </select>
               </label>
 
-              <label className="grid gap-2" htmlFor="status_pagamento">
-                <span className="text-sm font-bold text-mauve">Status pagamento</span>
-                <select
-                  className="min-h-12 rounded-lg border border-frenchRose/20 bg-white px-4 text-ink outline-none transition focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
-                  id="status_pagamento"
-                  onChange={(event) =>
-                    updateField('status_pagamento', event.target.value)
-                  }
-                  value={form.status_pagamento}
-                >
-                  {paymentOptions.map((payment) => (
-                    <option key={payment} value={payment}>
-                      {payment}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
               <TextField
                 label="Valor total *"
                 min="0"
@@ -321,6 +335,16 @@ export function OrderEditPage() {
                 step="0.01"
                 type="number"
                 value={form.valor_total}
+              />
+
+              <TextField
+                label="Valor pago até agora"
+                min="0"
+                name="valor_pago"
+                onChange={(event) => updateField('valor_pago', event.target.value)}
+                step="0.01"
+                type="number"
+                value={form.valor_pago}
               />
 
               <label
@@ -336,6 +360,24 @@ export function OrderEditPage() {
                 />
                 <span className="text-sm font-bold text-mauve">
                   Marcar como urgente
+                </span>
+              </label>
+
+              <label
+                className="flex min-h-12 items-center gap-3 rounded-lg border border-frenchRose/20 bg-white px-4"
+                htmlFor="precisa_matriz"
+              >
+                <input
+                  checked={form.precisa_matriz}
+                  className="h-4 w-4 rounded border-frenchRose/30 text-frenchRose focus:ring-frenchRose/20"
+                  id="precisa_matriz"
+                  onChange={(event) =>
+                    updateField('precisa_matriz', event.target.checked)
+                  }
+                  type="checkbox"
+                />
+                <span className="text-sm font-bold text-mauve">
+                  Precisa de matriz para bordado
                 </span>
               </label>
 
