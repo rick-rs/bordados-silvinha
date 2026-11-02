@@ -3,14 +3,20 @@ import pytest
 
 @pytest.fixture
 def api_client(db):
-    from django.contrib.auth import get_user_model
     from rest_framework.test import APIClient
+    from commerce.authentication import issue_token
+    from commerce.models import Usuario
 
-    user_model = get_user_model()
-    user = user_model.objects.create_user(username="api-tester", password="secret")
+    user = Usuario.objects.create(
+        nome="API Admin",
+        email="api-tester@example.local",
+        senha_hash="test-hash",
+        perfil="administrador",
+        pode_gerenciar_matrizes=True,
+    )
 
     client = APIClient()
-    client.force_authenticate(user=user)
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {issue_token(user)}")
     return client
 
 

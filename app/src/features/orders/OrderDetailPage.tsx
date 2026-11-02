@@ -187,6 +187,16 @@ export function OrderDetailPage() {
               />
               <DescriptionItem label="Status" value={statusLabel(order.status)} />
               <DescriptionItem
+                label="Conclusão"
+                value={
+                  order.concluido
+                    ? 'Concluído'
+                    : order.status === 'Entregue'
+                      ? 'Aguardando quitação'
+                      : 'Em andamento'
+                }
+              />
+              <DescriptionItem
                 label="Data de entrega"
                 value={formatDate(order.data_entrega)}
               />

@@ -15,7 +15,7 @@ from rest_framework.views import APIView
 from .authentication import UsuarioAuthentication, issue_token
 from rest_framework.response import Response
 
-from . import dashboard, models, serializers
+from . import dashboard, models, permissions, serializers
 from .pagination import StandardResultsSetPagination
 
 
@@ -62,6 +62,21 @@ class UsuarioViewSet(viewsets.ModelViewSet):
 
     queryset = models.Usuario.objects.all()
     serializer_class = serializers.UsuarioSerializer
+
+    def get_permissions(self):
+        if self.action == "login":
+            return [AllowAny()]
+        if self.action in {"retrieve", "update", "partial_update", "trocar_senha"}:
+            return [IsAuthenticated(), permissions.IsUsuarioSelfOrCommerceAdmin()]
+        return [IsAuthenticated(), permissions.IsCommerceAdmin()]
+
+    def get_queryset(self):
+        user = self.request.user
+        if isinstance(user, models.Usuario) and user.is_administrador:
+            return models.Usuario.objects.all()
+        if isinstance(user, models.Usuario):
+            return models.Usuario.objects.filter(pk=user.pk)
+        return models.Usuario.objects.none()
 
     @action(
         detail=False,

@@ -10,16 +10,29 @@ from django.db import models
 class Usuario(models.Model):
     """Represent a system user."""
 
+    PERFIL_CHOICES = (
+        ("administrador", "Administrador"),
+        ("geral", "Usuário geral"),
+    )
+
     nome = models.CharField(max_length=255)
     email = models.EmailField(unique=True)
     senha_hash = models.CharField(max_length=255)
     ativo = models.BooleanField(default=True)
+    perfil = models.CharField(
+        max_length=16, choices=PERFIL_CHOICES, default="geral"
+    )
+    pode_gerenciar_matrizes = models.BooleanField(default=False)
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
 
     @property
     def is_authenticated(self):
         return True
+
+    @property
+    def is_administrador(self):
+        return self.perfil == "administrador"
 
     def __str__(self):
         """Return display name for admin and logs."""
@@ -151,6 +164,10 @@ class Pedido(models.Model):
     @property
     def liberado_financeiro(self):
         return self.valor_total < 50 or self.valor_pago * 2 >= self.valor_total
+
+    @property
+    def concluido(self):
+        return self.status == "Entregue" and self.saldo_restante == 0
 
     def atualizar_status_pagamento(self, save=False):
         if self.valor_total > 0 and self.valor_pago >= self.valor_total:

@@ -5,8 +5,10 @@ from zoneinfo import ZoneInfo
 import pytest
 from django.test import override_settings
 from django.utils import timezone
+from rest_framework.test import APIClient
 
 from commerce import models
+from commerce.authentication import issue_token
 
 
 @pytest.mark.django_db
@@ -256,6 +258,50 @@ def test_pedido_com_matriz_respeita_etapas_e_historico(api_client, cliente):
 
 
 @pytest.mark.django_db
+def test_aprovacao_de_matriz_exige_permissao_especifica(api_client, cliente):
+    pedido = models.Pedido.objects.create(
+        cliente=cliente,
+        forma_pagamento="Pix",
+        prazo=timezone.localdate() + timedelta(days=2),
+        valor_total=Decimal("100.00"),
+        valor_pago=Decimal("50.00"),
+        status="Aguardando Matriz",
+    )
+    geral = models.Usuario.objects.create(
+        nome="Usuário sem permissão",
+        email="sem-matriz@test.local",
+        senha_hash="hash",
+    )
+    denied_client = APIClient()
+    denied_client.credentials(HTTP_AUTHORIZATION=f"Bearer {issue_token(geral)}")
+
+    denied = denied_client.patch(
+        f"/api/pedidos/{pedido.id}/", {"status": "Em Producao"}, format="json"
+    )
+
+    assert denied.status_code == 403
+    pedido.refresh_from_db()
+    assert pedido.status == "Aguardando Matriz"
+    assert not models.HistoricoStatus.objects.filter(pedido=pedido).exists()
+
+    autorizado = models.Usuario.objects.create(
+        nome="Aprovador",
+        email="com-matriz@test.local",
+        senha_hash="hash",
+        pode_gerenciar_matrizes=True,
+    )
+    allowed_client = APIClient()
+    allowed_client.credentials(HTTP_AUTHORIZATION=f"Bearer {issue_token(autorizado)}")
+    approved = allowed_client.patch(
+        f"/api/pedidos/{pedido.id}/", {"status": "Em Producao"}, format="json"
+    )
+
+    assert approved.status_code == 200
+    assert approved.json()["status"] == "Em Producao"
+    assert models.HistoricoStatus.objects.get(pedido=pedido).status_novo == "Em Producao"
+
+
+@pytest.mark.django_db
 def test_pedido_sem_matriz_avanca_direto_para_producao(api_client, cliente):
     resp = api_client.post(
         "/api/pedidos/",
@@ -299,6 +345,89 @@ def test_pedido_novo_nao_pode_iniciar_em_etapa_avancada(api_client, cliente):
 
     assert resp.status_code == 400
     assert "status" in resp.json()
+
+
+@pytest.mark.django_db
+def test_pedido_entregue_com_saldo_aguarda_quitacao_para_concluir(
+    api_client, cliente
+):
+    resp = api_client.post(
+        "/api/pedidos/",
+        {
+            "cliente": cliente.id,
+            "forma_pagamento": "Pix",
+            "prazo": (timezone.localdate() + timedelta(days=2)).isoformat(),
+            "valor_total": "100.00",
+            "valor_pago": "50.00",
+        },
+        format="json",
+    )
+    pedido_id = resp.json()["id"]
+
+    for next_status in (
+        "Aguardando Matriz",
+        "Em Producao",
+        "Pronto para Entrega",
+        "Entregue",
+    ):
+        resp = api_client.patch(
+            f"/api/pedidos/{pedido_id}/", {"status": next_status}, format="json"
+        )
+        assert resp.status_code == 200
+
+    assert resp.json()["status"] == "Entregue"
+    assert resp.json()["saldo_restante"] == "50.00"
+    assert resp.json()["concluido"] is False
+
+    resp = api_client.patch(
+        f"/api/pedidos/{pedido_id}/", {"valor_pago": "100.00"}, format="json"
+    )
+
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "Entregue"
+    assert resp.json()["saldo_restante"] == "0.00"
+    assert resp.json()["concluido"] is True
+    assert list(
+        models.HistoricoStatus.objects.filter(pedido_id=pedido_id)
+        .order_by("registrado_em")
+        .values_list("status_novo", flat=True)
+    ) == ["Aguardando Matriz", "Em Producao", "Pronto para Entrega", "Entregue"]
+
+
+@pytest.mark.django_db
+def test_quitacao_antecipada_nao_conclui_antes_da_entrega(api_client, cliente):
+    resp = api_client.post(
+        "/api/pedidos/",
+        {
+            "cliente": cliente.id,
+            "forma_pagamento": "Pix",
+            "prazo": (timezone.localdate() + timedelta(days=2)).isoformat(),
+            "valor_total": "100.00",
+            "valor_pago": "100.00",
+        },
+        format="json",
+    )
+    pedido_id = resp.json()["id"]
+    assert resp.json()["concluido"] is False
+
+    for next_status in (
+        "Aguardando Matriz",
+        "Em Producao",
+        "Pronto para Entrega",
+    ):
+        resp = api_client.patch(
+            f"/api/pedidos/{pedido_id}/", {"status": next_status}, format="json"
+        )
+        assert resp.status_code == 200
+        assert resp.json()["concluido"] is False
+
+    resp = api_client.patch(
+        f"/api/pedidos/{pedido_id}/", {"status": "Entregue"}, format="json"
+    )
+
+    assert resp.status_code == 200
+    assert resp.json()["status_pagamento"] == "Pago"
+    assert resp.json()["concluido"] is True
 
 
 @pytest.mark.django_db

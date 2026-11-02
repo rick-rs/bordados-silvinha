@@ -115,6 +115,11 @@ export const OrderCard = memo(
             <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold truncate ${paymentClassName(payment)}`}>
               {paymentMethod ? `${paymentMethod} · ${payment}` : payment}
             </span>
+            {order.status === 'Entregue' ? (
+              <p className="text-[11px] font-semibold text-slate-500">
+                {order.concluido ? 'Concluído' : 'Aguardando quitação'}
+              </p>
+            ) : null}
 
             <p className="line-clamp-2 text-xs leading-snug text-slate-600 break-words">
               {itemSummary}

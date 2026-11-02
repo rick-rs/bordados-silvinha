@@ -19,6 +19,7 @@ export type Order = {
   valor_pago: string;
   saldo_restante: string;
   liberado_financeiro: boolean;
+  concluido: boolean;
   urgente: boolean;
   precisa_matriz: boolean;
   observacoes: string | null;

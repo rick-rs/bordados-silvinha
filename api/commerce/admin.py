@@ -9,7 +9,15 @@ from . import models
 class UsuarioAdmin(admin.ModelAdmin):
     """Admin for `Usuario`. Shows basic fields and provides search."""
 
-    list_display = ("id", "nome", "email", "ativo", "criado_em")
+    list_display = (
+        "id",
+        "nome",
+        "email",
+        "perfil",
+        "pode_gerenciar_matrizes",
+        "ativo",
+        "criado_em",
+    )
     search_fields = ("nome", "email")
 
 
