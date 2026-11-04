@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react';
+import { Plus, Trash2 } from 'lucide-react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 
 import { AppShell } from '../../components/layout/AppShell';
@@ -6,13 +7,23 @@ import { Button } from '../../components/ui/buttons';
 import { TextField } from '../../components/ui/forms';
 import { ConfirmDialog } from '../../components/ui/dialogs';
 import { AlertMessage } from '../../components/ui/feedback';
+import { ApiError } from '../../services/api';
 import { getSession } from '../../services/auth';
 import { Client, listClients } from '../../services/clients';
 import {
+  createOrderItem,
+  deleteOrderItem,
   getOrder,
+  listOrderItems,
+  listProducts,
+  OrderItemPayload,
   OrderPatchPayload,
+  Product,
+  updateOrderItem,
   updateOrder,
 } from '../../services/orders';
+import { formatCurrency } from '../../utils/format';
+import { parseMoney, toDecimalString } from './orderUtils';
 
 const channelOptions = ['Instagram', 'WhatsApp', 'Facebook', 'Marketplace', 'Outro'];
 const paymentMethodOptions = ['Pix', 'Dinheiro', 'Cartao', 'Transferencia'];
@@ -30,8 +41,35 @@ type OrderEditForm = {
   observacoes_entrega: string;
   motivo_cancelamento: string;
   observacoes: string;
-  valor_total: string;
 };
+
+type EditableOrderItem = {
+  key: string;
+  id?: number;
+  produto: string;
+  peca: string;
+  local_bordado: string;
+  descricao_bordado: string;
+  quantidade: string;
+  valor_unitario: string;
+};
+
+function emptyOrderItem(): EditableOrderItem {
+  return {
+    key: `new-${Date.now()}-${Math.random()}`,
+    produto: '',
+    peca: '',
+    local_bordado: '',
+    descricao_bordado: '',
+    quantidade: '1',
+    valor_unitario: '',
+  };
+}
+
+function calculateItemTotal(item: EditableOrderItem) {
+  const quantity = Number.parseInt(item.quantidade, 10);
+  return (Number.isNaN(quantity) ? 0 : quantity) * parseMoney(item.valor_unitario);
+}
 
 const initialForm: OrderEditForm = {
   cliente: '',
@@ -46,7 +84,6 @@ const initialForm: OrderEditForm = {
   observacoes_entrega: '',
   motivo_cancelamento: '',
   observacoes: '',
-  valor_total: '0.00',
 };
 
 function statusLabel(status: string) {
@@ -103,6 +140,10 @@ export function OrderEditPage() {
   const { id } = useParams();
   const [form, setForm] = useState<OrderEditForm>(initialForm);
   const [clients, setClients] = useState<Client[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [items, setItems] = useState<EditableOrderItem[]>([]);
+  const [originalItems, setOriginalItems] = useState<EditableOrderItem[]>([]);
+  const [originalStatus, setOriginalStatus] = useState('Recebido');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
@@ -121,12 +162,26 @@ export function OrderEditPage() {
       }
 
       try {
-        const [order, clientsResponse] = await Promise.all([
+        const [order, clientsResponse, itemResponse, productResponse] = await Promise.all([
           getOrder(orderId),
           listClients(),
+          listOrderItems(),
+          listProducts(),
         ]);
 
         if (isMounted) {
+          const orderItems = itemResponse
+            .filter((item) => item.pedido === orderId)
+            .map((item) => ({
+              key: String(item.id),
+              id: item.id,
+              produto: String(item.produto),
+              peca: item.peca ?? '',
+              local_bordado: item.local_bordado ?? '',
+              descricao_bordado: item.descricao_bordado ?? '',
+              quantidade: String(item.quantidade),
+              valor_unitario: item.valor_unitario,
+            }));
           setForm({
             cliente: String(order.cliente),
             prazo: order.prazo ?? '',
@@ -140,8 +195,11 @@ export function OrderEditPage() {
             observacoes_entrega: order.observacoes_entrega ?? '',
             motivo_cancelamento: order.motivo_cancelamento ?? '',
             observacoes: order.observacoes ?? '',
-            valor_total: order.valor_total,
           });
+          setItems(orderItems);
+          setOriginalItems(orderItems);
+          setOriginalStatus(order.status);
+          setProducts(productResponse);
           setClients(clientsResponse);
           setError('');
         }
@@ -171,6 +229,34 @@ export function OrderEditPage() {
     setForm((currentForm) => ({ ...currentForm, [field]: value }));
   }
 
+  function updateItem(key: string, field: keyof EditableOrderItem, value: string) {
+    setItems((currentItems) => currentItems.map((item) => {
+      if (item.key !== key) return item;
+      if (field === 'produto') {
+        const product = products.find((currentProduct) => String(currentProduct.id) === value);
+        return {
+          ...item,
+          produto: value,
+          peca: product?.nome ?? item.peca,
+          valor_unitario: product?.preco_base ?? item.valor_unitario,
+        };
+      }
+      return { ...item, [field]: value };
+    }));
+  }
+
+  function addItem() {
+    setItems((currentItems) => [...currentItems, emptyOrderItem()]);
+  }
+
+  function removeItem(key: string) {
+    setItems((currentItems) => currentItems.filter((item) => item.key !== key));
+  }
+
+  function getItemsTotal() {
+    return items.reduce((total, item) => total + calculateItemTotal(item), 0);
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setShowConfirm(true);
@@ -185,6 +271,17 @@ export function OrderEditPage() {
       return;
     }
 
+    if (!items.length || items.some((item) => (
+      !item.produto ||
+      !Number.isInteger(Number(item.quantidade)) ||
+      Number(item.quantidade) < 1 ||
+      parseMoney(item.valor_unitario) <= 0
+    ))) {
+      setError('Inclua ao menos um item e informe produto, quantidade e valor unitário válidos.');
+      setShowConfirm(false);
+      return;
+    }
+
     const payload: OrderPatchPayload = {
       cliente: Number(form.cliente),
       prazo: form.prazo,
@@ -195,28 +292,55 @@ export function OrderEditPage() {
       urgente: form.urgente,
       precisa_matriz: form.precisa_matriz,
       observacoes: form.observacoes,
-      valor_total: form.valor_total,
     };
-
-    if (form.status === 'Entregue') {
-      payload.data_entrega = form.data_entrega;
-      payload.observacoes_entrega = form.observacoes_entrega;
-    }
-
-    if (form.status === 'Cancelado') {
-      payload.motivo_cancelamento = form.motivo_cancelamento;
-    }
 
     setIsSaving(true);
     setError('');
 
     try {
-      const order = await updateOrder(orderId, payload);
+      await updateOrder(orderId, { ...payload, status: originalStatus });
+
+      const currentItemIds = new Set(items.flatMap((item) => item.id ? [item.id] : []));
+      const removedItems = originalItems.filter((item) => item.id && !currentItemIds.has(item.id));
+
+      for (const item of items) {
+        const itemPayload: OrderItemPayload = {
+          pedido: orderId,
+          produto: Number(item.produto),
+          peca: item.peca,
+          local_bordado: item.local_bordado,
+          descricao_bordado: item.descricao_bordado,
+          quantidade: Number(item.quantidade),
+          valor_unitario: toDecimalString(parseMoney(item.valor_unitario)),
+        };
+
+        if (item.id) {
+          await updateOrderItem(item.id, itemPayload);
+        } else {
+          await createOrderItem(itemPayload);
+        }
+      }
+
+      for (const item of removedItems) {
+        await deleteOrderItem(item.id!);
+      }
+
+      const statusPayload: OrderPatchPayload = { status: form.status };
+      if (form.status === 'Entregue') {
+        statusPayload.data_entrega = form.data_entrega;
+        statusPayload.observacoes_entrega = form.observacoes_entrega;
+      }
+      if (form.status === 'Cancelado') {
+        statusPayload.motivo_cancelamento = form.motivo_cancelamento;
+      }
+      const order = await updateOrder(orderId, statusPayload);
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
       navigate(`/pedidos/${order.id}`, { replace: true });
-    } catch {
-      setError('Não foi possível salvar as alterações do pedido.');
+    } catch (saveError) {
+      setError(saveError instanceof ApiError
+        ? saveError.message
+        : 'Não foi possível salvar as alterações do pedido.');
     } finally {
       setIsSaving(false);
       setShowConfirm(false);
@@ -282,7 +406,7 @@ export function OrderEditPage() {
                   {availableStatusOptions(
                     form.status,
                     form.precisa_matriz,
-                    form.valor_total,
+                      toDecimalString(getItemsTotal()),
                     form.valor_pago,
                   ).map((status) => (
                     <option key={status} value={status}>
@@ -326,16 +450,12 @@ export function OrderEditPage() {
                 </select>
               </label>
 
-              <TextField
-                label="Valor total *"
-                min="0"
-                name="valor_total"
-                onChange={(event) => updateField('valor_total', event.target.value)}
-                required
-                step="0.01"
-                type="number"
-                value={form.valor_total}
-              />
+              <div className="grid content-center gap-2">
+                <span className="text-sm font-bold text-mauve">Total calculado</span>
+                <span className="min-h-12 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 font-extrabold text-ink">
+                  {formatCurrency(getItemsTotal()) ?? 'R$ 0,00'}
+                </span>
+              </div>
 
               <TextField
                 label="Valor pago até agora"
@@ -391,6 +511,98 @@ export function OrderEditPage() {
                 />
               ) : null}
             </div>
+
+            <section className="rounded-lg border border-slate-200 bg-white">
+              <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+                <h2 className="text-sm font-extrabold text-ink">Itens do pedido</h2>
+                <Button className="min-h-9 px-3 text-xs" onClick={addItem} type="button">
+                  <Plus aria-hidden className="h-4 w-4" />
+                  Adicionar item
+                </Button>
+              </div>
+              <div className="grid gap-4 p-4">
+                {items.map((item, index) => (
+                  <article className="grid gap-3 rounded-md border border-slate-200 p-4" key={item.key}>
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="text-sm font-bold text-ink">Item {index + 1}</h3>
+                      <button
+                        aria-label={`Remover item ${index + 1}`}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-md text-rose-700 hover:bg-rose-50 disabled:opacity-50"
+                        disabled={items.length === 1}
+                        onClick={() => removeItem(item.key)}
+                        title="Remover item"
+                        type="button"
+                      >
+                        <Trash2 aria-hidden className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                      <label className="grid gap-2 lg:col-span-2" htmlFor={`produto-${item.key}`}>
+                        <span className="text-sm font-bold text-mauve">Produto *</span>
+                        <select
+                          className="min-h-12 rounded-lg border border-frenchRose/20 bg-white px-4 text-ink outline-none focus:border-frenchRose focus:ring-4 focus:ring-frenchRose/15"
+                          id={`produto-${item.key}`}
+                          onChange={(event) => updateItem(item.key, 'produto', event.target.value)}
+                          required
+                          value={item.produto}
+                        >
+                          <option value="">Selecione</option>
+                          {products.map((product) => (
+                            <option key={product.id} value={product.id}>{product.nome}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <TextField
+                        label="Peça"
+                        name={`peca-${item.key}`}
+                        onChange={(event) => updateItem(item.key, 'peca', event.target.value)}
+                        value={item.peca}
+                      />
+                      <TextField
+                        label="Quantidade *"
+                        min="1"
+                        name={`quantidade-${item.key}`}
+                        onChange={(event) => updateItem(item.key, 'quantidade', event.target.value)}
+                        required
+                        type="number"
+                        value={item.quantidade}
+                      />
+                      <TextField
+                        label="Valor unitário *"
+                        min="0.01"
+                        name={`valor-${item.key}`}
+                        onChange={(event) => updateItem(item.key, 'valor_unitario', event.target.value)}
+                        required
+                        step="0.01"
+                        type="number"
+                        value={item.valor_unitario}
+                      />
+                      <TextField
+                        label="Local do bordado"
+                        name={`local-${item.key}`}
+                        onChange={(event) => updateItem(item.key, 'local_bordado', event.target.value)}
+                        value={item.local_bordado}
+                      />
+                      <TextField
+                        label="Descrição do bordado"
+                        name={`descricao-${item.key}`}
+                        onChange={(event) => updateItem(item.key, 'descricao_bordado', event.target.value)}
+                        value={item.descricao_bordado}
+                      />
+                      <div className="grid content-center gap-1">
+                        <span className="text-sm font-bold text-mauve">Subtotal</span>
+                        <span className="font-extrabold text-ink">
+                          {formatCurrency(calculateItemTotal(item)) ?? 'R$ 0,00'}
+                        </span>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+                <p className="text-right text-lg font-extrabold text-ink">
+                  Total dos itens: {formatCurrency(getItemsTotal()) ?? 'R$ 0,00'}
+                </p>
+              </div>
+            </section>
 
             {form.status === 'Entregue' ? (
               <label className="grid gap-2" htmlFor="observacoes_entrega">
