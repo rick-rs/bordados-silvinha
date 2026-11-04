@@ -432,3 +432,7 @@ buck-out/
 
 # Local Codex configuration
 /.codex/
+
+# Nginx config files with real values (use .conf.example templates)
+deploy/nginx/bordados.conf
+deploy/nginx/bordados-http.conf

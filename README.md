@@ -77,14 +77,14 @@ Instalar Nginx e Certbot uma vez no host. Primeiro ative a configuração HTTP t
 ```bash
 sudo apt-get update && sudo apt-get install -y nginx certbot
 sudo mkdir -p /var/www/certbot
-sudo install -m 0644 deploy/nginx/bordados-http.conf /etc/nginx/sites-available/bordados
-sudo ln -sfn /etc/nginx/sites-available/bordados /etc/nginx/sites-enabled/bordados
-sudo rm -f /etc/nginx/sites-enabled/default
+sudo install -m 0644 deploy/nginx/bordados-http.conf.example <caminho-nginx>/sites-available/bordados
+sudo ln -sfn <caminho-nginx>/sites-available/bordados <caminho-nginx>/sites-enabled/bordados
+sudo rm -f <caminho-nginx>/sites-enabled/default
 sudo nginx -t && sudo systemctl enable --now nginx
 sudo certbot certonly --webroot -w /var/www/certbot -d bordados-silvinha.ddnsfree.com
-sudo install -d -m 0755 /etc/letsencrypt/renewal-hooks/deploy
-sudo install -m 0755 deploy/certbot/reload-nginx /etc/letsencrypt/renewal-hooks/deploy/reload-nginx
-sudo install -m 0644 deploy/nginx/bordados.conf /etc/nginx/sites-available/bordados
+sudo install -d -m 0755 <caminho-letsencrypt>/renewal-hooks/deploy
+sudo install -m 0755 deploy/certbot/reload-nginx <caminho-letsencrypt>/renewal-hooks/deploy/reload-nginx
+sudo install -m 0644 deploy/nginx/bordados.conf.example <caminho-nginx>/sites-available/bordados
 sudo nginx -t && sudo systemctl reload nginx
 sudo certbot renew --cert-name bordados-silvinha.ddnsfree.com --dry-run
 ```
@@ -94,9 +94,9 @@ Antes de emitir o certificado, permita entrada TCP/80 e TCP/443 no NSG ou Securi
 ```bash
 sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
-sudo cp -a /etc/iptables/rules.v4 /etc/iptables/rules.v4.bak
-grep -qE '^-A INPUT .*--dport 80 -j ACCEPT' /etc/iptables/rules.v4 || sudo sed -i '/^-A INPUT -j REJECT/i -A INPUT -p tcp -m state --state NEW -m tcp --dport 80 -j ACCEPT' /etc/iptables/rules.v4
-grep -qE '^-A INPUT .*--dport 443 -j ACCEPT' /etc/iptables/rules.v4 || sudo sed -i '/^-A INPUT -j REJECT/i -A INPUT -p tcp -m state --state NEW -m tcp --dport 443 -j ACCEPT' /etc/iptables/rules.v4
+sudo cp -a <caminho-iptables>/rules.v4 <caminho-iptables>/rules.v4.bak
+grep -qE '^-A INPUT .*--dport 80 -j ACCEPT' <caminho-iptables>/rules.v4 || sudo sed -i '/^-A INPUT -j REJECT/i -A INPUT -p tcp -m state --state NEW -m tcp --dport 80 -j ACCEPT' <caminho-iptables>/rules.v4
+grep -qE '^-A INPUT .*--dport 443 -j ACCEPT' <caminho-iptables>/rules.v4 || sudo sed -i '/^-A INPUT -j REJECT/i -A INPUT -p tcp -m state --state NEW -m tcp --dport 443 -j ACCEPT' <caminho-iptables>/rules.v4
 sudo iptables -C INPUT -p tcp -m state --state NEW -m tcp --dport 80 -j ACCEPT || sudo iptables -I INPUT 5 -p tcp -m state --state NEW -m tcp --dport 80 -j ACCEPT
 sudo iptables -C INPUT -p tcp -m state --state NEW -m tcp --dport 443 -j ACCEPT || sudo iptables -I INPUT 6 -p tcp -m state --state NEW -m tcp --dport 443 -j ACCEPT
 ```
@@ -134,7 +134,7 @@ Não use `down -v` a menos que queira apagar também os dados persistentes do Po
 
 O workflow `Deploy Production` é acionado somente quando o workflow `CI` termina com sucesso para um `push` em `main`. Pull requests não publicam a aplicação. O deploy conecta ao servidor por SSH, busca o commit aprovado, avança o checkout de produção até esse SHA e executa `docker compose up -d --build`. Ao final, verifica se a página inicial responde por HTTP. O grupo de concorrência evita deploys simultâneos.
 
-O servidor precisa ter Git e Docker Compose instalados, Nginx ativo, o checkout do repositório em uma branch `main` local, o arquivo `.env.prod` configurado e permissão para o usuário de deploy executar Docker. O `origin` desse checkout precisa permitir `git fetch` pelo próprio servidor: se o repositório for privado, configure uma chave SSH de leitura como Deploy key no repositório e aceite `github.com` em `known_hosts`. Por exemplo, gere a chave como usuário de deploy com `ssh-keygen -t ed25519 -C bordados-production-readonly -f ~/.ssh/bordados_github -N ''`, adicione o conteúdo de `~/.ssh/bordados_github.pub` em **Settings > Deploy keys** com acesso somente de leitura e configure o `origin` para usar essa identidade. Essa chave de leitura do GitHub é distinta da chave usada pelo Actions para entrar no servidor. O checkout não pode ter alterações rastreadas locais; o deploy para se encontrar modificações para evitar sobrescrevê-las.
+O servidor precisa ter Git e Docker Compose instalados, Nginx ativo, o checkout do repositório em uma branch `main` local, o arquivo `.env.prod` configurado e permissão para o usuário de deploy executar Docker. O `origin` desse checkout precisa permitir `git fetch` pelo próprio servidor: se o repositório for privado, configure uma chave SSH de leitura como Deploy key no repositório e aceite `github.com` em `known_hosts`. Por exemplo, gere a chave como usuário de deploy com `ssh-keygen -t ed25519 -C <nome-da-chave> -f ~/.ssh/<nome-da-chave> -N ''`, adicione o conteúdo de ~/.ssh/<nome-da-chave>.pub em **Settings > Deploy keys** com acesso somente de leitura e configure o `origin` para usar essa identidade. Essa chave de leitura do GitHub é distinta da chave usada pelo Actions para entrar no servidor. O checkout não pode ter alterações rastreadas locais; o deploy para se encontrar modificações para evitar sobrescrevê-las.
 
 No GitHub, crie o Environment `production` em **Settings > Environments**, restrinja as branches de deploy a `main` e cadastre nele estes secrets:
 
@@ -142,16 +142,16 @@ No GitHub, crie o Environment `production` em **Settings > Environments**, restr
 - `DEPLOY_USER`: usuário Linux que possui o checkout e pode executar Docker.
 - `DEPLOY_SSH_KEY`: chave privada Ed25519 dedicada para o Actions conectar ao servidor.
 - `DEPLOY_KNOWN_HOSTS`: linha(s) de chave(s) de host SSH do servidor, obtidas com `ssh-keyscan -H <IP-ou-host>` e verificadas por fingerprint usando um canal confiável antes de salvar.
-- `DEPLOY_PATH`: caminho absoluto do checkout, por exemplo `/home/ubuntu/bordados-silvinha`.
+- `DEPLOY_PATH`: caminho absoluto do checkout, por exemplo `<caminho-do-checkout>`.
 
 Gere uma chave exclusiva para o Actions em uma máquina administrativa confiável e instale somente a chave pública no usuário de deploy, preservando as entradas existentes de `authorized_keys`:
 
 ```bash
-ssh-keygen -t ed25519 -C github-actions-bordados-deploy -f bordados-deploy
-ssh-copy-id -i bordados-deploy.pub <usuario>@<servidor>
+ssh-keygen -t ed25519 -C <nome-da-chave> -f <nome-da-chave>
+ssh-copy-id -i <nome-da-chave>.pub <usuario>@<servidor>
 ```
 
-Cadastre o conteúdo de `bordados-deploy` em `DEPLOY_SSH_KEY`; mantenha esse arquivo privado fora do repositório. Para `DEPLOY_KNOWN_HOSTS`, confira o fingerprint da saída de `ssh-keyscan` com a informação obtida no console ou em um canal confiável do provedor antes de adicioná-la ao Environment. Não desative a verificação da chave do servidor. Depois de mesclar alterações em `main`, acompanhe as execuções de `CI` e `Deploy Production` na aba **Actions**.
+Cadastre o conteúdo de <nome-da-chave> em `DEPLOY_SSH_KEY`; mantenha esse arquivo privado fora do repositório. Para `DEPLOY_KNOWN_HOSTS`, confira o fingerprint da saída de `ssh-keyscan` com a informação obtida no console ou em um canal confiável do provedor antes de adicioná-la ao Environment. Não desative a verificação da chave do servidor. Depois de mesclar alterações em `main`, acompanhe as execuções de `CI` e `Deploy Production` na aba **Actions**.
 
 ---
 
