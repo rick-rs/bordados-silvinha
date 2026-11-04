@@ -10,6 +10,7 @@ import { FilterToolbar } from '../../components/ui/filters';
 import { PageHeader } from '../../components/ui/headers';
 import { PaginationControls } from '../../components/ui/pagination';
 import { Surface } from '../../components/ui/surfaces';
+import { ApiError } from '../../services/api';
 import { getSession } from '../../services/auth';
 import { deleteOrder, Order, updateOrder } from '../../services/orders';
 import { OrdersBoard, OrdersTable } from './OrderViews';
@@ -209,8 +210,12 @@ export function OrdersPage() {
     try {
       await updateOrder(order.id, { status });
       setFilters((current) => ({ ...current, page: 1, refresh: current.refresh + 1 }));
-    } catch {
-      setError('Não foi possível atualizar o status do pedido.');
+    } catch (requestError) {
+      setError(
+        requestError instanceof ApiError
+          ? requestError.message.replace(/^status:\s*/i, '')
+          : 'Não foi possível atualizar o status do pedido.',
+      );
     } finally {
       setUpdatingStatusId(null);
     }

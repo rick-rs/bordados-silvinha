@@ -226,8 +226,9 @@ class PedidoSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {
                     "status": (
-                        "Para liberar a producao de pedidos a partir de R$ 50,00, "
-                        "registre o pagamento de pelo menos 50%."
+                        "Este pedido ainda nao pode iniciar a producao: pedidos "
+                        "com valor total de R$ 50,00 ou mais precisam ter pelo "
+                        "menos 50% do valor total pago."
                     )
                 }
             )

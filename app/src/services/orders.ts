@@ -186,6 +186,19 @@ export function createOrderItem(payload: OrderItemPayload) {
   });
 }
 
+export function updateOrderItem(id: number, payload: Partial<OrderItemPayload>) {
+  return apiRequest<OrderItem>(`/api/itens-pedido/${id}/`, {
+    method: 'PATCH',
+    body: payload,
+  });
+}
+
+export function deleteOrderItem(id: number) {
+  return apiRequest<void>(`/api/itens-pedido/${id}/`, {
+    method: 'DELETE',
+  });
+}
+
 export function listProducts() {
   return apiRequest<Product[] | PaginatedResponse<Product>>(
     `/api/produtos/${buildQuery({ page_size: 100 })}`,

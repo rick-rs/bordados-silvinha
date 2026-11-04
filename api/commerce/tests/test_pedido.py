@@ -106,7 +106,10 @@ def test_pedido_valida_limite_para_liberar_producao(
     )
 
     assert resp.status_code == expected_status
-    if expected_status == 201:
+    if expected_status == 400:
+        assert "R$ 50,00 ou mais" in resp.json()["status"][0]
+        assert "50% do valor total pago" in resp.json()["status"][0]
+    if expected_status == 200:
         assert resp.json()["liberado_financeiro"] is True
 
 
